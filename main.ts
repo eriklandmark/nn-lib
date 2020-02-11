@@ -1,5 +1,5 @@
-import Matrix from "./matrix";
-import Vector from "./vector";
+import Matrix from "./lib/matrix";
+import Vector from "./lib/vector";
 
 let a = new Matrix([
     [1, 2, 5],
