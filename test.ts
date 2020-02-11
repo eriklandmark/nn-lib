@@ -12,13 +12,16 @@ let b = new Matrix([
     [7, 8, 1, 3],
     [9, 10, 5, 6]]);
 
-let v = new Vector([6,7]);
-let v2 = new Vector([8,9]);
+let v = new Vector([6,7,0]);
+let v2 = new Vector([8,9,8]);
 
-let c = new Matrix([v, v2]);
+let d = new Matrix([[8,1,1]])
+let c = new Matrix([v2]);
 
-console.log(a.mm(b).toString())
-console.log(b.transpose().mm(a.transpose()).toString())
+console.log(d.mm(c).toString())
+
+//console.log(a.mm(b).toString())
+//console.log(b.transpose().mm(a.transpose()).toString())
 
 /*console.log(b.toString())
 console.log(b.add(3).toString())
