@@ -1,3 +1,5 @@
+import Matrix from "./matrix";
+
 export default class Vector {
     vector: Float64Array;
 

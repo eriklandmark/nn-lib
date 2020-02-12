@@ -18,7 +18,7 @@ let v2 = new Vector([8,9,8]);
 let d = new Matrix([[8,1,1]])
 let c = new Matrix([v2]);
 
-console.log(d.mm(c).toString())
+console.log(c.mm(d).toString())
 
 //console.log(a.mm(b).toString())
 //console.log(b.transpose().mm(a.transpose()).toString())
