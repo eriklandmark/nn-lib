@@ -1,31 +1,52 @@
 import Matrix from "./lib/matrix";
 import Vector from "./lib/vector";
+import Activations from "./lib/activations";
+import * as fs from "fs";
+import {Example} from "./lib/dataset";
 
-let a = new Matrix([
-    [0,0,1],
-    [0,1,1],
-    [1,0,1],
-    [1,1,1]]);
+let h_w = new Matrix()
+let h_b = new Vector()
+let o_w = new Matrix()
+let o_b = new Vector()
 
-let b = new Matrix([
-    [1, 2, 3, 4],
-    [7, 8, 1, 3],
-    [9, 10, 5, 6]]);
+let data: Array<Example> = [
+    {
+        data: new Vector([1, 0]),
+        label: new Vector([1, 0])
+    },
+    {
+        data: new Vector([0, 1]),
+        label: new Vector([1, 0])
+    },
+    {
+        data: new Vector([1, 1]),
+        label: new Vector([0, 1])
+    },
+    {
+        data: new Vector([0, 0]),
+        label: new Vector([0, 1])
+    }
+]
 
-let v = new Vector([6,7,0]);
-let v2 = new Vector([8,9,8]);
+function loadModel() {
+    const modelData = fs.readFileSync("./nn.json", {encoding: "UTF-8"})
+    const model = JSON.parse(modelData)
+    h_w = Matrix.fromJsonObject(model["layer_1"].weights)
+    o_w = Matrix.fromJsonObject(model["output_layer"].weights)
+    //h_b = Vector.fromJsonObject(model["layer_1"].biases)
+    //o_b = Vector.fromJsonObject(model["output_layer"].biases)
+}
 
-let d = new Matrix([[8,1,1]])
-let c = new Matrix([v2]);
+//loadModel()
 
-console.log(c.mm(d).toString())
+function predict(example: Example) {
+    const z1 = (<Vector> h_w.mm(example.data)).add(h_b)
+    const a1 = Activations.sigmoid(z1)
+    const z2 = (<Vector> o_w.mm(a1)).add(o_b)
+    const a2 = Activations.sigmoid(z2)
+    return a2
+}
 
-//console.log(a.mm(b).toString())
-//console.log(b.transpose().mm(a.transpose()).toString())
+//console.log(predict(data[0]).toString())
 
-/*console.log(b.toString())
-console.log(b.add(3).toString())
-console.log(b.mm(a).toString())
-console.log(b.div(2).toString())
-console.log(b.transpose().toString())
-console.log(v.add(5).toString())*/
+console.log(new Matrix([new Vector([1,2])]).transpose().toString())

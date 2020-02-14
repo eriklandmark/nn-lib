@@ -43,7 +43,7 @@ export default class Vector {
 
     public populateRandom() {
         this.iterate((_, index) => {
-            this.set(index, (Math.random() - 0.5) * 0.1)
+            this.set(index, Math.random() * 2 - 1)
         })
     }
 
@@ -52,7 +52,7 @@ export default class Vector {
     }
 
     public add(b: number | Vector): Vector {
-        let v = new Vector(this.vector);
+        let v = new Vector(this.size());
         if (typeof b == "number") {
             let scalar: number = <number> b;
             this.iterate((val, i) => {v.set(i, val + scalar)});
@@ -65,7 +65,7 @@ export default class Vector {
     }
 
     public sub(b: number | Vector): Vector {
-        let v = new Vector(this.vector);
+        let v = new Vector(this.size());
         if (typeof b == "number") {
             let scalar: number = <number> b;
             this.iterate((val, i) => {v.set(i, val - scalar)});
@@ -78,7 +78,7 @@ export default class Vector {
     }
 
     public mul(input: number | Vector): Vector {
-        let v = new Vector(this.vector);
+        let v = new Vector(this.size());
         if (input instanceof Vector) {
             if (input.size() != this.size()) throw "Vectors to multiply aren't the same size..";
             this.iterate((val, i) => {v.set(i, val * input.get(i))});
@@ -89,7 +89,7 @@ export default class Vector {
     }
 
     public div(scalar: number): Vector {
-        let v = new Vector(this.vector);
+        let v = new Vector(this.size());
         this.iterate((val, i) => {v.set(i, val / scalar)});
         return v
     }
