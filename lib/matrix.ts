@@ -202,34 +202,14 @@ export default class Matrix {
         }
     }
 
-    public gaussian(): Matrix {
-        let m = this.copy();
-        let h = 0
-        let k = 0
-
-        while( h < m.dim().r && k < m.dim().c) {
-            let i_max = m.argmax(h, false,);
-            if (m.get(i_max) == 0) {
-                k += 1
-            } else {
-                const tempRow = m.matrix[h];
-                m.matrix[h] = m.matrix[i_max]
-                m.matrix[i_max] = tempRow;
-
-                for (let i = h + 1; i < m.dim().r; i++) {
-                    let f = m.get(i, k) / m.get(h, k)
-                    m.set(i, k, 0)
-
-                    for (let j = k + 1; j < m.dim().c; j++) {
-                        m.set(i,j, m.get(i,j) - (m.get(i,j) * f))
-                    }
-                }
-
-                h++
-                k++
-            }
+    public inv() {
+        if (this.dim().c == 1 && this.dim().c == 1) {
+            return new Matrix([[1/this.get(0,0)]])
+        } else if (this.dim().c == 2 && this.dim().c) {
+            return new Matrix([
+                [this.get(1,1), -this.get(0,1)],
+                [-this.get(1,0), this.get(0,0)]
+            ]).mul(1/((this.get(0,0)*this.get(1,1)) - (this.get(0,1)*this.get(1,0))))
         }
-
-        return m;
     }
 }

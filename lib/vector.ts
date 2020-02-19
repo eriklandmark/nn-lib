@@ -107,4 +107,8 @@ export default class Vector {
     public mean(): number {
         return this.sum() / this.size();
     }
+
+    public argmax() {
+        return this.vector.reduce((acc: number, va: number, ind) => va > this.get(acc) ? ind : acc, 0)
+    }
 }

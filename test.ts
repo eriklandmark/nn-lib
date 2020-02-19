@@ -3,6 +3,7 @@ import Vector from "./lib/vector";
 import Activations from "./lib/activations";
 import * as fs from "fs";
 import {Example} from "./lib/dataset";
+import MatrixHelper from "./lib/matrix_helper";
 
 let h_w = new Matrix()
 let h_b = new Vector()
@@ -51,9 +52,8 @@ function predict(example: Example) {
 //console.log(new Matrix([new Vector([])]).transpose().toString())
 
 const m = new Matrix([
-    [2, 1, -1],
-    [-3, -1,2],
-    [-2, 1, 2]
+    [2, 1],
+    [-3, -1],
 ])
 
 const m2 = new Matrix([
@@ -64,4 +64,11 @@ const m2 = new Matrix([
     [1, 4, 16]
 ])
 
-console.log((<Matrix> m2.transpose().mm(m2)).gaussian().toString())
+//console.log((<Matrix> m2.transpose().mm(m2)).gaussian().toString())
+
+const x = new Vector([1,2,3])
+const y = new Vector([1,3,2])
+
+console.log(m.inv().toString())
+
+MatrixHelper.linear_least_squares(x, y)

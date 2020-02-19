@@ -13,5 +13,8 @@
   "dependencies": {
     "@types/node": "^13.7.1",
     "typescript": "^3.7.5"
+  },
+  "devDependencies": {
+    "electron": "^8.0.1"
   }
 }
