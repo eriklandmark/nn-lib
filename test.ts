@@ -48,5 +48,20 @@ function predict(example: Example) {
 }
 
 //console.log(predict(data[0]).toString())
+//console.log(new Matrix([new Vector([])]).transpose().toString())
 
-console.log(new Matrix([new Vector([1,2])]).transpose().toString())
+const m = new Matrix([
+    [2, 1, -1],
+    [-3, -1,2],
+    [-2, 1, 2]
+])
+
+const m2 = new Matrix([
+    [1, 0, 0],
+    [1, 1, 1],
+    [1, 2, 4],
+    [1, 3, 9],
+    [1, 4, 16]
+])
+
+console.log((<Matrix> m2.transpose().mm(m2)).gaussian().toString())

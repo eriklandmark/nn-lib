@@ -13,9 +13,9 @@ const MAX_EXAMPLES = 1000;
 const BATCH_SIZE = 10;
 const EPOCHS = 10
 const BATCHES_PER_EPOCH = MAX_EXAMPLES / BATCH_SIZE;
-const LEARNING_RATE = 0.1;
+const LEARNING_RATE = 0.5;
 
-dataset.loadMnist("./dataset", MAX_EXAMPLES)
+//dataset.loadMnist("./dataset", MAX_EXAMPLES)
 
 //let inputLayer = new DenseLayer(784, 32)
 //let hiddenLayer1 = new DenseLayer(32, 32)
@@ -46,32 +46,34 @@ b3.populateRandom();
 
 // Weight matrix är nästa lagers antal noder X nuvarandes lagers nod
 
-let h_w = new Matrix([[0.7015876072998992, 0.7562564828116174],
-    [0.4277337936200052, -0.06790825609602713]]);
+let h_w = new Matrix([[0.15, 0.2], [0.25, 0.30]]);
 //h_w.createEmptyArray(2, 2)
 //h_w.populateRandom();
 
-let h_b = new Vector([0.657822152377201, -0.7083939256325933]);
+let h_b = new Vector([0.35, 0.35]);
 //let h_b = new Vector(2);
 //h_b.populateRandom();
 
-let o_w = new Matrix([[0.5918038437398523, 0.05362806497710171],
-    [-0.9854587793773737, 0.3822935148474702]]);
+let o_w = new Matrix([[0.4, 0.45], [0.50, 0.55]]);
 //o_w.createEmptyArray(2, 2)
 //o_w.populateRandom();
 
-let o_b = new Vector([0.10616165086841844, 0.5870065599277066]);
+let o_b = new Vector([0.6, 0.6]);
 //let o_b = new Vector(2);
 //o_b.populateRandom();
 
-console.log("w", h_w.matrix)
-console.log("w", o_w.matrix)
-console.log("w", h_b.toString())
-console.log("w", o_b.toString())
+//console.log("w", h_w.matrix)
+//console.log("w", o_w.matrix)
+//console.log("w", h_b.toString())
+//console.log("w", o_b.toString())
 
 
 
 let data: Array<Example> = [
+    {
+        data: new Vector([0.05, 0.1]),
+        label: new Vector([0.01, 0.99])
+    },
     {
         data: new Vector([1, 0]),
         label: new Vector([1, 0])
@@ -108,17 +110,37 @@ function save() {
 function train(example: Example) {
     //console.log("Labels", example.label.toString())
     // Feed forward
-    //const z1 = (<Matrix>new Matrix([example.data]).mm(h_w)).add(new Matrix([h_b]).transpose())
-    //const a1 = Activations.sigmoid(z1)
-    //const z2 = (<Matrix>new Matrix([example.data]).mm(o_w)).add(new Matrix([o_b]).transpose())
-    //const a2 = Activations.sigmoid(z2)
-    //console.log("Activation", a2.toString())
+    const z1 = (<Vector> h_w.mm(example.data)).add(h_b)
+    const a1 = Activations.sigmoid(z1)
+    console.log("Activation 1", a1.toString())
+    const z2 = (<Vector> o_w.mm(a1)).add(o_b)
+    const a2 = Activations.sigmoid(z2)
+    console.log("Activation 2", a2.toString())
 
     //Backpropagation
 
-    const errorVector = Losses.CrossEntropy_derivatiove(new Matrix([[0.19858, 0.28559]]), example.label)
-    console.log(errorVector.toString())
-    //console.log("Error", errorVector.toString())
+    const errorVector = <Vector> Losses.squared_error(a2, example.label)
+    const errorSum = errorVector.sum()
+    console.log("Error", errorVector.toString())
+    console.log("Error sum:", errorSum)
+
+    const dError = <Vector> Losses.squared_error_derivative(a2, example.label)
+    console.log("dError/dOut", dError.toString())
+
+    const dA2dz2 = <Vector> Activations.sigmoid_derivative(a2)
+    console.log("dA2/z2", dA2dz2.toString())
+    const dZ2dWh = <Vector> a1;
+
+    const deltaErrorW2 = dError.mul(dA2dz2).mul(dZ2dWh)
+    console.log(deltaErrorW2.toString())
+
+    const deltaW2 = o_w.copy()
+    deltaW2.iterate((i, j) => {
+        deltaW2.set(i, j, deltaW2.get(i,j) - (LEARNING_RATE * deltaErrorW2.get(i)));
+    })
+    console.log(deltaW2.toString())
+
+
     /*
     const errorHiddenVector = <Vector>o_w.transpose().mm(errorVector)
     //console.log("Error", errorVector.toString())
@@ -156,8 +178,8 @@ function predict(example: Example) {
     return a2
 }
 
-console.log(data[0].label.toString())
-console.log("Predicted: ", predict(data[0]).toString())
+//console.log(data[0].label.toString())
+//console.log("Predicted: ", predict(data[0]).toString())
 
 
 save()

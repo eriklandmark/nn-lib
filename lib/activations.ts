@@ -22,7 +22,7 @@ export default class Activations {
     public static sigmoid_derivative(v: Vector | Matrix): Vector | Matrix {
         if (v instanceof Vector) {
             v.iterate((val: number, i: number) => {
-                v.set(i, this.sigmoidFunc(val) * (1 - this.sigmoidFunc(val)))
+                v.set(i, val * (1 - val))
             });
         } else {
             v.iterate((i: number, j: number) => {

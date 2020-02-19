@@ -153,9 +153,13 @@ export default class Matrix {
 
     public mul(scalar: number): Matrix {
         let m = this.copy();
-        this.iterate((i, j) => {
-            m.set(i, j, m.get(i, j) * scalar)
-        });
+        this.iterate((i, j) => {m.set(i, j, m.get(i, j) * scalar)});
+        return m
+    }
+
+    public pow(scalar: number): Matrix {
+        let m = this.copy();
+        this.iterate((i, j) => {m.set(i, j, m.get(i, j) ** scalar)});
         return m
     }
 
@@ -173,6 +177,59 @@ export default class Matrix {
         this.iterate((i, j) => {
             m.set(j, i, this.get(i, j))
         });
+        return m;
+    }
+
+    public argmax(i: number = -1, row = true) {
+        if (row) {
+            if (i < 0) {
+                return 0;
+            } else {
+                return this.matrix[i].reduce((acc:number, va:number, ind) => va < this.matrix[i][acc]? ind : acc, 0)
+            }
+        } else {
+            if (i < 0) {
+                return 0;
+            } else {
+                let maxIndex = 0;
+                for (let j = 0; j < this.dim().r; j++) {
+                    if (Math.abs(this.get(j,i)) > Math.abs(this.get(maxIndex, i))) {
+                        maxIndex = j;
+                    }
+                }
+                return maxIndex;
+            }
+        }
+    }
+
+    public gaussian(): Matrix {
+        let m = this.copy();
+        let h = 0
+        let k = 0
+
+        while( h < m.dim().r && k < m.dim().c) {
+            let i_max = m.argmax(h, false,);
+            if (m.get(i_max) == 0) {
+                k += 1
+            } else {
+                const tempRow = m.matrix[h];
+                m.matrix[h] = m.matrix[i_max]
+                m.matrix[i_max] = tempRow;
+
+                for (let i = h + 1; i < m.dim().r; i++) {
+                    let f = m.get(i, k) / m.get(h, k)
+                    m.set(i, k, 0)
+
+                    for (let j = k + 1; j < m.dim().c; j++) {
+                        m.set(i,j, m.get(i,j) - (m.get(i,j) * f))
+                    }
+                }
+
+                h++
+                k++
+            }
+        }
+
         return m;
     }
 }

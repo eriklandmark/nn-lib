@@ -94,8 +94,17 @@ export default class Vector {
         return v
     }
 
+    public pow(scalar: number): Vector {
+        let v = new Vector(this.size());
+        this.iterate((val, i) => {v.set(i, val ** scalar)});
+        return v
+    }
+
+    public sum(): number {
+        return this.vector.reduce((acc, val) => acc + val);
+    }
+
     public mean(): number {
-        const sum = this.vector.reduce((acc, val) => acc + val)
-        return sum / this.size();
+        return this.sum() / this.size();
     }
 }
