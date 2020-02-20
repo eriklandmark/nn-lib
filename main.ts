@@ -110,35 +110,60 @@ function save() {
 function train(example: Example) {
     //console.log("Labels", example.label.toString())
     // Feed forward
+    //console.log(o_w.toString())
     const z1 = (<Vector> h_w.mm(example.data)).add(h_b)
     const a1 = Activations.sigmoid(z1)
-    console.log("Activation 1", a1.toString())
+    //console.log("Activation 1", a1.toString())
     const z2 = (<Vector> o_w.mm(a1)).add(o_b)
     const a2 = Activations.sigmoid(z2)
-    console.log("Activation 2", a2.toString())
+    //console.log("Activation 2", a2.toString())
 
     //Backpropagation
 
     const errorVector = <Vector> Losses.squared_error(a2, example.label)
     const errorSum = errorVector.sum()
-    console.log("Error", errorVector.toString())
+    //console.log("Error", errorVector.toString())
     console.log("Error sum:", errorSum)
 
     const dError = <Vector> Losses.squared_error_derivative(a2, example.label)
-    console.log("dError/dOut", dError.toString())
+    //console.log("dError/dOut", dError.toString())
 
     const dA2dz2 = <Vector> Activations.sigmoid_derivative(a2)
-    console.log("dA2/z2", dA2dz2.toString())
+    //console.log("dA2/z2", dA2dz2.toString())
     const dZ2dWh = <Vector> a1;
 
     const deltaErrorW2 = dError.mul(dA2dz2).mul(dZ2dWh)
-    console.log(deltaErrorW2.toString())
+    //console.log(deltaErrorW2.toString())
 
     const deltaW2 = o_w.copy()
     deltaW2.iterate((i, j) => {
         deltaW2.set(i, j, deltaW2.get(i,j) - (LEARNING_RATE * deltaErrorW2.get(i)));
     })
-    console.log(deltaW2.toString())
+    //console.log(deltaW2.toString())
+
+    // Hidden Layer
+
+    const dEo1dOuth1 = dError.mul(dA2dz2)
+    //console.log("dEo1dOuth1", dEo1dOuth1.toString())
+
+    const dEtotdOuth = <Vector> o_w.transpose().mm(dEo1dOuth1)
+    //console.log(dEtotdOuth.toString())
+
+    const dOuthdNeth = <Vector> Activations.sigmoid_derivative(a1)
+    //console.log(dOuthdNeth.toString())
+
+    const deltaErrorW1 = dEtotdOuth.mul(dOuthdNeth).mul(example.data)
+    //console.log(deltaErrorW1.toString())
+
+    const deltaW1 = h_w.copy()
+    deltaW1.iterate((i: number, j: number) => {
+        deltaW1.set(i, j, deltaW1.get(i,j) - (LEARNING_RATE * deltaErrorW1.get(i)));
+    })
+
+    //console.log(deltaW1.toString())
+
+    o_w = o_w.sub(deltaW2)
+    h_w = h_w.sub(deltaW1)
 
 
     /*
@@ -160,15 +185,14 @@ function train(example: Example) {
     h_b.add(gradient_w_h)*/
 }
 
-train(data[0])
 
-/*
-for (let epoch = 0; epoch < 1000000; epoch++) {
-    data = shuffle(data)
+for (let epoch = 0; epoch < 10000; epoch++) {
+    train(data[0])
+    /*data = shuffle(data)
     for (let example of data) {
         train(example)
-    }
-}*/
+    }*/
+}
 
 function predict(example: Example) {
     const z1 = (<Vector> h_w.mm(example.data)).add(h_b)

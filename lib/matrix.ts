@@ -132,6 +132,7 @@ export default class Matrix {
             this.iterate((i, j) => {
                 m.set(i, j, m.get(i, j) + b.get(i, j))
             });
+            return m;
         }
     }
 
@@ -148,6 +149,7 @@ export default class Matrix {
             this.iterate((i, j) => {
                 m.set(i, j, m.get(i, j) - b.get(i, j))
             });
+            return m;
         }
     }
 
