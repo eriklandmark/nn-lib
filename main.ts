@@ -162,8 +162,8 @@ function train(example: Example) {
 
     //console.log(deltaW1.toString())
 
-    o_w = o_w.sub(deltaW2)
-    h_w = h_w.sub(deltaW1)
+    o_w = deltaW2
+    h_w = deltaW1
 
 
     /*
