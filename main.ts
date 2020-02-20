@@ -13,7 +13,7 @@ const MAX_EXAMPLES = 1000;
 const BATCH_SIZE = 10;
 const EPOCHS = 10
 const BATCHES_PER_EPOCH = MAX_EXAMPLES / BATCH_SIZE;
-const LEARNING_RATE = 0.5;
+const LEARNING_RATE = 0.1;
 
 //dataset.loadMnist("./dataset", MAX_EXAMPLES)
 
@@ -46,21 +46,23 @@ b3.populateRandom();
 
 // Weight matrix är nästa lagers antal noder X nuvarandes lagers nod
 
-let h_w = new Matrix([[0.15, 0.2], [0.25, 0.30]]);
-//h_w.createEmptyArray(2, 2)
-//h_w.populateRandom();
+//let h_w = new Matrix([[0.15, 0.2], [0.25, 0.30]]);
+let h_w = new Matrix();
+h_w.createEmptyArray(8, 2)
+h_w.populateRandom();
 
-let h_b = new Vector([0.35, 0.35]);
-//let h_b = new Vector(2);
-//h_b.populateRandom();
+//let h_b = new Vector([0.35, 0.35]);
+let h_b = new Vector(8);
+h_b.populateRandom();
 
-let o_w = new Matrix([[0.4, 0.45], [0.50, 0.55]]);
-//o_w.createEmptyArray(2, 2)
-//o_w.populateRandom();
+//let o_w = new Matrix([[0.4, 0.45], [0.50, 0.55]]);
+let o_w = new Matrix();
+o_w.createEmptyArray(2, 8)
+o_w.populateRandom();
 
-let o_b = new Vector([0.6, 0.6]);
-//let o_b = new Vector(2);
-//o_b.populateRandom();
+//let o_b = new Vector([0.6,  0.6]);
+let o_b = new Vector(2);
+o_b.populateRandom();
 
 //console.log("w", h_w.matrix)
 //console.log("w", o_w.matrix)
@@ -70,18 +72,18 @@ let o_b = new Vector([0.6, 0.6]);
 
 
 let data: Array<Example> = [
-    {
+    /*{
         data: new Vector([0.05, 0.1]),
         label: new Vector([0.01, 0.99])
-    },
+    },*/
     {
         data: new Vector([1, 0]),
         label: new Vector([1, 0])
     },
     {
         data: new Vector([0, 1]),
-        label: new Vector([1, 0])
-    },
+        label: new Vector([0, 1])
+    }/*,
     {
         data: new Vector([1, 1]),
         label: new Vector([0, 1])
@@ -89,7 +91,7 @@ let data: Array<Example> = [
     {
         data: new Vector([0, 0]),
         label: new Vector([0, 1])
-    }
+    }*/
 ]
 
 function save() {
@@ -112,7 +114,7 @@ function train(example: Example) {
     // Feed forward
     //console.log(o_w.toString())
     const z1 = (<Vector> h_w.mm(example.data)).add(h_b)
-    const a1 = Activations.sigmoid(z1)
+    const a1 = <Vector> Activations.sigmoid(z1)
     //console.log("Activation 1", a1.toString())
     const z2 = (<Vector> o_w.mm(a1)).add(o_b)
     const a2 = Activations.sigmoid(z2)
@@ -130,7 +132,7 @@ function train(example: Example) {
 
     const dA2dz2 = <Vector> Activations.sigmoid_derivative(a2)
     //console.log("dA2/z2", dA2dz2.toString())
-    const dZ2dWh = <Vector> a1;
+    const dZ2dWh = <Vector> a2;
 
     const deltaErrorW2 = dError.mul(dA2dz2).mul(dZ2dWh)
     //console.log(deltaErrorW2.toString())
@@ -152,7 +154,7 @@ function train(example: Example) {
     const dOuthdNeth = <Vector> Activations.sigmoid_derivative(a1)
     //console.log(dOuthdNeth.toString())
 
-    const deltaErrorW1 = dEtotdOuth.mul(dOuthdNeth).mul(example.data)
+    const deltaErrorW1 = dEtotdOuth.mul(dOuthdNeth).mul(a1)
     //console.log(deltaErrorW1.toString())
 
     const deltaW1 = h_w.copy()
@@ -187,11 +189,11 @@ function train(example: Example) {
 
 
 for (let epoch = 0; epoch < 10000; epoch++) {
-    train(data[0])
-    /*data = shuffle(data)
+    //train(data[0])
+    data = shuffle(data)
     for (let example of data) {
         train(example)
-    }*/
+    }
 }
 
 function predict(example: Example) {
@@ -206,7 +208,7 @@ function predict(example: Example) {
 //console.log("Predicted: ", predict(data[0]).toString())
 
 
-save()
+//save()
 console.log("Done")
 
 

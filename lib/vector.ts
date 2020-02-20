@@ -80,7 +80,10 @@ export default class Vector {
     public mul(input: number | Vector): Vector {
         let v = new Vector(this.size());
         if (input instanceof Vector) {
-            if (input.size() != this.size()) throw "Vectors to multiply aren't the same size..";
+            if (input.size() != this.size()) {
+                console.trace();
+                throw "Vectors to multiply aren't the same size..";
+            }
             this.iterate((val, i) => {v.set(i, val * input.get(i))});
         } else {
             this.iterate((val, i) => {v.set(i, val * input)});
