@@ -96,7 +96,8 @@ export default class Matrix {
             const v: Vector = b;
 
             if (v.size() != this.dim().c) {
-                throw "Matrix Multiplication: Wrong dimension.."
+                console.trace()
+                throw "Matrix Multiplication (Vector): Wrong dimension.."
             }
 
             const c = new Vector(this.dim().r);
@@ -106,7 +107,8 @@ export default class Matrix {
             return c;
         } else if (b instanceof Matrix) {
             if (b.dim().r != this.dim().c) {
-                throw "Matrix Multiplication: Wrong dimension.."
+                console.trace()
+                throw "Matrix Multiplication (Matrix): Wrong dimension.."
             }
 
             const m: Matrix = b;

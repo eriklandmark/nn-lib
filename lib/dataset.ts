@@ -10,6 +10,12 @@ export interface Example {
 
 export default class Dataset {
     private data: Array<Example> = []
+    public BATCH_SIZE = 1;
+
+    public size(): number {
+        return this.data.length;
+    }
+
 
     public loadMnist(folderPath: string, maxExamples: number = 60000) {
         const trainFileBuffer  = fs.readFileSync(path.join(folderPath + '/train-images-idx3-ubyte'));
@@ -61,7 +67,7 @@ export default class Dataset {
         }
     }
 
-    public getBatch(batch: number, batchSize: number): Array<Example> {
-        return this.data.slice(batch*batchSize, batch*batchSize + batchSize)
+    public getBatch(batch: number): Array<Example> {
+        return this.data.slice(batch*this.BATCH_SIZE, batch*this.BATCH_SIZE + this.BATCH_SIZE)
     }
 }
