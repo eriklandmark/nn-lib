@@ -16,7 +16,6 @@ export default class Dataset {
         return this.data.length;
     }
 
-
     public loadMnist(folderPath: string, maxExamples: number = 60000) {
         const trainFileBuffer  = fs.readFileSync(path.join(folderPath + '/train-images-idx3-ubyte'));
         const labelFileBuffer = fs.readFileSync(path.join(folderPath + '/train-labels-idx1-ubyte'));

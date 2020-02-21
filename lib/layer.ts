@@ -32,7 +32,7 @@ export default class Layer {
         } else {
             act = (<Layer> input).activation
         }
-        this.activation = <Vector> Activations.sigmoid( (<Vector> this.weights.mm(act)).add(this.bias))
+        this.activation = <Vector> Activations.ReLu((<Vector> this.weights.mm(act)).add(this.bias))
     }
 
     updateWeights(l_rate) {

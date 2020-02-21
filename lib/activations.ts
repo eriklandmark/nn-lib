@@ -32,4 +32,21 @@ export default class Activations {
 
         return v
     }
+
+    public static ReLu(v: Vector) : Vector {
+        console.log(v.toString())
+        v.iterate((val: number, i: number) => {
+            v.set(i, Math.max(val, 0))
+        });
+        console.log(v.toString())
+        return v
+    }
+
+    public static ReLu_derivative(v: Vector) : Vector {
+        v.iterate((val: number, i: number) => {
+            v.set(i, val > 0 ? 1 : 0)
+        });
+
+        return v
+    }
 }

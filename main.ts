@@ -33,15 +33,14 @@ dataset.BATCH_SIZE = 10
 dataset.loadMnist("./dataset", 1000)
 
 let layers = [
-    new DenseLayer(32, 28*28),
-    new DenseLayer(32, 32),
-    new DenseLayer(32, 32),
-    new OutputLayer(10, 32)
+    new DenseLayer(4, 2),
+    new DenseLayer(4, 4),
+    new OutputLayer(2, 4)
 ]
 
 let model = new Model(layers)
 
-model.train(dataset, 50, 0.01)
+model.train(data, 2, 0.01)
 model.save("./nn.json")
 
-//console.log(model.predict(new Vector([1,0])).toString())
+console.log(model.predict(new Vector([1,0])).toString())
