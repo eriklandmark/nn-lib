@@ -31,7 +31,7 @@ let data: Array<Example> = [
 let dataset = new Dataset();
 
 dataset.BATCH_SIZE = 10
-dataset.loadMnist("./dataset", 1000)
+//dataset.loadMnist("./dataset", 1000)
 
 let layers = [
     new DenseLayer(4, 2, Activations.sigmoid, Activations.sigmoid_derivative),
@@ -41,7 +41,7 @@ let layers = [
 
 let model = new Model(layers)
 
-model.train(data, 1, 0.001)
+model.train(data, 10000, 0.001)
 model.save("./nn.json")
 
 console.log(model.predict(new Vector([1,0])).toString())

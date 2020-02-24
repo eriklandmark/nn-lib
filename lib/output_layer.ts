@@ -9,7 +9,7 @@ export default class DenseLayer extends Layer{
     public backPropagation(labels: Matrix) {
 
         this.errorBias = <Matrix> Losses.squared_error_derivative(this.activation, labels)
-        //this.loss = <number> labels.mul(-1).mul(this.activation.log()).sum()
+        this.loss = <number> labels.mul(-1).mul(this.activation.log()).sum()
         this.errorWeights = <Matrix> this.activation.transpose().mm(this.errorBias)
         this.output_error = this.errorBias
     }

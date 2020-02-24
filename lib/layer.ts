@@ -50,7 +50,7 @@ export default class Layer {
             act = (<Layer> input).activation
         }
         this.z = act.mm(this.weights)
-        console.log(this.bias.toString())
+        //console.log(this.bias.toString())
         /*this.z.iterate((i,j) => {
             this.z.set(i,j, this.z.get(i,j) + this.bias.get(i))
         })*/
@@ -63,9 +63,9 @@ export default class Layer {
             newWeights.set(i, j, newWeights.get(i,j) - (l_rate * newWeights.get(i,j)));
         })
         this.weights = newWeights
-        const sums = <Matrix> this.errorBias.sum(1);
+        /*const sums = <Matrix> this.errorBias.sum(1);
         this.bias.iterate((val: number, i: number) => {
             this.bias.set(i, val - (sums.get(i,0) * l_rate))
-        })
+        })*/
     }
 }

@@ -27,7 +27,7 @@ export default class DenseLayer extends Layer{
         }
 
         const dah_dzh = <Matrix> this.actFuncDer(prev_layer.activation)
-        console.log(dah_dzh.toString())
+        //console.log(dah_dzh.toString())
         this.errorWeights = dzh_dwh.mul(dah_dzh.mul(dcost_dah));
         this.errorBias = dcost_dah.mul(dah_dzh)
         this.output_error = this.errorWeights;
