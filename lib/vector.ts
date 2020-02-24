@@ -3,9 +3,15 @@ import Matrix from "./matrix";
 export default class Vector {
     vector: Float64Array;
 
-    public size : Function = ():number => {return this.vector.length};
-    public get: Function = (i:number):number => {return this.vector[i]};
-    public set: Function = (i:number, n:number):void => {this.vector[i] = n};
+    public size: Function = (): number => {
+        return this.vector.length
+    };
+    public get: Function = (i: number): number => {
+        return this.vector[i]
+    };
+    public set: Function = (i: number, n: number): void => {
+        this.vector[i] = n
+    };
 
     constructor(defaultValue: Float64Array | number[] | number = new Float64Array(0)) {
         if (defaultValue instanceof Float64Array) {
@@ -23,7 +29,7 @@ export default class Vector {
         return v
     }
 
-    public toString = (vertical: boolean = true) : string => {
+    public toString = (vertical: boolean = true): string => {
         if (this.vector.length == 0) {
             return "Vector: []"
         } else {
@@ -48,18 +54,24 @@ export default class Vector {
     }
 
     public iterate(func: Function): void {
-        this.vector.forEach((value, index) => {func(value, index)})
+        this.vector.forEach((value, index) => {
+            func(value, index)
+        })
     }
 
     public add(b: number | Vector): Vector {
         let v = new Vector(this.size());
         if (typeof b == "number") {
-            let scalar: number = <number> b;
-            this.iterate((val, i) => {v.set(i, val + scalar)});
+            let scalar: number = <number>b;
+            this.iterate((val, i) => {
+                v.set(i, val + scalar)
+            });
             return v
         } else if (b instanceof Vector) {
             if (b.size() != this.size()) throw "Vectors to add aren't the same size..";
-            this.iterate((val, i) => {v.set(i, val + b.get(i))});
+            this.iterate((val, i) => {
+                v.set(i, val + b.get(i))
+            });
             return v
         }
     }
@@ -67,12 +79,16 @@ export default class Vector {
     public sub(b: number | Vector): Vector {
         let v = new Vector(this.size());
         if (typeof b == "number") {
-            let scalar: number = <number> b;
-            this.iterate((val, i) => {v.set(i, val - scalar)});
+            let scalar: number = <number>b;
+            this.iterate((val, i) => {
+                v.set(i, val - scalar)
+            });
             return v
         } else if (b instanceof Vector) {
             if (b.size() != this.size()) throw "Vectors to subtract aren't the same size..";
-            this.iterate((val, i) => {v.set(i, val - b.get(i))});
+            this.iterate((val, i) => {
+                v.set(i, val - b.get(i))
+            });
             return v
         }
     }
@@ -84,22 +100,38 @@ export default class Vector {
                 console.trace();
                 throw "Vectors to multiply aren't the same size..";
             }
-            this.iterate((val, i) => {v.set(i, val * input.get(i))});
+            this.iterate((val, i) => {
+                v.set(i, val * input.get(i))
+            });
         } else {
-            this.iterate((val, i) => {v.set(i, val * input)});
+            this.iterate((val, i) => {
+                v.set(i, val * input)
+            });
         }
         return v
     }
 
     public div(scalar: number): Vector {
         let v = new Vector(this.size());
-        this.iterate((val, i) => {v.set(i, val / scalar)});
+        this.iterate((val, i) => {
+            v.set(i, val / scalar)
+        });
         return v
     }
 
     public pow(scalar: number): Vector {
         let v = new Vector(this.size());
-        this.iterate((val, i) => {v.set(i, val ** scalar)});
+        this.iterate((val, i) => {
+            v.set(i, val ** scalar)
+        });
+        return v
+    }
+
+    public exp(): Vector {
+        let v = new Vector(this.size());
+        this.iterate((val, i) => {
+            v.set(i, Math.exp(val))
+        });
         return v
     }
 

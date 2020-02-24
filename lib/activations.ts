@@ -8,15 +8,16 @@ export default class Activations {
     public static sigmoid(v: Vector | Matrix): Vector | Matrix {
         if (v instanceof Vector) {
             v.iterate((val: number, i: number) => {
-                v.set(i, this.sigmoidFunc(val))
+                v.set(i, (1 / (1 + Math.exp(-val))))
             });
+            return v
         } else {
-            v.iterate((i: number, j: number) => {
-                v.set(i, j, this.sigmoidFunc(v.get(i,j)))
+            const m = v.copy()
+            m.iterate((i: number, j: number) => {
+                m.set(i, j, 1 / (1 + Math.exp(-m.get(i,j))))
             });
+            return m
         }
-
-        return v
     }
 
     public static sigmoid_derivative(v: Vector | Matrix): Vector | Matrix {
@@ -24,13 +25,14 @@ export default class Activations {
             v.iterate((val: number, i: number) => {
                 v.set(i, val * (1 - val))
             });
+            return v;
         } else {
-            v.iterate((i: number, j: number) => {
-                v.set(i, this.sigmoidFunc(v.get(i,j)) * (1 - this.sigmoidFunc(v.get(i,j))))
+            const m = v.copy()
+            m.iterate((i: number, j: number) => {
+                m.set(i, j, m.get(i,j) * (1 - m.get(i,j)))
             });
+            return m
         }
-
-        return v
     }
 
     public static ReLu(v: Vector) : Vector {
@@ -48,5 +50,10 @@ export default class Activations {
         });
 
         return v
+    }
+
+    public static Softmax(m: Matrix): Matrix {
+        const exp = m.exp();
+        return exp.div(exp.sum(1, true))
     }
 }

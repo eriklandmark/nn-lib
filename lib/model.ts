@@ -6,6 +6,7 @@ import * as fs from "fs";
 import Matrix from "./matrix";
 import Vector from "./vector";
 import Dataset from "./dataset";
+import matrix from "./matrix";
 
 export default class Model {
     layers: Layer[]
@@ -16,20 +17,40 @@ export default class Model {
     }
 
     train_on_example(example: Example): number {
-        this.layers[0].feedForward(example.data)
+        const exampleMatrix = new Matrix([example.data]).transpose()
+        this.layers[0].feedForward(exampleMatrix)
         for (let i = 1; i < this.layers.length; i++) {
             this.layers[i].feedForward(this.layers[i - 1])
         }
 
-        (<OutputLayer>this.layers[this.layers.length - 1]).backPropagation(example.label)
+        (<OutputLayer>this.layers[this.layers.length - 1]).backPropagation(new Matrix([example.label]).transpose())
         for (let i = this.layers.length - 2; i >= 0; i--) {
-            (<DenseLayer>this.layers[i]).backPropagation(this.layers[i + 1])
+            (<DenseLayer>this.layers[i]).backPropagation(this.layers[i + 1], this.layers[i - 1])
         }
+        (<DenseLayer>this.layers[0]).backPropagation(this.layers[1], exampleMatrix)
 
         for (let layer of this.layers) {
             layer.updateWeights(this.learning_rate)
         }
-        return (<OutputLayer>this.layers[this.layers.length - 1]).totalError
+        return (<OutputLayer>this.layers[this.layers.length - 1]).loss
+    }
+
+    train_on_batch(examples: Matrix, labels: Matrix): number {
+        this.layers[0].feedForward(examples)
+        for (let i = 1; i < this.layers.length; i++) {
+            this.layers[i].feedForward(this.layers[i - 1])
+        }
+
+        (<OutputLayer>this.layers[this.layers.length - 1]).backPropagation(labels)
+        for (let i = this.layers.length - 2; i > 0; i--) {
+            (<DenseLayer>this.layers[i]).backPropagation(this.layers[i + 1], this.layers[i - 1])
+        }
+        (<DenseLayer>this.layers[0]).backPropagation(this.layers[1], examples)
+
+        for (let layer of this.layers) {
+            layer.updateWeights(this.learning_rate)
+        }
+        return (<OutputLayer>this.layers[this.layers.length - 1]).loss
     }
 
     train(data: Example[] | Dataset, epochs: number, learning_rate: number) {
@@ -74,18 +95,20 @@ export default class Model {
                 }
             }
         } else {
+
+            let examples = new Matrix(data.map((ex) => ex.data)).transpose()
+            let labels = new Matrix(data.map((ex) => ex.label)).transpose()
+
             for (let epoch = 0; epoch < epochs; epoch++) {
                 //data = shuffle(data)
-                for (let example of data) {
-                    console.log(this.train_on_example(example))
-                }
-
+                console.log(this.train_on_batch(examples, labels))
             }
         }
     }
 
-    predict(data: Vector): Vector {
-        this.layers[0].feedForward(data)
+    predict(data: Vector): Matrix {
+        const exampleMatrix = new Matrix([data]).transpose()
+        this.layers[0].feedForward(exampleMatrix)
         for (let i = 1; i < this.layers.length; i++) {
             this.layers[i].feedForward(this.layers[i - 1])
         }

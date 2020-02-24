@@ -91,6 +91,10 @@ export default class Matrix {
         })
     }
 
+    public empty():boolean {
+        return this.dim().c == 0 || this.dim().r == 0
+    }
+
     public mm(b: Matrix | Vector): Matrix | Vector {
         if (b instanceof Vector) {
             const v: Vector = b;
@@ -155,9 +159,14 @@ export default class Matrix {
         }
     }
 
-    public mul(scalar: number): Matrix {
+    public mul(scalar: number | Matrix): Matrix {
         let m = this.copy();
-        this.iterate((i, j) => {m.set(i, j, m.get(i, j) * scalar)});
+        if (scalar instanceof Matrix) {
+            this.iterate((i, j) => {m.set(i, j, m.get(i, j) * scalar.get(i,j))});
+        } else {
+            this.iterate((i, j) => {m.set(i, j, m.get(i, j) * scalar)});
+        }
+
         return m
     }
 
@@ -167,11 +176,64 @@ export default class Matrix {
         return m
     }
 
-    public div(scalar: number): Matrix {
+    public exp(): Matrix {
         let m = this.copy();
-        this.iterate((i, j) => {
-            m.set(i, j, m.get(i, j) / scalar)
-        });
+        this.iterate((i, j) => {m.set(i, j, Math.exp(m.get(i, j)))});
+        return m
+    }
+
+    public log(): Matrix {
+        let m = this.copy();
+        this.iterate((i, j) => {m.set(i, j, Math.log(m.get(i, j)))});
+        return m
+    }
+
+    public sum(axis: number = 0, keepDims = false): number | Matrix {
+        if(keepDims) {
+            let m = this.copy();
+            if (axis == 1) {
+                m.matrix.forEach((arr, i) => {
+                    const sum = arr.reduce((acc, val) => acc + val,0);
+                    arr.forEach((val, j) => m.set(i,j, sum))
+                });
+            } else if (axis == 0) {
+                const sum = m.matrix.reduce((acc, val) => {
+                    acc += val.reduce((acc, val) => acc + val, 0)
+                    return acc;
+                }, 0);
+                this.iterate((i, j) => {m.set(i, j, sum)});
+                return m;
+            } else if (axis == 2) {
+                return this.copy()
+            }
+            return m
+        } else {
+            if (axis == 0) {
+                return this.matrix.reduce((acc, val) => {
+                    acc += val.reduce((acc, val) => acc + val, 0)
+                    return acc;
+                }, 0);
+            } else if (axis == 1) {
+                let m = new Matrix()
+                m.createEmptyArray(this.dim().r, 1)
+                this.matrix.forEach((arr, i) => {
+                    const sum = arr.reduce((acc, val) => acc + val,0);
+                    m.set(i,0, sum)
+                });
+                return m;
+            } else if (axis == 2) {
+                return this.copy()
+            }
+        }
+    }
+
+    public div(scalar: number | Matrix): Matrix {
+        let m = this.copy();
+        if (scalar instanceof Matrix) {
+            this.iterate((i, j) => {m.set(i, j, m.get(i, j) / scalar.get(i,j))});
+        } else {
+            this.iterate((i, j) => {m.set(i, j, m.get(i, j) / scalar)});
+        }
         return m
     }
 

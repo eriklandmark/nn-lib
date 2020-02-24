@@ -3,22 +3,14 @@ import Matrix from "./matrix";
 
 export default class Losses {
 
-    public static squared_error(v: Vector | Matrix, labels: Vector): Vector | Matrix {
-        if (v instanceof Vector) {
-            if (v.size() != labels.size()) throw "Labels and output vector doesn't match size..";
-            return labels.sub(v).pow(2).mul(0.5)
-        } else {
-            return new Matrix([labels]).transpose().sub(v).pow(2);
-        }
+    public static squared_error(m: Matrix, labels: Matrix): Matrix {
+        if (m.dim().r != labels.dim().r || m.dim().c != labels.dim().c) throw "Labels and output vector doesn't match size..";
+        return m.sub(labels).pow(2)
     }
 
-    public static squared_error_derivative(v: Vector | Matrix, labels: Vector): Vector | Matrix {
-        if (v instanceof Vector) {
-            if (v.size() != labels.size()) throw "Labels and output vector doesn't match size..";
-            return v.sub(labels)
-        } else {
-            return new Matrix([labels]).sub(v).pow(2);
-        }
+    public static squared_error_derivative(m: Matrix, labels: Matrix): Matrix {
+        if (m.dim().r != labels.dim().r || m.dim().c != labels.dim().c) throw "Labels and output vector doesn't match size..";
+        return m.sub(labels)
     }
 
     public static CrossEntropy(v: Vector, labels: Vector): Vector {

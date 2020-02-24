@@ -1,71 +1,95 @@
 import numpy as np
-import random
+import matplotlib.pyplot as plt
 
-def sigmoid(z):
-    return 1 / (1 + np.exp(-z))
+np.random.seed(42)
+
+cat_images = np.random.randn(700, 2) + np.array([0, -3])
+mouse_images = np.random.randn(700, 2) + np.array([3, 3])
+dog_images = np.random.randn(700, 2) + np.array([-3, 3])
+
+feature_set = np.vstack([cat_images, mouse_images, dog_images])
+
+labels = np.array([0]*700 + [1]*700 + [2]*700)
+
+one_hot_labels = np.zeros((2100, 3))
+
+for i in range(2100):
+    one_hot_labels[i, labels[i]] = 1
+
+plt.figure(figsize=(10,7))
+plt.scatter(feature_set[:,0], feature_set[:,1], c=labels, cmap='plasma', s=100, alpha=0.5)
+plt.show()
+
+def sigmoid(x):
+    return 1/(1+np.exp(-x))
+
+def sigmoid_der(x):
+    return sigmoid(x) *(1-sigmoid (x))
+
+def softmax(A):
+    expA = np.exp(A)
+    return expA / expA.sum(axis=1, keepdims=True)
+
+instances = feature_set.shape[0]
+attributes = feature_set.shape[1]
+hidden_nodes = 4
+output_labels = 3
+
+wh = np.random.rand(attributes,hidden_nodes)
+bh = np.random.randn(hidden_nodes)
+
+print(feature_set.shape)
+
+wo = np.random.rand(hidden_nodes,output_labels)
+bo = np.random.randn(output_labels)
+lr = 10e-4
+
+error_cost = []
+
+for epoch in range(1):
+    ############# feedforward
+
+    # Phase 1
+    zh = np.dot(feature_set, wh) + bh
+    ah = sigmoid(zh)
+
+    # Phase 2
+    zo = np.dot(ah, wo) + bo
+    ao = softmax(zo)
+
+    ########## Back Propagation
+
+    ########## Phase 1
+
+    dcost_dzo = ao - one_hot_labels
+    dzo_dwo = ah
+
+    print(ah.shape)
+    print(ao.shape)
+    dcost_wo = np.dot(dzo_dwo.T, dcost_dzo)
+    print(dcost_wo.shape)
+    dcost_bo = dcost_dzo
+
+    ########## Phases 2
+
+    dzo_dah = wo
+    dcost_dah = np.dot(dcost_dzo , dzo_dah.T)
+    dah_dzh = sigmoid_der(zh)
+    dzh_dwh = feature_set
+    dcost_wh = np.dot(dzh_dwh.T, dah_dzh * dcost_dah)
 
 
-def sigmoid_p(z):
-    return sigmoid(z) * (1 - sigmoid(z))
+    dcost_bh = dcost_dah * dah_dzh
 
+    # Update Weights ================
 
-h_w = np.array([[0.7015876072998992, 0.7562564828116174],
-                [0.4277337936200052, -0.06790825609602713]])
-o_w = np.array([[0.5918038437398523, 0.05362806497710171],
-                [-0.9854587793773737, 0.3822935148474702]])
+    wh -= lr * dcost_wh
+    bh -= lr * dcost_bh.sum(axis=0)
 
-h_b = np.array([0.657822152377201, -0.7083939256325933])
-o_b = np.array([0.10616165086841844, 0.5870065599277066])
+    wo -= lr * dcost_wo
+    bo -= lr * dcost_bo.sum(axis=0)
 
-a = np.array([5,4])[np.newaxis]
-
-
-def train(data, label):
-    z1 = h_w.dot(data) + h_b
-    a1 = sigmoid(z1)
-    z2 = o_w.dot(a1) + o_b
-    a2 = sigmoid(z2)
-    # print(a2)
-
-    error = label - a2
-    errorHidden = o_w.T.dot(error)
-
-    gradient_w_o = sigmoid_p(a2) * error * 0.1
-    dw_o = (np.array(gradient_w_o)[np.newaxis]).T.dot([a1])
-
-    gradient_w_h = sigmoid_p(a1) * errorHidden * 0.1
-    dw_h = (np.array(gradient_w_h)[np.newaxis]).T.dot([data])
-    # print(dw_h)
-
-    o_w + dw_o
-    h_w + dw_h
-    o_b + gradient_w_o
-    h_b + gradient_w_h
-
-
-data = [
-    ([1,0], [1,0]),
-    ([0,1], [1,0]),
-    ([1,1], [0,1]),
-    ([0,0], [0,1])
-]
-
-
-for i in range(100000):
-    random.shuffle(data)
-    for i in range(4):
-        ex, label = data[i]
-        train(np.array(ex), np.array(label))
-
-
-# train(np.array([1, 0]), np.array([1, 0]))
-
-def predict(example):
-    z1 = h_w.dot(example) + h_b
-    a1 = sigmoid(z1)
-    z2 = o_w.dot(a1) + o_b
-    a2 = sigmoid(z2)
-    print(a2)
-
-
-predict(np.array([1,0]))
+    if epoch % 200 == 0:
+        loss = np.sum(-one_hot_labels * np.log(ao))
+        print('Loss function value: ', loss)
+        error_cost.append(loss)
