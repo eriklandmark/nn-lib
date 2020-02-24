@@ -151,20 +151,21 @@ export default class Matrix {
             });
             return m
         } else if (b instanceof Matrix) {
-            if (b.dim().r != this.dim().r || b.dim().c != this.dim().c) throw "Matrix Addition: Not the same dimension";
-            this.iterate((i, j) => {
+            if (b.dim().r != m.dim().r || b.dim().c != m.dim().c) throw "Matrix Addition: Not the same dimension";
+            this.iterate((i:number, j:number) => {
                 m.set(i, j, m.get(i, j) - b.get(i, j))
             });
             return m;
         }
     }
 
-    public mul(scalar: number | Matrix): Matrix {
+    public mul(b: number | Matrix): Matrix {
         let m = this.copy();
-        if (scalar instanceof Matrix) {
-            this.iterate((i, j) => {m.set(i, j, m.get(i, j) * scalar.get(i,j))});
+        if (b instanceof Matrix) {
+            if (b.dim().r != m.dim().r || b.dim().c != m.dim().c) throw "Matrix mult: Not the same dimension";
+            this.iterate((i, j) => {m.set(i, j, m.get(i, j) * b.get(i,j))});
         } else {
-            this.iterate((i, j) => {m.set(i, j, m.get(i, j) * scalar)});
+            this.iterate((i, j) => {m.set(i, j, m.get(i, j) * b)});
         }
 
         return m

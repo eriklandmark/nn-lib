@@ -16,23 +16,8 @@ export default class Model {
         this.layers = layers
     }
 
-    train_on_example(example: Example): number {
-        const exampleMatrix = new Matrix([example.data]).transpose()
-        this.layers[0].feedForward(exampleMatrix)
-        for (let i = 1; i < this.layers.length; i++) {
-            this.layers[i].feedForward(this.layers[i - 1])
-        }
+    train_on_example(example: Example) {
 
-        (<OutputLayer>this.layers[this.layers.length - 1]).backPropagation(new Matrix([example.label]).transpose())
-        for (let i = this.layers.length - 2; i >= 0; i--) {
-            (<DenseLayer>this.layers[i]).backPropagation(this.layers[i + 1], this.layers[i - 1])
-        }
-        (<DenseLayer>this.layers[0]).backPropagation(this.layers[1], exampleMatrix)
-
-        for (let layer of this.layers) {
-            layer.updateWeights(this.learning_rate)
-        }
-        return (<OutputLayer>this.layers[this.layers.length - 1]).loss
     }
 
     train_on_batch(examples: Matrix, labels: Matrix): number {
@@ -41,7 +26,7 @@ export default class Model {
             this.layers[i].feedForward(this.layers[i - 1])
         }
 
-        (<OutputLayer>this.layers[this.layers.length - 1]).backPropagation(labels)
+        (<OutputLayer>this.layers[this.layers.length - 1]).backPropagation(labels, this.layers[this.layers.length - 2])
         for (let i = this.layers.length - 2; i > 0; i--) {
             (<DenseLayer>this.layers[i]).backPropagation(this.layers[i + 1], this.layers[i - 1])
         }
@@ -86,10 +71,9 @@ export default class Model {
                 console.log("Starting Epoch:", epoch)
                 for (let batch_id = 0; batch_id < batch_count; batch_id++) {
                     const batch = shuffle(dataset.getBatch(batch_id))
-                    let error = 0;
-                    for (let example of batch) {
-                        error = this.train_on_example(example)
-                    }
+                    const examples = new Matrix(batch.map((ex) => ex.data)).transpose()
+                    const labels = new Matrix(batch.map((ex) => ex.label)).transpose()
+                    let error = this.train_on_batch(examples, labels);
 
                     console.log("Error for batch: " + batch_id + " =", error)
                 }
@@ -106,8 +90,13 @@ export default class Model {
         }
     }
 
-    predict(data: Vector): Matrix {
-        const exampleMatrix = new Matrix([data]).transpose()
+    predict(data: Vector | Matrix): Matrix {
+        let exampleMatrix: Matrix
+        if (data instanceof Vector) {
+            exampleMatrix = new Matrix([data]).transpose()
+        } else {
+            exampleMatrix = data
+        }
         this.layers[0].feedForward(exampleMatrix)
         for (let i = 1; i < this.layers.length; i++) {
             this.layers[i].feedForward(this.layers[i - 1])

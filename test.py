@@ -1,5 +1,6 @@
 import numpy as np
 import matplotlib.pyplot as plt
+import json
 
 np.random.seed(42)
 
@@ -16,9 +17,21 @@ one_hot_labels = np.zeros((2100, 3))
 for i in range(2100):
     one_hot_labels[i, labels[i]] = 1
 
+#np.save("./dataset", feature_set)
+#np.save("./labels", one_hot_labels)
+
+feature_set = np.load("./dataset.npy")
+one_hot_labels = np.load("./labels.npy")
+
+#obj = {"features": feature_set.tolist(), "labels": labels.tolist()}
+
+#with open("./data.json", "w") as file:
+#    json.dump(obj, file)
+
+
 plt.figure(figsize=(10,7))
 plt.scatter(feature_set[:,0], feature_set[:,1], c=labels, cmap='plasma', s=100, alpha=0.5)
-plt.show()
+#plt.show()
 
 def sigmoid(x):
     return 1/(1+np.exp(-x))
@@ -38,7 +51,6 @@ output_labels = 3
 wh = np.random.rand(attributes,hidden_nodes)
 bh = np.random.randn(hidden_nodes)
 
-print(feature_set.shape)
 
 wo = np.random.rand(hidden_nodes,output_labels)
 bo = np.random.randn(output_labels)
@@ -62,18 +74,15 @@ for epoch in range(1):
     ########## Phase 1
 
     dcost_dzo = ao - one_hot_labels
+    print(dcost_dzo)
     dzo_dwo = ah
-
-    print(ah.shape)
-    print(ao.shape)
     dcost_wo = np.dot(dzo_dwo.T, dcost_dzo)
-    print(dcost_wo.shape)
     dcost_bo = dcost_dzo
 
     ########## Phases 2
 
     dzo_dah = wo
-    dcost_dah = np.dot(dcost_dzo , dzo_dah.T)
+    dcost_dah = np.dot(dcost_dzo, dzo_dah.T)
     dah_dzh = sigmoid_der(zh)
     dzh_dwh = feature_set
     dcost_wh = np.dot(dzh_dwh.T, dah_dzh * dcost_dah)
@@ -84,10 +93,10 @@ for epoch in range(1):
     # Update Weights ================
 
     wh -= lr * dcost_wh
-    bh -= lr * dcost_bh.sum(axis=0)
+    # bh -= lr * dcost_bh.sum(axis=0)
 
     wo -= lr * dcost_wo
-    bo -= lr * dcost_bo.sum(axis=0)
+    # bo -= lr * dcost_bo.sum(axis=0)
 
     if epoch % 200 == 0:
         loss = np.sum(-one_hot_labels * np.log(ao))

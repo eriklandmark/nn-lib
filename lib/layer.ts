@@ -58,11 +58,7 @@ export default class Layer {
     }
 
     updateWeights(l_rate: number) {
-        const newWeights = this.weights.copy()
-        newWeights.iterate((i, j) => {
-            newWeights.set(i, j, newWeights.get(i,j) - (l_rate * newWeights.get(i,j)));
-        })
-        this.weights = newWeights
+        this.weights = this.weights.sub(this.errorWeights.mul(l_rate))
         /*const sums = <Matrix> this.errorBias.sum(1);
         this.bias.iterate((val: number, i: number) => {
             this.bias.set(i, val - (sums.get(i,0) * l_rate))

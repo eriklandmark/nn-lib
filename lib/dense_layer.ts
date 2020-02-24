@@ -5,31 +5,45 @@ import Matrix from "./matrix";
 
 export default class DenseLayer extends Layer{
 
-    /*public backPropagationOld(prev_layer: Layer) {
-        this.dActivations = <Vector> Activations.sigmoid_derivative(this.activation)
-        console.log(this.dActivations.toString())
-        const mat = new Matrix([prev_layer.output_error]).transpose()
-        console.log(prev_layer.weights.toString())
-        const deltaError = prev_layer.weights.transpose().mm(mat)
-        console.log(deltaError.toString())
-        //this.error = deltaError;
-        //this.output_error = deltaError;
-    }*/
-
     public backPropagation(prev_layer: Layer, next_layer: Layer | Matrix) {
         const dcost_dah = <Matrix> prev_layer.output_error.mm(prev_layer.weights.transpose())
         let dzh_dwh: Matrix
 
         if (next_layer instanceof Layer) {
-            dzh_dwh = next_layer.z
+            dzh_dwh = next_layer.activation
         } else {
             dzh_dwh = next_layer
         }
 
-        const dah_dzh = <Matrix> this.actFuncDer(prev_layer.activation)
-        //console.log(dah_dzh.toString())
-        this.errorWeights = dzh_dwh.mul(dah_dzh.mul(dcost_dah));
-        this.errorBias = dcost_dah.mul(dah_dzh)
+
+        const dah_dzh = <Matrix> this.actFuncDer(this.activation)
+        const error = dcost_dah.mul(dah_dzh)
+        this.errorWeights = <Matrix> dzh_dwh.transpose().mm(error);
+        this.output_error = error;
+    }
+
+    public backPropagationOld(prev_layer: Layer, next_layer: Layer | Matrix) {
+        console.log("Prev Layer Out: ", prev_layer.output_error.dim())
+        console.log("Prev Layer we:", prev_layer.weights.dim())
+        const dcost_dah = <Matrix> prev_layer.output_error.mm(prev_layer.weights.transpose())
+        let dzh_dwh: Matrix
+
+        if (next_layer instanceof Layer) {
+            dzh_dwh = next_layer.activation
+        } else {
+            console.log("hej")
+            dzh_dwh = next_layer
+        }
+
+        console.log("dzh_dwh",dzh_dwh.dim())
+
+        const dah_dzh = <Matrix> this.actFuncDer(this.activation)
+        console.log(dah_dzh.dim(), dcost_dah.dim())
+        const ss = dah_dzh.mul(dcost_dah)
+        this.errorWeights = <Matrix> dzh_dwh.transpose().mm(ss);
+        console.log("error w",this.errorWeights.dim())
+        //this.errorBias = dcost_dah.mul(dah_dzh)
         this.output_error = this.errorWeights;
+        console.log("-----")
     }
 }
