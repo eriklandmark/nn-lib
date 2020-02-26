@@ -1,4 +1,3 @@
-import Matrix from "./matrix";
 import Vector from "./vector";
 import * as fs from "fs";
 import * as path from 'path';
@@ -16,9 +15,17 @@ export default class Dataset {
         return this.data.length;
     }
 
-    public loadMnist(folderPath: string, maxExamples: number = 60000) {
-        const trainFileBuffer  = fs.readFileSync(path.join(folderPath + '/train-images-idx3-ubyte'));
-        const labelFileBuffer = fs.readFileSync(path.join(folderPath + '/train-labels-idx1-ubyte'));
+    public loadMnistTrain(folderPath: string, maxExamples: number = 60000) {
+        this.loadMnist(folderPath, "train-images-idx3-ubyte", "train-labels-idx1-ubyte", maxExamples)
+    }
+
+    public loadMnistTest(folderPath: string, maxExamples: number = 60000) {
+        this.loadMnist(folderPath, "t10k-images-idx3-ubyte", "t10k-labels-idx1-ubyte", maxExamples)
+    }
+
+    private loadMnist(folderPath: string, imageFileName: string, labelFileName: string, maxExamples: number) {
+        const trainFileBuffer  = fs.readFileSync(path.join(folderPath + "/" + imageFileName));
+        const labelFileBuffer = fs.readFileSync(path.join(folderPath + "/" + labelFileName));
 
         for (let imageIndex = 0; imageIndex < maxExamples; imageIndex++) {
             let pixels: number[] = [];
@@ -50,31 +57,6 @@ export default class Dataset {
             };
 
             this.data.push(example);
-        }
-    }
-
-    public loadMnistOld(folderPath: string, maxExamples: number = 60000) {
-        const trainFileBuffer  = fs.readFileSync(path.join(folderPath + '/train-images-idx3-ubyte'));
-        const labelFileBuffer = fs.readFileSync(path.join(folderPath + '/train-labels-idx1-ubyte'));
-
-        for (let imageIndex = 0; imageIndex < maxExamples; imageIndex++) {
-            let exampleData = new Matrix();
-            exampleData.createEmptyArray(28,28)
-
-            for (let x = 0; x < 28; x++) {
-                for (let y = 0; y < 28; y++) {
-                    exampleData.set(y,x, trainFileBuffer[(imageIndex * 28 * 28) + (x + (y * 28)) + 15])
-                }
-            }
-
-            exampleData.div(255)
-
-            /*let example: Example = {
-                data: exampleData,
-                label: Vector.toCategorical(labelFileBuffer[imageIndex + 8], 10)
-            };*/
-
-            //this.data.push(example);
         }
     }
 

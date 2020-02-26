@@ -1,5 +1,4 @@
-import Dataset, {Example} from "./lib/dataset";
-import Vector from "./lib/vector";
+import Dataset from "./lib/dataset";
 import Model from "./lib/model";
 import DenseLayer from "./lib/dense_layer";
 import OutputLayer from "./lib/output_layer";
@@ -12,12 +11,22 @@ const model = new Model([
     new OutputLayer(10, 32, Activations.sigmoid, Activations.sigmoid_derivative)
 ])
 
-model.load("./nn.json")
+model.load("./nn.old.json")
 
 const dataset = new Dataset();
-dataset.loadMnist("dataset", 1);
+dataset.loadMnistTest("dataset/test", 10000);
+dataset.BATCH_SIZE = 10000
 
-let ex = dataset.getBatch(0)[0]
+let examples = dataset.getBatch(0)
 
-console.log(model.predict(ex.data).toString())
-console.log(ex.label.toString())
+let numRights = 0;
+
+for (let i = 0; i < dataset.size(); i++ ) {
+    const predArg = model.predict(examples[i].data).argmax(0)
+    const labelArg = examples[i].label.argmax();
+    if (predArg == labelArg) {
+        numRights += 1
+    }
+}
+
+console.log("Num rights: " + numRights + " of 10000 (" + Math.round((numRights / 10000) * 100) + " %)")

@@ -264,7 +264,7 @@ export default class Matrix {
             if (i < 0) {
                 return 0;
             } else {
-                return this.matrix[i].reduce((acc:number, va:number, ind) => va < this.matrix[i][acc]? ind : acc, 0)
+                return this.matrix[i].reduce((acc:number, va:number, ind) => va > this.get(i,acc)? ind : acc, 0)
             }
         } else {
             if (i < 0) {
