@@ -21,15 +21,14 @@ export default class Dataset {
         const labelFileBuffer = fs.readFileSync(path.join(folderPath + '/train-labels-idx1-ubyte'));
 
         for (let imageIndex = 0; imageIndex < maxExamples; imageIndex++) {
-            let exampleData = new Vector(new Float64Array(28*28));
             let pixels: number[] = [];
-
             for (let x = 0; x < 28; x++) {
                 for (let y = 0; y < 28; y++) {
                     pixels.push(trainFileBuffer[(imageIndex * 28 * 28) + (x + (y * 28)) + 15]);
                 }
             }
 
+            let exampleData = new Vector(pixels)
             exampleData = exampleData.div(255)
 
             let example: Example = {
@@ -47,7 +46,7 @@ export default class Dataset {
         for (let imageIndex = 0; imageIndex < maxExamples; imageIndex++) {
             let example: Example = {
                 data: new Vector(data["features"][imageIndex]),
-                label: Vector.toCategorical(imageIndex, 3)
+                label: Vector.toCategorical(data["labels"][imageIndex], 3)
             };
 
             this.data.push(example);

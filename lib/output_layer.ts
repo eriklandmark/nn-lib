@@ -7,8 +7,10 @@ export default class DenseLayer extends Layer{
     loss: number = 0;
 
     public backPropagation(labels: Matrix, next_layer: Layer) {
-        const gradient = <Matrix> Losses.squared_error_derivative(this.activation, labels).mul(2)
-        //console.log(gradient)
+        const gradient = <Matrix> Losses.squared_error_derivative(this.activation, labels)
+        //console.log(this.activation.toString(10))
+        //console.log(labels.toString(10))
+        //console.log(gradient.toString(10))
         this.loss = <number> labels.mul(this.activation.log()).mul(-1).sum()
         const error = <Matrix> gradient//.mul(this.actFuncDer(this.activation))
         this.errorWeights = <Matrix> next_layer.activation.transpose().mm(error)

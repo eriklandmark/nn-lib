@@ -15,7 +15,6 @@ export default class DenseLayer extends Layer{
             dzh_dwh = next_layer
         }
 
-
         const dah_dzh = <Matrix> this.actFuncDer(this.activation)
         const error = dcost_dah.mul(dah_dzh)
         this.errorWeights = <Matrix> dzh_dwh.transpose().mm(error);

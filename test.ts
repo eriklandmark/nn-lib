@@ -2,11 +2,16 @@ import Matrix from "./lib/matrix";
 import Vector from "./lib/vector";
 import Activations from "./lib/activations";
 import * as fs from "fs";
-import {Example} from "./lib/dataset";
+import Dataset, {Example} from "./lib/dataset";
 import MatrixHelper from "./lib/matrix_helper";
 //import Plot from "./plot/plot";
 
-let a = new Matrix([[1,3,3], [1,2,3]])
-let b = new Matrix([[1,2,3]])
+let dataset = new Dataset();
 
-console.log(a.sum(1, false).toString())
+dataset.BATCH_SIZE = 1000
+//dataset.loadTestData("./data.json")
+dataset.loadMnist("./dataset", 1000)
+
+const startTime = Date.now();
+const dur = Date.now() - startTime
+console.log(startTime / 1000 * 60 *)

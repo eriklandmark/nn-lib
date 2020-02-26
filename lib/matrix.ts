@@ -40,7 +40,7 @@ export default class Matrix {
         return {r: this.matrix.length, c: this.matrix[0] ? this.matrix[0].length : 0}
     }
 
-    public toString = (): string => {
+    public toString = (max_rows: number = 10): string => {
         if (this.matrix.length == 0) {
             return "Matrix: 0x0 []"
         } else {
@@ -50,14 +50,16 @@ export default class Matrix {
                 if (val.length > maxCharCount) maxCharCount = val.length
             })
             maxCharCount = Math.min(maxCharCount, 7)
-            return this.matrix.reduce((acc, i) => {
-                acc += i.reduce((s, i) => {
+            return this.matrix.slice(0, Math.min(max_rows, this.matrix.length)).reduce((acc, i) => {
+                acc += i.slice(0, Math.min(max_rows, i.length)).reduce((s, i) => {
                     s += " ".repeat(Math.max(maxCharCount - i.toString().length, 0))
                     s += i.toString().substr(0, maxCharCount) + " ";
                     return s;
-                }, "    ") + "\n"
+                }, "    ")
+                acc += i.length > max_rows ? "  ... +" + (i.length - max_rows) + " elements\n" : "\n"
                 return acc;
-            }, `Matrix: ${this.dim().r}x${this.dim().c} [\n`) + " ]"
+            }, `Matrix: ${this.dim().r}x${this.dim().c} [\n`) + (this.matrix.length > max_rows ?
+                "    ... +" + (this.matrix.length - max_rows) + " rows \n]" : " ]")
         }
     }
 
@@ -84,6 +86,16 @@ export default class Matrix {
             }
         }
     }
+
+    public where(scalar: number): number[] {
+        this.iterate((i, j) => {
+            if (this.get(i,j) == scalar) {
+                return [i,j]
+            }
+        })
+        return [-1,-1]
+    }
+
 
     public populateRandom() {
         this.iterate((i, j) => {

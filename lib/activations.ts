@@ -14,7 +14,7 @@ export default class Activations {
         } else {
             const m = v.copy()
             m.iterate((i: number, j: number) => {
-                m.set(i, j, 1 / (1 + Math.exp(-m.get(i,j))))
+                m.set(i, j, 1 / (1 + Math.exp(-v.get(i,j))))
             });
             return m
         }

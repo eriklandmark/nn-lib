@@ -67,17 +67,23 @@ export default class Model {
         if (data instanceof Dataset) {
             const dataset = <Dataset> data
             const batch_count = dataset.size() / dataset.BATCH_SIZE
+            const startTime = Date.now();
+
             for (let epoch = 0; epoch < epochs; epoch++) {
                 console.log("Starting Epoch:", epoch)
                 for (let batch_id = 0; batch_id < batch_count; batch_id++) {
-                    const batch = shuffle(dataset.getBatch(batch_id))
+                    const batch = dataset.getBatch(batch_id)//shuffle(dataset.getBatch(batch_id))
                     const examples = new Matrix(batch.map((ex) => ex.data)).transpose()
                     const labels = new Matrix(batch.map((ex) => ex.label)).transpose()
                     let error = this.train_on_batch(examples, labels);
 
                     console.log("Error for batch: " + batch_id + " =", error)
                 }
+
             }
+            console.log("Done..")
+            const duration = Math.floor((Date.now() - startTime) / 1000)
+            console.log("Duration: " + duration + " seconds")
         } else {
 
             let examples = new Matrix(data.map((ex) => ex.data)).transpose()

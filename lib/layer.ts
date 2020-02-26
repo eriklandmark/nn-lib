@@ -9,7 +9,6 @@ export default class Layer {
     errorBias: Matrix
     output_error: Matrix
     activation: Matrix
-    dActivations: Matrix
     actFunc: Function
     actFuncDer: Function
     layerSize: number
@@ -25,7 +24,6 @@ export default class Layer {
         this.errorBias = new Matrix()
         this.output_error = new Matrix()
         this.activation = new Matrix()
-        this.dActivations = new Matrix()
         this.actFunc = actFunc
         this.actFuncDer = actFuncDer
     }
@@ -50,11 +48,12 @@ export default class Layer {
             act = (<Layer> input).activation
         }
         this.z = act.mm(this.weights)
-        //console.log(this.bias.toString())
+
         /*this.z.iterate((i,j) => {
             this.z.set(i,j, this.z.get(i,j) + this.bias.get(i))
         })*/
         this.activation = this.actFunc(this.z)
+        //console.log(this.weights.toString(10))
     }
 
     updateWeights(l_rate: number) {
