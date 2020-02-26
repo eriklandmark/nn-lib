@@ -23,6 +23,21 @@ let model = new Model(layers)
 model.train(dataset, 30, 0.0005)
 
 model.save("./nn.json")
-dataset.BATCH_SIZE = 1
-console.log(model.predict(dataset.getBatch(0)[0].data).toString())
-console.log(dataset.getBatch(0)[0].label.toString())
+
+const testDataset = new Dataset();
+testDataset.loadMnistTest("dataset/test", 10000);
+testDataset.BATCH_SIZE = 10000
+
+let examples = testDataset.getBatch(0)
+
+let numRights = 0;
+
+for (let i = 0; i < testDataset.size(); i++ ) {
+    const predArg = model.predict(examples[i].data).argmax(0)
+    const labelArg = examples[i].label.argmax();
+    if (predArg == labelArg) {
+        numRights += 1
+    }
+}
+
+console.log("Num rights: " + numRights + " of 10000 (" + Math.round((numRights / 10000) * 100) + " %)")
