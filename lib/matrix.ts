@@ -110,7 +110,37 @@ export default class Matrix {
         return this.dim().c == 0 || this.dim().r == 0
     }
 
-    public async mm(b: Matrix | Vector): Promise<Matrix | Vector> {
+    public mm(b: Matrix | Vector): Matrix | Vector {
+        if (b instanceof Vector) {
+            const v: Vector = b;
+
+            if (v.size() != this.dim().c) {
+                console.trace()
+                throw "Matrix Multiplication (Vector): Wrong dimension.."
+            }
+
+            const c = new Vector(this.dim().r);
+            for (let i = 0; i < this.dim().r; i++) {
+                c.set(i, this.matrix[i].reduce((acc: number, val: number, k: number) => acc + (val * v.get(k)),0))
+            }
+            return c;
+        } else if (b instanceof Matrix) {
+            if (b.dim().r != this.dim().c) {
+                console.trace()
+                throw "Matrix Multiplication (Matrix): Wrong dimension.."
+            }
+
+            const m: Matrix = b;
+            let c = new Matrix();
+            c.createEmptyArray(this.dim().r, m.dim().c)
+            c.iterate((i: number, j: number) => {
+                c.set(i, j, this.matrix[i].reduce((acc: number, val: number, k: number) => acc + (val * m.get(k, j)),0))
+            })
+            return c
+        }
+    }
+
+    public async mmAsync(b: Matrix | Vector): Promise<Matrix | Vector> {
         return new Promise<Matrix | Vector>(async (resolve, reject) => {
             if (b instanceof Vector) {
                 if (b.size() != this.dim().c) {
@@ -128,38 +158,28 @@ export default class Matrix {
 
                 let c = new Matrix();
                 c.createEmptyArray(this.dim().r, b.dim().c)
-                let calculations: Promise<any>[] = []
-                const filePath = "./lib/mm_worker.js";
 
                 const pool = new StaticPool({
-                    size: 1,
-                    task: filePath,
+                    size: Math.min(c.dim().r, 5),
+                    task: function(row: any) {
+                        const {matrix, bMatrix} = this.workerData
+                        let result = (new Float64Array(bMatrix[0].length)).map((_, col) => {
+                            return matrix[row].reduce((acc, val, k) => acc + (val * bMatrix[k][col]), 0);
+                        })
+
+                        return {i: row, v: result}
+                    },
                     workerData: {matrix: this.matrix, bMatrix: b.matrix}
                 });
 
-                /*for (let i = 0; i < 20; i++) {
-                    (async () => {
-                        const num = 40 + Math.trunc(10 * Math.random());
-
-                        // This will choose one idle worker in the pool
-                        // to execute your heavy task without blocking
-                        // the main thread!
-                        const res = await pool.exec(num);
-
-                        console.log(`Fibonacci(${num}) result:`, res);
-                    })();
-                }*/
-                c.iterate((i: number, j: number) => {
-                    calculations.push(pool.exec({i:i, j:j}))
-                })
-                console.log("hee")
-                const vals = await Promise.all(calculations)
-                for (let {i, j, v} of vals) {
-                    console.log("d")
-                    c.set(i, j, v)
-                }
-
-                console.log("hej")
+                await (async () => {
+                    for (let row = 0; row < c.dim().r; row++) {
+                        const {i, v} = await pool.exec(row)
+                        for (let col = 0; col < v.length; col ++) {
+                            c.set(i, col, v[col])
+                        }
+                    }
+                })()
 
                 resolve(c)
             }
