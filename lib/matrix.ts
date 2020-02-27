@@ -1,4 +1,5 @@
 import Vector from "./vector";
+import {StaticPool} from "node-worker-threads-pool";
 
 export default class Matrix {
     matrix: Array<Float64Array> = [];
@@ -66,7 +67,7 @@ export default class Matrix {
     public static fromJsonObject(obj: Array<Object>) {
         let m = new Matrix()
         m.createEmptyArray(obj.length, Object.keys(obj[0]).length)
-        m.iterate((i,j) => {
+        m.iterate((i, j) => {
             m.set(i, j, obj[i][j])
         })
         return m;
@@ -75,7 +76,9 @@ export default class Matrix {
     public copy() {
         let m = new Matrix()
         m.createEmptyArray(this.dim().r, this.dim().c)
-        m.iterate((i,j) => {m.set(i, j, this.get(i,j))})
+        m.iterate((i, j) => {
+            m.set(i, j, this.get(i, j))
+        })
         return m
     }
 
@@ -89,11 +92,11 @@ export default class Matrix {
 
     public where(scalar: number): number[] {
         this.iterate((i, j) => {
-            if (this.get(i,j) == scalar) {
-                return [i,j]
+            if (this.get(i, j) == scalar) {
+                return [i, j]
             }
         })
-        return [-1,-1]
+        return [-1, -1]
     }
 
 
@@ -103,38 +106,64 @@ export default class Matrix {
         })
     }
 
-    public empty():boolean {
+    public empty(): boolean {
         return this.dim().c == 0 || this.dim().r == 0
     }
 
-    public mm(b: Matrix | Vector): Matrix | Vector {
-        if (b instanceof Vector) {
-            const v: Vector = b;
+    public async mm(b: Matrix | Vector): Promise<Matrix | Vector> {
+        return new Promise<Matrix | Vector>(async (resolve, reject) => {
+            if (b instanceof Vector) {
+                if (b.size() != this.dim().c) {
+                    reject("Matrix Multiplication (Vector): Wrong dimension..")
+                }
 
-            if (v.size() != this.dim().c) {
-                console.trace()
-                throw "Matrix Multiplication (Vector): Wrong dimension.."
-            }
+                const c = new Vector(this.dim().r);
+                for (let i = 0; i < this.dim().r; i++) {
+                    c.set(i, this.matrix[i].reduce((acc: number, val: number, k: number) => acc + (val * b.get(k)), 0))
+                }
+                resolve(c);
+            } else if (b instanceof Matrix) {
+                if (b.dim().r != this.dim().c)
+                    reject("Matrix Multiplication (Matrix): Wrong dimension..")
 
-            const c = new Vector(this.dim().r);
-            for (let i = 0; i < this.dim().r; i++) {
-                c.set(i, this.matrix[i].reduce((acc: number, val: number, k: number) => acc + (val * v.get(k)),0))
-            }
-            return c;
-        } else if (b instanceof Matrix) {
-            if (b.dim().r != this.dim().c) {
-                console.trace()
-                throw "Matrix Multiplication (Matrix): Wrong dimension.."
-            }
+                let c = new Matrix();
+                c.createEmptyArray(this.dim().r, b.dim().c)
+                let calculations: Promise<any>[] = []
+                const filePath = "./lib/mm_worker.js";
 
-            const m: Matrix = b;
-            let c = new Matrix();
-            c.createEmptyArray(this.dim().r, m.dim().c)
-            c.iterate((i: number, j: number) => {
-                c.set(i, j, this.matrix[i].reduce((acc: number, val: number, k: number) => acc + (val * m.get(k, j)),0))
-            })
-            return c
-        }
+                const pool = new StaticPool({
+                    size: 1,
+                    task: filePath,
+                    workerData: {matrix: this.matrix, bMatrix: b.matrix}
+                });
+
+                /*for (let i = 0; i < 20; i++) {
+                    (async () => {
+                        const num = 40 + Math.trunc(10 * Math.random());
+
+                        // This will choose one idle worker in the pool
+                        // to execute your heavy task without blocking
+                        // the main thread!
+                        const res = await pool.exec(num);
+
+                        console.log(`Fibonacci(${num}) result:`, res);
+                    })();
+                }*/
+                c.iterate((i: number, j: number) => {
+                    calculations.push(pool.exec({i:i, j:j}))
+                })
+                console.log("hee")
+                const vals = await Promise.all(calculations)
+                for (let {i, j, v} of vals) {
+                    console.log("d")
+                    c.set(i, j, v)
+                }
+
+                console.log("hej")
+
+                resolve(c)
+            }
+        })
     }
 
     public add(b: number | Matrix): Matrix {
@@ -164,7 +193,7 @@ export default class Matrix {
             return m
         } else if (b instanceof Matrix) {
             if (b.dim().r != m.dim().r || b.dim().c != m.dim().c) throw "Matrix Addition: Not the same dimension";
-            this.iterate((i:number, j:number) => {
+            this.iterate((i: number, j: number) => {
                 m.set(i, j, m.get(i, j) - b.get(i, j))
             });
             return m;
@@ -175,9 +204,13 @@ export default class Matrix {
         let m = this.copy();
         if (b instanceof Matrix) {
             if (b.dim().r != m.dim().r || b.dim().c != m.dim().c) throw "Matrix mult: Not the same dimension";
-            this.iterate((i, j) => {m.set(i, j, m.get(i, j) * b.get(i,j))});
+            this.iterate((i, j) => {
+                m.set(i, j, m.get(i, j) * b.get(i, j))
+            });
         } else {
-            this.iterate((i, j) => {m.set(i, j, m.get(i, j) * b)});
+            this.iterate((i, j) => {
+                m.set(i, j, m.get(i, j) * b)
+            });
         }
 
         return m
@@ -185,36 +218,44 @@ export default class Matrix {
 
     public pow(scalar: number): Matrix {
         let m = this.copy();
-        this.iterate((i, j) => {m.set(i, j, m.get(i, j) ** scalar)});
+        this.iterate((i, j) => {
+            m.set(i, j, m.get(i, j) ** scalar)
+        });
         return m
     }
 
     public exp(): Matrix {
         let m = this.copy();
-        this.iterate((i, j) => {m.set(i, j, Math.exp(m.get(i, j)))});
+        this.iterate((i, j) => {
+            m.set(i, j, Math.exp(m.get(i, j)))
+        });
         return m
     }
 
     public log(): Matrix {
         let m = this.copy();
-        this.iterate((i, j) => {m.set(i, j, Math.log(m.get(i, j)))});
+        this.iterate((i, j) => {
+            m.set(i, j, Math.log(m.get(i, j)))
+        });
         return m
     }
 
     public sum(axis: number = 0, keepDims = false): number | Matrix {
-        if(keepDims) {
+        if (keepDims) {
             let m = this.copy();
             if (axis == 1) {
                 m.matrix.forEach((arr, i) => {
-                    const sum = arr.reduce((acc, val) => acc + val,0);
-                    arr.forEach((val, j) => m.set(i,j, sum))
+                    const sum = arr.reduce((acc, val) => acc + val, 0);
+                    arr.forEach((val, j) => m.set(i, j, sum))
                 });
             } else if (axis == 0) {
                 const sum = m.matrix.reduce((acc, val) => {
                     acc += val.reduce((acc, val) => acc + val, 0)
                     return acc;
                 }, 0);
-                this.iterate((i, j) => {m.set(i, j, sum)});
+                this.iterate((i, j) => {
+                    m.set(i, j, sum)
+                });
                 return m;
             } else if (axis == 2) {
                 return this.copy()
@@ -230,8 +271,8 @@ export default class Matrix {
                 let m = new Matrix()
                 m.createEmptyArray(this.dim().r, 1)
                 this.matrix.forEach((arr, i) => {
-                    const sum = arr.reduce((acc, val) => acc + val,0);
-                    m.set(i,0, sum)
+                    const sum = arr.reduce((acc, val) => acc + val, 0);
+                    m.set(i, 0, sum)
                 });
                 return m;
             } else if (axis == 2) {
@@ -243,9 +284,13 @@ export default class Matrix {
     public div(scalar: number | Matrix): Matrix {
         let m = this.copy();
         if (scalar instanceof Matrix) {
-            this.iterate((i, j) => {m.set(i, j, m.get(i, j) / scalar.get(i,j))});
+            this.iterate((i, j) => {
+                m.set(i, j, m.get(i, j) / scalar.get(i, j))
+            });
         } else {
-            this.iterate((i, j) => {m.set(i, j, m.get(i, j) / scalar)});
+            this.iterate((i, j) => {
+                m.set(i, j, m.get(i, j) / scalar)
+            });
         }
         return m
     }
@@ -264,7 +309,7 @@ export default class Matrix {
             if (i < 0) {
                 return 0;
             } else {
-                return this.matrix[i].reduce((acc:number, va:number, ind) => va > this.get(i,acc)? ind : acc, 0)
+                return this.matrix[i].reduce((acc: number, va: number, ind) => va > this.get(i, acc) ? ind : acc, 0)
             }
         } else {
             if (i < 0) {
@@ -272,7 +317,7 @@ export default class Matrix {
             } else {
                 let maxIndex = 0;
                 for (let j = 0; j < this.dim().r; j++) {
-                    if (Math.abs(this.get(j,i)) > Math.abs(this.get(maxIndex, i))) {
+                    if (Math.abs(this.get(j, i)) > Math.abs(this.get(maxIndex, i))) {
                         maxIndex = j;
                     }
                 }
@@ -283,12 +328,12 @@ export default class Matrix {
 
     public inv() {
         if (this.dim().c == 1 && this.dim().c == 1) {
-            return new Matrix([[1/this.get(0,0)]])
+            return new Matrix([[1 / this.get(0, 0)]])
         } else if (this.dim().c == 2 && this.dim().c) {
             return new Matrix([
-                [this.get(1,1), -this.get(0,1)],
-                [-this.get(1,0), this.get(0,0)]
-            ]).mul(1/((this.get(0,0)*this.get(1,1)) - (this.get(0,1)*this.get(1,0))))
+                [this.get(1, 1), -this.get(0, 1)],
+                [-this.get(1, 0), this.get(0, 0)]
+            ]).mul(1 / ((this.get(0, 0) * this.get(1, 1)) - (this.get(0, 1) * this.get(1, 0))))
         }
     }
 }

@@ -18,8 +18,6 @@ let layers = [
 
 let model = new Model(layers)
 
-
-
 model.train(dataset, 30, 0.0005)
 
 model.save("./nn.json")
