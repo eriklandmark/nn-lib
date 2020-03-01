@@ -16,9 +16,12 @@ interface SavedModel {
 export default class Model {
     layers: Layer[]
     learning_rate = 0;
+    gpuInstance: GPU
+    USE_GPU: boolean = false;
 
     constructor(layers: Layer[]) {
         this.layers = layers
+        this.gpuInstance = new GPU()
     }
 
     train_on_batch(examples: Matrix, labels: Matrix): number {
@@ -39,14 +42,16 @@ export default class Model {
         return (<OutputLayer>this.layers[this.layers.length - 1]).loss
     }
 
-    public async train(data: Example[] | Dataset, epochs: number, learning_rate: number) {
+    public async train(data: Example[] | Dataset, epochs: number, learning_rate: number, shuffle: boolean = false) {
         this.learning_rate = learning_rate
 
         for (let i = 0; i < this.layers.length; i++) {
             this.layers[i].populate()
+            this.layers[i].useGpu = this.USE_GPU
+            this.layers[i].setGpuInstance(this.gpuInstance)
         }
 
-        const shuffle = (array: Example[]) => {
+        const shuffleArray = (array: Example[]) => {
             let currentIndex = array.length, temporaryValue, randomIndex;
 
             // While there remain elements to shuffle...
@@ -93,7 +98,13 @@ export default class Model {
                 for (let epoch = 0; epoch < epochs; epoch++) {
                     console.log("Starting Epoch:", epoch)
                     for (let batch_id = 0; batch_id < batch_count; batch_id++) {
-                        const batch = data.getBatch(batch_id)//shuffle(dataset.getBatch(batch_id))
+                        let batch: Example[]
+                        if (shuffle) {
+                            batch = shuffleArray(data.getBatch(batch_id))
+                        } else {
+                            batch = data.getBatch(batch_id)
+                        }
+
                         const examples = new Matrix(batch.map((ex) => ex.data)).transpose()
                         const labels = new Matrix(batch.map((ex) => ex.label)).transpose()
                         let error = this.train_on_batch(examples, labels);

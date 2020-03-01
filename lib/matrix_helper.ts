@@ -1,6 +1,5 @@
 import Matrix from "./matrix";
 import Vector from "./vector";
-import {inspect} from "util";
 
 export default class MatrixHelper {
 
@@ -62,7 +61,7 @@ export default class MatrixHelper {
     public static linear_least_squares(x: Vector, y: Vector) {
         let A = new Matrix()
         A.createEmptyArray(x.size(), 2)
-        A.matrix.forEach((val: Float64Array, index) => {
+        A.matrix.forEach((val: Float32Array, index) => {
             A.set(index,0, 1)
             A.set(index,1, x.get(index))
         })

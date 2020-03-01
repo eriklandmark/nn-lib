@@ -17,9 +17,9 @@ let layers = [
 ]
 
 let model = new Model(layers)
+model.USE_GPU = true
 
 run()
-
 async function run() {
     await model.train(dataset, 30, 0.0005)
     console.log("Done")

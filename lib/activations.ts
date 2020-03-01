@@ -1,9 +1,16 @@
 import Vector from "./vector";
 import Matrix from "./matrix";
+import {KernelFunction} from "gpu.js";
 
 export default class Activations {
 
     private static sigmoidFunc = (x: number) => (1 / (1 + Math.exp(-x)))
+
+    public static sigmoid_gpu(): KernelFunction {
+        return function actv(a) {
+            return (1 / (1 + Math.exp(-a)))
+        }
+    }
 
     public static sigmoid(v: Vector | Matrix): Vector | Matrix {
         if (v instanceof Vector) {

@@ -7,11 +7,20 @@ export default class DenseLayer extends Layer{
     loss: number = 0;
 
     public backPropagation(labels: Matrix, next_layer: Layer) {
-        const gradient = <Matrix> Losses.squared_error_derivative(this.activation, labels)
         this.loss = <number> labels.mul(this.activation.log()).mul(-1).sum()
-        const error = <Matrix> gradient//.mul(this.actFuncDer(this.activation))
-        this.errorWeights = <Matrix> next_layer.activation.transpose().mm(error)
+        const nextActv = next_layer.activation.transpose()
+        const gradient = <Matrix> Losses.squared_error_derivative(this.activation, labels)
         this.errorBias = gradient
-        this.output_error = error
+        this.output_error = gradient
+
+        if (this.useGpu) {
+            const errorWeightsKernel = this.gpuInstance.createKernel(Matrix.mmGpu())
+                .setOutput([labels.dim().c, nextActv.dim().r]).setConstants({mmLength: labels.dim().r});
+            errorWeightsKernel.setLoopMaxIterations(Math.max(this.activation.dim().r, nextActv.dim().c))
+            this.errorWeights = new Matrix(errorWeightsKernel(nextActv.toNumberArray(), gradient.toNumberArray()) as number[][])
+            errorWeightsKernel.destroy()
+        } else {
+            this.errorWeights = <Matrix> next_layer.activation.transpose().mm(gradient)
+        }
     }
 }

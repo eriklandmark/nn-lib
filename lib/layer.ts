@@ -1,5 +1,7 @@
 import Matrix from "./matrix";
 import Vector from "./vector";
+import {GPU} from "gpu.js";
+import Activations from "./activations";
 
 export default class Layer {
     weights: Matrix
@@ -11,8 +13,8 @@ export default class Layer {
     actFunc: Function
     actFuncDer: Function
     layerSize: number
-
-    z: Matrix
+    useGpu: boolean = false;
+    gpuInstance: GPU
 
     constructor(layerSize: number, prevLayerSize: number, actFunc: Function, actFuncDer: Function) {
         this.layerSize = layerSize
@@ -25,7 +27,10 @@ export default class Layer {
         this.activation = new Matrix()
         this.actFunc = actFunc
         this.actFuncDer = actFuncDer
-        this.z = new Matrix()
+    }
+
+    setGpuInstance(gpuIns: GPU) {
+        this.gpuInstance = gpuIns;
     }
 
     public populate() {
@@ -45,14 +50,27 @@ export default class Layer {
                 this.activation.createEmptyArray(input.activation.dim().r, this.layerSize)
             }
 
-            act = (<Layer> input).activation
+            act = (<Layer>input).activation
         }
-        this.z = <Matrix> act.mm(this.weights)
-
-        this.z.iterate((i,j) => {
-            this.z.set(i,j, this.z.get(i,j) + this.bias.get(j))
-        })
-        this.activation = this.actFunc(this.z)
+        if (this.useGpu) {
+            const ffKernel = this.gpuInstance.createKernelMap({
+                addResult: Matrix.addGpu(),
+                multiplyResult: Matrix.mmGpu(),
+                actvResult: Activations.sigmoid_gpu()
+            }, function (a, b, c) {
+                //@ts-ignore
+                return actv(add(mm(a, b), c[this.thread.x]));
+            }, {output: [this.weights.dim().c, act.dim().r], constants: {mmLength: act.dim().c}})
+            ffKernel.setLoopMaxIterations(Math.max(act.dim().c, this.weights.dim().r))
+            this.activation = new Matrix(<Float32Array[]>ffKernel(act.toNumberArray(), this.weights.toNumberArray(), this.bias.toNumberArray())["result"]);
+            ffKernel.destroy()
+        } else {
+            const z = <Matrix>act.mm(this.weights)
+            z.iterate((i, j) => {
+                z.set(i, j, z.get(i, j) + this.bias.get(j))
+            })
+            this.activation = this.actFunc(z)
+        }
     }
 
     updateWeights(l_rate: number) {

@@ -1,5 +1,5 @@
 export default class Vector {
-    vector: Float64Array;
+    vector: Float32Array;
 
     public size: Function = (): number => {
         return this.vector.length
@@ -11,13 +11,13 @@ export default class Vector {
         this.vector[i] = n
     };
 
-    constructor(defaultValue: Float64Array | number[] | number = new Float64Array(0)) {
-        if (defaultValue instanceof Float64Array) {
+    constructor(defaultValue: Float32Array | number[] | number = new Float32Array(0)) {
+        if (defaultValue instanceof Float32Array) {
             this.vector = defaultValue;
         } else if (typeof defaultValue == "number") {
-            this.vector = new Float64Array(defaultValue);
+            this.vector = new Float32Array(defaultValue);
         } else {
-            this.vector = Float64Array.from(defaultValue);
+            this.vector = Float32Array.from(defaultValue);
         }
     }
 
@@ -30,7 +30,7 @@ export default class Vector {
     }
 
     public static toCategorical(index: number, size: number) {
-        const v = new Vector(new Float64Array(size).fill(0));
+        const v = new Vector(new Float32Array(size).fill(0));
         v.set(index, 1);
         return v
     }
@@ -51,6 +51,10 @@ export default class Vector {
                 }, "Vector: [ ") + "]"
             }
         }
+    }
+
+    public toNumberArray() {
+        return [].slice.call(this.vector)
     }
 
     public populateRandom() {

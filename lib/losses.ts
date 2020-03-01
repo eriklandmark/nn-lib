@@ -1,5 +1,6 @@
 import Vector from "./vector";
 import Matrix from "./matrix";
+import {KernelFunction} from "gpu.js";
 
 export default class Losses {
 
@@ -11,6 +12,13 @@ export default class Losses {
     public static squared_error_derivative(m: Matrix, labels: Matrix): Matrix {
         if (m.dim().r != labels.dim().r || m.dim().c != labels.dim().c) throw "Labels and output vector doesn't match size..";
         return m.sub(labels)
+    }
+
+    public static squared_error_derivative_gpu(): KernelFunction {
+        return function loss(m, label) {
+            //@ts-ignore
+            return m - label
+        }
     }
 
     public static CrossEntropy(v: Vector, labels: Vector): Vector {

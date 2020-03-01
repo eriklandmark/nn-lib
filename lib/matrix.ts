@@ -1,8 +1,9 @@
 import Vector from "./vector";
 import {StaticPool} from "node-worker-threads-pool";
+import {KernelFunction} from "gpu.js";
 
 export default class Matrix {
-    matrix: Array<Float64Array> = [];
+    matrix: Array<Float32Array> = [];
 
     public get: Function = (i: number, j: number) => {
         return this.matrix[i][j]
@@ -14,9 +15,9 @@ export default class Matrix {
         return this.dim().c * this.dim().r;
     };
 
-    constructor(defaultValue: Array<Array<number>> | Array<Float64Array> | Array<Vector> = []) {
-        if (defaultValue.length > 0 && defaultValue[0] instanceof Float64Array) {
-            this.matrix = <Array<Float64Array>>defaultValue
+    constructor(defaultValue: Array<Array<number>> | Array<Float32Array> | Array<Vector> = []) {
+        if (defaultValue.length > 0 && defaultValue[0] instanceof Float32Array) {
+            this.matrix = <Array<Float32Array>>defaultValue
         } else if (defaultValue.length > 0 && defaultValue[0] instanceof Vector) {
             const rows = (<Vector>defaultValue[0]).size()
             const cols = defaultValue.length;
@@ -26,14 +27,14 @@ export default class Matrix {
             })
         } else {
             for (let i = 0; i < defaultValue.length; i++) {
-                this.matrix.push(Float64Array.from(<Array<number>>defaultValue[i]))
+                this.matrix.push(Float32Array.from(<Array<number>>defaultValue[i]))
             }
         }
     }
 
     public createEmptyArray(rows: number, columns: number) {
         for (let i = 0; i < rows; i++) {
-            this.matrix.push(new Float64Array(columns).fill(0))
+            this.matrix.push(new Float32Array(columns).fill(0))
         }
     }
 
@@ -114,7 +115,38 @@ export default class Matrix {
         return this.dim().c == 0 || this.dim().r == 0
     }
 
-    public mm(b: Matrix | Vector): Matrix | Vector {
+    public static addGpu(): KernelFunction {
+        return function add(a, b) {
+            //@ts-ignore
+            return a + b;
+        }
+    }
+
+    public static subGpu(): KernelFunction {
+        return function sub(a, b) {
+            //@ts-ignore
+            return a - b;
+        }
+    }
+
+    public static multiplyGpu(): KernelFunction {
+        return function multiply(a, b) {
+            //@ts-ignore
+            return a * b;
+        }
+    }
+
+    public static mmGpu(): KernelFunction {
+        return function mm(a, b) {
+            let sum = 0;
+            for (let i = 0; i < this.constants.mmLength; i++) {
+                sum += a[this.thread.y][i] * b[i][this.thread.x];
+            }
+            return sum;
+        }
+    }
+
+    public mm(b: Matrix | Vector, gpu: boolean = false): Matrix | Vector {
         if (b instanceof Vector) {
             const v: Vector = b;
 
@@ -167,7 +199,7 @@ export default class Matrix {
                     size: Math.min(c.dim().r, 5),
                     task: function (row: any) {
                         const {matrix, bMatrix} = this.workerData
-                        let result = (new Float64Array(bMatrix[0].length)).map((_, col) => {
+                        let result = (new Float32Array(bMatrix[0].length)).map((_, col) => {
                             return matrix[row].reduce((acc: number, val: number, k: number) => acc + (val * bMatrix[k][col]), 0);
                         })
 
@@ -193,7 +225,7 @@ export default class Matrix {
     public add(b: number | Matrix): Matrix {
         let m = this.copy();
         if (b instanceof Matrix) {
-            if (b.dim().r != this.dim().r || b.dim().c != this.dim().c) throw "Matrix Addition: Not the same dimension";
+            if (b.dim().r != this.dim().r || b.dim().c != this.dim().c) throw "Matrix Addition: Not the same dimension"; console.trace()
             this.iterate((i: number, j: number) => {
                 m.set(i, j, m.get(i, j) + b.get(i, j))
             });
@@ -210,7 +242,10 @@ export default class Matrix {
     public sub(b: number | Matrix): Matrix {
         let m = this.copy();
         if (b instanceof Matrix) {
-            if (b.dim().r != m.dim().r || b.dim().c != m.dim().c) throw "Matrix Addition: Not the same dimension";
+            if (b.dim().r != m.dim().r || b.dim().c != m.dim().c) {
+                console.trace();
+                throw "Matrix Subtraction: Not the same dimension";
+            }
             this.iterate((i: number, j: number) => {
                 m.set(i, j, m.get(i, j) - b.get(i, j))
             });
