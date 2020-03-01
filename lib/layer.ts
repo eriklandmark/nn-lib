@@ -1,6 +1,5 @@
 import Matrix from "./matrix";
 import Vector from "./vector";
-import Activations from "./activations";
 
 export default class Layer {
     weights: Matrix
@@ -26,6 +25,7 @@ export default class Layer {
         this.activation = new Matrix()
         this.actFunc = actFunc
         this.actFuncDer = actFuncDer
+        this.z = new Matrix()
     }
 
     public populate() {
@@ -47,20 +47,18 @@ export default class Layer {
 
             act = (<Layer> input).activation
         }
-        this.z = act.mm(this.weights)
+        this.z = <Matrix> act.mm(this.weights)
 
-        /*this.z.iterate((i,j) => {
-            this.z.set(i,j, this.z.get(i,j) + this.bias.get(i))
-        })*/
+        this.z.iterate((i,j) => {
+            this.z.set(i,j, this.z.get(i,j) + this.bias.get(j))
+        })
         this.activation = this.actFunc(this.z)
-        //console.log(this.weights.toString(10))
     }
 
     updateWeights(l_rate: number) {
         this.weights = this.weights.sub(this.errorWeights.mul(l_rate))
-        /*const sums = <Matrix> this.errorBias.sum(1);
         this.bias.iterate((val: number, i: number) => {
-            this.bias.set(i, val - (sums.get(i,0) * l_rate))
-        })*/
+            this.bias.set(i, val - (this.errorBias.get(0, i) * l_rate))
+        })
     }
 }

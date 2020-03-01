@@ -1,6 +1,5 @@
-import numpy as np
 import matplotlib.pyplot as plt
-import json
+import numpy as np
 
 np.random.seed(42)
 
@@ -20,8 +19,8 @@ for i in range(2100):
 #np.save("./dataset", feature_set)
 #np.save("./labels", one_hot_labels)
 
-feature_set = np.load("./dataset.npy")
-one_hot_labels = np.load("./labels.npy")
+#feature_set = np.load("./dataset.npy")
+#one_hot_labels = np.load("./labels.npy")
 
 #obj = {"features": feature_set.tolist(), "labels": labels.tolist()}
 
@@ -58,6 +57,8 @@ lr = 10e-4
 
 error_cost = []
 
+print(np.array([[1,2,3], [1,2,3]]).sum(axis=1))
+
 for epoch in range(1):
     ############# feedforward
 
@@ -74,7 +75,6 @@ for epoch in range(1):
     ########## Phase 1
 
     dcost_dzo = ao - one_hot_labels
-    print(dcost_dzo)
     dzo_dwo = ah
     dcost_wo = np.dot(dzo_dwo.T, dcost_dzo)
     dcost_bo = dcost_dzo
@@ -93,7 +93,8 @@ for epoch in range(1):
     # Update Weights ================
 
     wh -= lr * dcost_wh
-    # bh -= lr * dcost_bh.sum(axis=0)
+    bh -= lr * dcost_bh.sum(axis=0)
+
 
     wo -= lr * dcost_wo
     # bo -= lr * dcost_bo.sum(axis=0)

@@ -1,12 +1,17 @@
-import dataset, {Example} from "./dataset";
+import Dataset, {Example} from "./dataset";
 import OutputLayer from "./output_layer";
 import DenseLayer from "./dense_layer";
 import Layer from "./layer";
 import * as fs from "fs";
 import Matrix from "./matrix";
 import Vector from "./vector";
-import Dataset from "./dataset";
-import matrix from "./matrix";
+import {GPU} from 'gpu.js';
+
+interface SavedModel {
+    layer_keys: string[],
+    layers: any,
+    output_layer : any
+}
 
 export default class Model {
     layers: Layer[]
@@ -14,10 +19,6 @@ export default class Model {
 
     constructor(layers: Layer[]) {
         this.layers = layers
-    }
-
-    train_on_example(example: Example) {
-
     }
 
     train_on_batch(examples: Matrix, labels: Matrix): number {
@@ -38,14 +39,14 @@ export default class Model {
         return (<OutputLayer>this.layers[this.layers.length - 1]).loss
     }
 
-    train(data: Example[] | Dataset, epochs: number, learning_rate: number) {
+    public async train(data: Example[] | Dataset, epochs: number, learning_rate: number) {
         this.learning_rate = learning_rate
 
         for (let i = 0; i < this.layers.length; i++) {
             this.layers[i].populate()
         }
 
-        const shuffle = (array) => {
+        const shuffle = (array: Example[]) => {
             let currentIndex = array.length, temporaryValue, randomIndex;
 
             // While there remain elements to shuffle...
@@ -65,22 +66,44 @@ export default class Model {
         }
 
         if (data instanceof Dataset) {
-            const dataset = <Dataset> data
-            const batch_count = dataset.size() / dataset.BATCH_SIZE
+            console.log("Starting training...")
+
             const startTime = Date.now();
+            if (data.IS_GENERATOR) {
+                const batch_count = Math.floor(data.TOTAL_EXAMPLES / data.BATCH_SIZE)
 
-            for (let epoch = 0; epoch < epochs; epoch++) {
-                console.log("Starting Epoch:", epoch)
-                for (let batch_id = 0; batch_id < batch_count; batch_id++) {
-                    const batch = dataset.getBatch(batch_id)//shuffle(dataset.getBatch(batch_id))
-                    const examples = new Matrix(batch.map((ex) => ex.data)).transpose()
-                    const labels = new Matrix(batch.map((ex) => ex.label)).transpose()
-                    let error = this.train_on_batch(examples, labels);
+                console.log("Total " + batch_count + " batches for " + epochs + " epochs.")
 
-                    console.log("Error for batch: " + batch_id + " =", error)
+                for (let epoch = 0; epoch < epochs; epoch++) {
+                    console.log("Starting Epoch:", epoch)
+                    for (let batch_id = 0; batch_id < batch_count; batch_id++) {
+                        const batch = await data.GENERATOR(batch_id)
+                        const examples = new Matrix(batch.map((ex: Example) => ex.data)).transpose()
+                        const labels = new Matrix(batch.map((ex: Example) => ex.label)).transpose()
+                        let error = this.train_on_batch(examples, labels);
+
+                        console.log("Error for batch: " + batch_id + " =", error)
+                    }
+
                 }
 
+            } else {
+                const batch_count = Math.floor(data.size() / data.BATCH_SIZE)
+
+                for (let epoch = 0; epoch < epochs; epoch++) {
+                    console.log("Starting Epoch:", epoch)
+                    for (let batch_id = 0; batch_id < batch_count; batch_id++) {
+                        const batch = data.getBatch(batch_id)//shuffle(dataset.getBatch(batch_id))
+                        const examples = new Matrix(batch.map((ex) => ex.data)).transpose()
+                        const labels = new Matrix(batch.map((ex) => ex.label)).transpose()
+                        let error = this.train_on_batch(examples, labels);
+
+                        console.log("Error for batch: " + batch_id + " =", error)
+                    }
+
+                }
             }
+
             console.log("Done..")
             const duration = Math.floor((Date.now() - startTime) / 1000)
             console.log("Duration: " + duration + " seconds")
@@ -111,9 +134,10 @@ export default class Model {
     }
 
     save(path: string) {
-        const modelObj = {
+        const modelObj: SavedModel = {
             layer_keys: [],
-            layers: {}
+            layers: {},
+            output_layer: {}
         }
 
         for (let i = 0; i < this.layers.length - 1; i++) {
@@ -154,6 +178,9 @@ export default class Model {
                 return modelObj.output_layer.bias[index.toString()]
             }
         ))
+    }
 
+    public isGpuAvailable():boolean {
+        return GPU.isGPUSupported
     }
 }

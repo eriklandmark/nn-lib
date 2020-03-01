@@ -1,5 +1,3 @@
-import Matrix from "./matrix";
-
 export default class Vector {
     vector: Float64Array;
 
@@ -21,6 +19,14 @@ export default class Vector {
         } else {
             this.vector = Float64Array.from(defaultValue);
         }
+    }
+
+    public static fromBuffer(buff: Buffer): Vector {
+        let v: Vector = new Vector(buff.length)
+        for (let i = 0; i < v.size(); i++) {
+            v.set(i, buff[i]);
+        }
+        return v
     }
 
     public static toCategorical(index: number, size: number) {
@@ -48,7 +54,7 @@ export default class Vector {
     }
 
     public populateRandom() {
-        this.iterate((_, index) => {
+        this.iterate((_: number, index: number) => {
             this.set(index, Math.random() * 2 - 1)
         })
     }
@@ -61,16 +67,16 @@ export default class Vector {
 
     public add(b: number | Vector): Vector {
         let v = new Vector(this.size());
-        if (typeof b == "number") {
-            let scalar: number = <number>b;
-            this.iterate((val, i) => {
-                v.set(i, val + scalar)
+        if (b instanceof Vector) {
+            if (b.size() != this.size()) throw "Vectors to add aren't the same size..";
+            this.iterate((val: number, i: number) => {
+                v.set(i, val + b.get(i))
             });
             return v
-        } else if (b instanceof Vector) {
-            if (b.size() != this.size()) throw "Vectors to add aren't the same size..";
-            this.iterate((val, i) => {
-                v.set(i, val + b.get(i))
+        } else {
+            let scalar: number = <number>b;
+            this.iterate((val: number, i: number) => {
+                v.set(i, val + scalar)
             });
             return v
         }
@@ -78,16 +84,16 @@ export default class Vector {
 
     public sub(b: number | Vector): Vector {
         let v = new Vector(this.size());
-        if (typeof b == "number") {
-            let scalar: number = <number>b;
-            this.iterate((val, i) => {
-                v.set(i, val - scalar)
+        if (b instanceof Vector) {
+            if (b.size() != this.size()) throw "Vectors to subtract aren't the same size..";
+            this.iterate((val: number, i: number) => {
+                v.set(i, val - b.get(i))
             });
             return v
-        } else if (b instanceof Vector) {
-            if (b.size() != this.size()) throw "Vectors to subtract aren't the same size..";
-            this.iterate((val, i) => {
-                v.set(i, val - b.get(i))
+        } else {
+            let scalar: number = <number>b;
+            this.iterate((val: number, i: number) => {
+                v.set(i, val - scalar)
             });
             return v
         }
@@ -100,11 +106,11 @@ export default class Vector {
                 console.trace();
                 throw "Vectors to multiply aren't the same size..";
             }
-            this.iterate((val, i) => {
+            this.iterate((val: number, i: number) => {
                 v.set(i, val * input.get(i))
             });
         } else {
-            this.iterate((val, i) => {
+            this.iterate((val: number, i: number) => {
                 v.set(i, val * input)
             });
         }
@@ -113,7 +119,7 @@ export default class Vector {
 
     public div(scalar: number): Vector {
         let v = new Vector(this.size());
-        this.iterate((val, i) => {
+        this.iterate((val: number, i: number) => {
             v.set(i, val / scalar)
         });
         return v
@@ -121,7 +127,7 @@ export default class Vector {
 
     public pow(scalar: number): Vector {
         let v = new Vector(this.size());
-        this.iterate((val, i) => {
+        this.iterate((val: number, i: number) => {
             v.set(i, val ** scalar)
         });
         return v
@@ -129,7 +135,7 @@ export default class Vector {
 
     public exp(): Vector {
         let v = new Vector(this.size());
-        this.iterate((val, i) => {
+        this.iterate((val: number, i: number) => {
             v.set(i, Math.exp(val))
         });
         return v

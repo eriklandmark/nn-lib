@@ -21,7 +21,7 @@ export default class Matrix {
             const rows = (<Vector>defaultValue[0]).size()
             const cols = defaultValue.length;
             this.createEmptyArray(rows, cols);
-            this.iterate((i, j) => {
+            this.iterate((i: number, j: number) => {
                 this.set(i, j, (<Vector>defaultValue[j]).get(i))
             })
         } else {
@@ -46,7 +46,7 @@ export default class Matrix {
             return "Matrix: 0x0 []"
         } else {
             let maxCharCount = 0;
-            this.iterate((i, j) => {
+            this.iterate((i: number, j: number) => {
                 let val = this.get(i, j).toString()
                 if (val.length > maxCharCount) maxCharCount = val.length
             })
@@ -64,19 +64,23 @@ export default class Matrix {
         }
     }
 
-    public static fromJsonObject(obj: Array<Object>) {
+    public static fromJsonObject(obj: any[]) {
         let m = new Matrix()
         m.createEmptyArray(obj.length, Object.keys(obj[0]).length)
-        m.iterate((i, j) => {
-            m.set(i, j, obj[i][j])
+        m.iterate((i: number, j: number) => {
+            m.set(i, j, obj[i][j.toString()])
         })
         return m;
+    }
+
+    public toNumberArray(): number[][] {
+        return this.matrix.map((floatArray) => [].slice.call(floatArray))
     }
 
     public copy() {
         let m = new Matrix()
         m.createEmptyArray(this.dim().r, this.dim().c)
-        m.iterate((i, j) => {
+        m.iterate((i: number, j: number) => {
             m.set(i, j, this.get(i, j))
         })
         return m
@@ -91,7 +95,7 @@ export default class Matrix {
     }
 
     public where(scalar: number): number[] {
-        this.iterate((i, j) => {
+        this.iterate((i: number, j: number) => {
             if (this.get(i, j) == scalar) {
                 return [i, j]
             }
@@ -101,7 +105,7 @@ export default class Matrix {
 
 
     public populateRandom() {
-        this.iterate((i, j) => {
+        this.iterate((i: number, j: number) => {
             this.set(i, j, Math.random() * 2 - 1)
         })
     }
@@ -121,10 +125,10 @@ export default class Matrix {
 
             const c = new Vector(this.dim().r);
             for (let i = 0; i < this.dim().r; i++) {
-                c.set(i, this.matrix[i].reduce((acc: number, val: number, k: number) => acc + (val * v.get(k)),0))
+                c.set(i, this.matrix[i].reduce((acc: number, val: number, k: number) => acc + (val * v.get(k)), 0))
             }
             return c;
-        } else if (b instanceof Matrix) {
+        } else {
             if (b.dim().r != this.dim().c) {
                 console.trace()
                 throw "Matrix Multiplication (Matrix): Wrong dimension.."
@@ -134,7 +138,7 @@ export default class Matrix {
             let c = new Matrix();
             c.createEmptyArray(this.dim().r, m.dim().c)
             c.iterate((i: number, j: number) => {
-                c.set(i, j, this.matrix[i].reduce((acc: number, val: number, k: number) => acc + (val * m.get(k, j)),0))
+                c.set(i, j, this.matrix[i].reduce((acc: number, val: number, k: number) => acc + (val * m.get(k, j)), 0))
             })
             return c
         }
@@ -161,10 +165,10 @@ export default class Matrix {
 
                 const pool = new StaticPool({
                     size: Math.min(c.dim().r, 5),
-                    task: function(row: any) {
+                    task: function (row: any) {
                         const {matrix, bMatrix} = this.workerData
                         let result = (new Float64Array(bMatrix[0].length)).map((_, col) => {
-                            return matrix[row].reduce((acc, val, k) => acc + (val * bMatrix[k][col]), 0);
+                            return matrix[row].reduce((acc: number, val: number, k: number) => acc + (val * bMatrix[k][col]), 0);
                         })
 
                         return {i: row, v: result}
@@ -175,7 +179,7 @@ export default class Matrix {
                 await (async () => {
                     for (let row = 0; row < c.dim().r; row++) {
                         const {i, v} = await pool.exec(row)
-                        for (let col = 0; col < v.length; col ++) {
+                        for (let col = 0; col < v.length; col++) {
                             c.set(i, col, v[col])
                         }
                     }
@@ -188,35 +192,35 @@ export default class Matrix {
 
     public add(b: number | Matrix): Matrix {
         let m = this.copy();
-        if (typeof b == "number") {
-            let scalar: number = <number>b;
-            this.iterate((i, j) => {
-                m.set(i, j, m.get(i, j) + scalar)
-            });
-            return m
-        } else if (b instanceof Matrix) {
+        if (b instanceof Matrix) {
             if (b.dim().r != this.dim().r || b.dim().c != this.dim().c) throw "Matrix Addition: Not the same dimension";
-            this.iterate((i, j) => {
+            this.iterate((i: number, j: number) => {
                 m.set(i, j, m.get(i, j) + b.get(i, j))
             });
             return m;
+        } else {
+            let scalar: number = <number>b;
+            this.iterate((i: number, j: number) => {
+                m.set(i, j, m.get(i, j) + scalar)
+            });
+            return m
         }
     }
 
     public sub(b: number | Matrix): Matrix {
         let m = this.copy();
-        if (typeof b == "number") {
-            let scalar: number = <number>b;
-            this.iterate((i, j) => {
-                m.set(i, j, m.get(i, j) - scalar)
-            });
-            return m
-        } else if (b instanceof Matrix) {
+        if (b instanceof Matrix) {
             if (b.dim().r != m.dim().r || b.dim().c != m.dim().c) throw "Matrix Addition: Not the same dimension";
             this.iterate((i: number, j: number) => {
                 m.set(i, j, m.get(i, j) - b.get(i, j))
             });
             return m;
+        } else {
+            let scalar: number = <number>b;
+            this.iterate((i: number, j: number) => {
+                m.set(i, j, m.get(i, j) - scalar)
+            });
+            return m
         }
     }
 
@@ -224,11 +228,11 @@ export default class Matrix {
         let m = this.copy();
         if (b instanceof Matrix) {
             if (b.dim().r != m.dim().r || b.dim().c != m.dim().c) throw "Matrix mult: Not the same dimension";
-            this.iterate((i, j) => {
+            this.iterate((i: number, j: number) => {
                 m.set(i, j, m.get(i, j) * b.get(i, j))
             });
         } else {
-            this.iterate((i, j) => {
+            this.iterate((i: number, j: number) => {
                 m.set(i, j, m.get(i, j) * b)
             });
         }
@@ -238,7 +242,7 @@ export default class Matrix {
 
     public pow(scalar: number): Matrix {
         let m = this.copy();
-        this.iterate((i, j) => {
+        this.iterate((i: number, j: number) => {
             m.set(i, j, m.get(i, j) ** scalar)
         });
         return m
@@ -246,7 +250,7 @@ export default class Matrix {
 
     public exp(): Matrix {
         let m = this.copy();
-        this.iterate((i, j) => {
+        this.iterate((i: number, j: number) => {
             m.set(i, j, Math.exp(m.get(i, j)))
         });
         return m
@@ -254,13 +258,13 @@ export default class Matrix {
 
     public log(): Matrix {
         let m = this.copy();
-        this.iterate((i, j) => {
+        this.iterate((i: number, j: number) => {
             m.set(i, j, Math.log(m.get(i, j)))
         });
         return m
     }
 
-    public sum(axis: number = 0, keepDims = false): number | Matrix {
+    public sum(axis: number = -1, keepDims = false): number | Matrix {
         if (keepDims) {
             let m = this.copy();
             if (axis == 1) {
@@ -273,7 +277,7 @@ export default class Matrix {
                     acc += val.reduce((acc, val) => acc + val, 0)
                     return acc;
                 }, 0);
-                this.iterate((i, j) => {
+                this.iterate((i: number, j: number) => {
                     m.set(i, j, sum)
                 });
                 return m;
@@ -282,11 +286,18 @@ export default class Matrix {
             }
             return m
         } else {
-            if (axis == 0) {
+            if (axis == -1) {
                 return this.matrix.reduce((acc, val) => {
                     acc += val.reduce((acc, val) => acc + val, 0)
                     return acc;
                 }, 0);
+            } else if (axis == 0) {
+                let m = new Matrix()
+                m.createEmptyArray(1, this.dim().c)
+                this.iterate((i, j) => {
+                    m.set(0, j, this.get(i, j) + m.get(0,j))
+                })
+                return m;
             } else if (axis == 1) {
                 let m = new Matrix()
                 m.createEmptyArray(this.dim().r, 1)
@@ -298,17 +309,18 @@ export default class Matrix {
             } else if (axis == 2) {
                 return this.copy()
             }
+            return 0
         }
     }
 
     public div(scalar: number | Matrix): Matrix {
         let m = this.copy();
         if (scalar instanceof Matrix) {
-            this.iterate((i, j) => {
+            this.iterate((i: number, j: number) => {
                 m.set(i, j, m.get(i, j) / scalar.get(i, j))
             });
         } else {
-            this.iterate((i, j) => {
+            this.iterate((i: number, j: number) => {
                 m.set(i, j, m.get(i, j) / scalar)
             });
         }
@@ -318,7 +330,7 @@ export default class Matrix {
     public transpose(): Matrix {
         let m = new Matrix()
         m.createEmptyArray(this.dim().c, this.dim().r);
-        this.iterate((i, j) => {
+        this.iterate((i: number, j: number) => {
             m.set(j, i, this.get(i, j))
         });
         return m;

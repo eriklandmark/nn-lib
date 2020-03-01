@@ -13,6 +13,7 @@ export default class DenseLayer extends Layer {
 
         const error = (<Matrix>prev_layer.output_error.mm(prev_layer.weights.transpose())).mul(this.actFuncDer(this.activation))
         this.errorWeights = <Matrix>dzh_dwh.transpose().mm(error);
+        this.errorBias = <Matrix> error.sum(0)
         this.output_error = error;
     }
 }
