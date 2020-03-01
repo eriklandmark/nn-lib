@@ -13,6 +13,8 @@
   "license": "ISC",
   "dependencies": {
     "@types/node": "^13.7.1",
+    "gpu.js": "^2.6.9",
+    "jimp": "^0.9.3",
     "node-worker-threads-pool": "^1.1.2",
     "typescript": "^3.7.5"
   },
