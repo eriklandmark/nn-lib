@@ -139,7 +139,7 @@ export default class Matrix {
     public static mmGpu(): KernelFunction {
         return function mm(a, b) {
             let sum = 0;
-            for (let i = 0; i < this.constants.mmLength; i++) {
+            for (let i = 0; i < a[0].length; i++) {
                 sum += a[this.thread.y][i] * b[i][this.thread.x];
             }
             return sum;
@@ -225,7 +225,10 @@ export default class Matrix {
     public add(b: number | Matrix): Matrix {
         let m = this.copy();
         if (b instanceof Matrix) {
-            if (b.dim().r != this.dim().r || b.dim().c != this.dim().c) throw "Matrix Addition: Not the same dimension"; console.trace()
+            if (b.dim().r != this.dim().r || b.dim().c != this.dim().c) {
+                console.trace()
+                throw "Matrix Addition: Not the same dimension"
+            }
             this.iterate((i: number, j: number) => {
                 m.set(i, j, m.get(i, j) + b.get(i, j))
             });

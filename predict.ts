@@ -2,17 +2,19 @@ import Dataset, {Example} from "./lib/dataset";
 import Model from "./lib/model";
 import DenseLayer from "./lib/dense_layer";
 import OutputLayer from "./lib/output_layer";
-import Activations from "./lib/activations";
 import * as fs from "fs";
 import * as path from "path";
 import Vector from "./lib/vector";
+import Losses from "./lib/losses";
 
 const model = new Model([
-    new DenseLayer(64, 128*118, Activations.sigmoid, Activations.sigmoid_derivative),
-    new DenseLayer(32, 64, Activations.sigmoid, Activations.sigmoid_derivative),
-    new DenseLayer(24, 32, Activations.sigmoid, Activations.sigmoid_derivative),
-    new OutputLayer(5, 24, Activations.Softmax, Activations.sigmoid_derivative)
+    new DenseLayer(64,"sigmoid"),
+    new DenseLayer(32,"sigmoid"),
+    new DenseLayer(24,"sigmoid"),
+    new OutputLayer(5,"softmax")
 ])
+
+model.build(128*118, Losses.squared_error_derivative)
 
 model.load("./nn.json")
 

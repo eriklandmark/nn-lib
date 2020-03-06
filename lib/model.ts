@@ -6,6 +6,7 @@ import * as fs from "fs";
 import Matrix from "./matrix";
 import Vector from "./vector";
 import {GPU} from 'gpu.js';
+import ArrayHelper from "./array_helper";
 
 interface SavedModel {
     layer_keys: string[],
@@ -18,10 +19,40 @@ export default class Model {
     learning_rate = 0;
     gpuInstance: GPU
     USE_GPU: boolean = false;
+    private isBuild = false;
 
     constructor(layers: Layer[]) {
         this.layers = layers
         this.gpuInstance = new GPU()
+    }
+
+    public isGpuAvailable():boolean {
+        return GPU.isGPUSupported
+    }
+
+    public build(inputShape: number, lossFunction: Function, verbose = true) {
+        this.layers[0].buildLayer(inputShape)
+        this.layers[0].useGpu = this.USE_GPU
+        this.layers[0].setGpuInstance(this.gpuInstance)
+        for (let i = 1; i < this.layers.length; i++) {
+            this.layers[i].buildLayer(this.layers[i - 1].layerSize)
+            this.layers[i].useGpu = this.USE_GPU
+            this.layers[i].setGpuInstance(this.gpuInstance)
+        }
+
+        const lastLayer = this.layers[this.layers.length - 1]
+
+        if (lastLayer instanceof OutputLayer) {
+            lastLayer.lossFunction = lossFunction
+        } else {
+            throw "Last layer must be an OutputLayer!..."
+        }
+
+        if (verbose) {
+            console.log("Successfully build model!")
+        }
+
+        this.isBuild = true;
     }
 
     train_on_batch(examples: Matrix, labels: Matrix): number {
@@ -42,33 +73,12 @@ export default class Model {
         return (<OutputLayer>this.layers[this.layers.length - 1]).loss
     }
 
-    public async train(data: Example[] | Dataset, epochs: number, learning_rate: number, shuffle: boolean = false) {
+    public async train(data: Example[] | Dataset, epochs: number, learning_rate: number, shuffle: boolean = false, verbose: boolean = true) {
+        if (!this.isBuild) {
+            throw "Model hasn't been build yet!.."
+        }
+
         this.learning_rate = learning_rate
-
-        for (let i = 0; i < this.layers.length; i++) {
-            this.layers[i].populate()
-            this.layers[i].useGpu = this.USE_GPU
-            this.layers[i].setGpuInstance(this.gpuInstance)
-        }
-
-        const shuffleArray = (array: Example[]) => {
-            let currentIndex = array.length, temporaryValue, randomIndex;
-
-            // While there remain elements to shuffle...
-            while (0 !== currentIndex) {
-
-                // Pick a remaining element...
-                randomIndex = Math.floor(Math.random() * currentIndex);
-                currentIndex -= 1;
-
-                // And swap it with the current element.
-                temporaryValue = array[currentIndex];
-                array[currentIndex] = array[randomIndex];
-                array[randomIndex] = temporaryValue;
-            }
-
-            return array;
-        }
 
         if (data instanceof Dataset) {
             console.log("Starting training...")
@@ -100,7 +110,7 @@ export default class Model {
                     for (let batch_id = 0; batch_id < batch_count; batch_id++) {
                         let batch: Example[]
                         if (shuffle) {
-                            batch = shuffleArray(data.getBatch(batch_id))
+                            batch = ArrayHelper.shuffle(data.getBatch(batch_id))
                         } else {
                             batch = data.getBatch(batch_id)
                         }
@@ -119,18 +129,19 @@ export default class Model {
             const duration = Math.floor((Date.now() - startTime) / 1000)
             console.log("Duration: " + duration + " seconds")
         } else {
-
             let examples = new Matrix(data.map((ex) => ex.data)).transpose()
             let labels = new Matrix(data.map((ex) => ex.label)).transpose()
 
             for (let epoch = 0; epoch < epochs; epoch++) {
-                //data = shuffle(data)
                 console.log(this.train_on_batch(examples, labels))
             }
         }
     }
 
     predict(data: Vector | Matrix): Matrix {
+        if (!this.isBuild) {
+            throw "Model hasn't been build yet!.."
+        }
         let exampleMatrix: Matrix
         if (data instanceof Vector) {
             exampleMatrix = new Matrix([data]).transpose()
@@ -189,9 +200,9 @@ export default class Model {
                 return modelObj.output_layer.bias[index.toString()]
             }
         ))
-    }
 
-    public isGpuAvailable():boolean {
-        return GPU.isGPUSupported
+        if (!this.isBuild) {
+            throw "Model hasn't been build yet!.."
+        }
     }
 }

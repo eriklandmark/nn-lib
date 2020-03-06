@@ -1,7 +1,7 @@
 import Matrix from "./matrix";
 import Vector from "./vector";
 import {GPU} from "gpu.js";
-import Activations from "./activations";
+import Activations, {IActivations} from "./activations";
 
 export default class Layer {
     weights: Matrix
@@ -10,32 +10,36 @@ export default class Layer {
     errorBias: Matrix
     output_error: Matrix
     activation: Matrix
+    activationString: string
     actFunc: Function
     actFuncDer: Function
     layerSize: number
     useGpu: boolean = false;
     gpuInstance: GPU
 
-    constructor(layerSize: number, prevLayerSize: number, actFunc: Function, actFuncDer: Function) {
+    constructor(layerSize: number, activation: string = "sigmoid") {
         this.layerSize = layerSize
+        this.activationString = activation
+    }
+
+    buildLayer(prevLayerSize: number) {
         this.weights = new Matrix()
-        this.weights.createEmptyArray(prevLayerSize, layerSize)
-        this.bias = new Vector(layerSize)
+        this.weights.createEmptyArray(prevLayerSize, this.layerSize)
+        this.bias = new Vector(this.layerSize)
+        this.weights.populateRandom();
+        this.bias.populateRandom();
         this.errorWeights = new Matrix()
         this.errorBias = new Matrix()
         this.output_error = new Matrix()
         this.activation = new Matrix()
-        this.actFunc = actFunc
-        this.actFuncDer = actFuncDer
+
+        const {func, derv}: IActivations = Activations.lookUp(this.activationString)
+        this.actFunc = func;
+        this.actFuncDer = derv;
     }
 
     setGpuInstance(gpuIns: GPU) {
         this.gpuInstance = gpuIns;
-    }
-
-    public populate() {
-        this.weights.populateRandom();
-        this.bias.populateRandom();
     }
 
     public feedForward(input: Layer | Matrix) {

@@ -2,7 +2,7 @@ import Dataset from "./lib/dataset"
 import DenseLayer from "./lib/dense_layer";
 import OutputLayer from "./lib/output_layer";
 import Model from "./lib/model"
-import Activations from "./lib/activations";
+import Losses from "./lib/losses";
 
 let dataset = new Dataset();
 
@@ -10,14 +10,16 @@ dataset.BATCH_SIZE = 1000
 dataset.loadMnistTrain("./dataset/mnist")
 
 let layers = [
-    new DenseLayer(32, 28*28, Activations.sigmoid, Activations.sigmoid_derivative),
-    new DenseLayer(32, 32, Activations.sigmoid, Activations.sigmoid_derivative),
-    new DenseLayer(32, 32, Activations.sigmoid, Activations.sigmoid_derivative),
-    new OutputLayer(10, 32, Activations.Softmax, Activations.sigmoid_derivative)
+    new DenseLayer(32,"sigmoid"),
+    new DenseLayer(32,"sigmoid"),
+    new DenseLayer(32,"sigmoid"),
+    new OutputLayer(10,"softmax")
 ]
 
 let model = new Model(layers)
-model.USE_GPU = true
+model.USE_GPU = false
+
+model.build(28*28, Losses.squared_error_derivative)
 
 run()
 async function run() {
