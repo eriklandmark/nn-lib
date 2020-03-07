@@ -12,7 +12,7 @@ If on linux, run:
 ````
 sudo apt install mesa-common-dev libxi-dev
 ````
-Else, make shore to have windows-builder-tool, Visual Studio or Xcode installed depending on your operating system.
+Else, make sure to have windows-builder-tool, Visual Studio or Xcode installed depending on your operating system.
 ##### Then:
 ````
 npm install eriklandmark/nn-lib
