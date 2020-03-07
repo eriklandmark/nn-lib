@@ -1,9 +1,9 @@
-import Dataset from "../lib/dataset";
-import Model from "../lib/model";
-import DenseLayer from "../lib/dense_layer";
-import OutputLayer from "../lib/output_layer";
-import Losses from "../lib/losses";
-import Helper from "../lib/helper";
+import Dataset from "./lib/dataset";
+import Model from "./lib/model";
+import DenseLayer from "./lib/dense_layer";
+import OutputLayer from "./lib/output_layer";
+import Losses from "./lib/losses";
+import Helper from "./lib/helper";
 
 const model = new Model([
     new DenseLayer(32,"sigmoid"),
