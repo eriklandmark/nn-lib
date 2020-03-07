@@ -8,7 +8,7 @@
     "start": "ts-node-dev src/main.ts",
     "predict": "ts-node-dev test/predict.ts",
     "build": "tsc -p tsconfig.json --declaration",
-    "postinstall": "tsc -p node_modules\\nn-lib\\tsconfig.json --declaration"
+    "postinstall": "npm run build"
   },
   "keywords": [],
   "author": "",
