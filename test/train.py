@@ -1,7 +1,7 @@
-import numpy as np
-from matplotlib import pyplot as plt
-import mnist
 import datetime
+import mnist
+import numpy as np
+
 
 def sigmoid(z):
     return 1 / (1 + np.exp(-z))
