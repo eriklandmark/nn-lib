@@ -6,7 +6,8 @@
   "scripts": {
     "test": "ts-node-dev test/test.ts",
     "start": "ts-node-dev main.ts",
-    "predict": "ts-node-dev test/predict.ts"
+    "predict": "ts-node-dev test/predict.ts",
+    "build": "tsc -p tsconfig.json"
   },
   "keywords": [],
   "author": "",
