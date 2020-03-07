@@ -1,12 +1,50 @@
-import Dataset, {Example} from "./lib/dataset";
+import Dataset from "./lib/dataset";
 import Model from "./lib/model";
 import DenseLayer from "./lib/dense_layer";
 import OutputLayer from "./lib/output_layer";
-import * as fs from "fs";
-import * as path from "path";
-import Vector from "./lib/vector";
 import Losses from "./lib/losses";
+import Helper from "./lib/helper";
 
+const model = new Model([
+    new DenseLayer(32,"sigmoid"),
+    new DenseLayer(32,"sigmoid"),
+    new DenseLayer(32,"sigmoid"),
+    new OutputLayer(10,"softmax")
+])
+
+model.build(28*28, Losses.squared_error_derivative)
+
+model.load("./nn.json")
+
+const dataset = new Dataset();
+
+dataset.loadMnistTest("dataset/mnist/", 10000);
+dataset.BATCH_SIZE = 10000
+
+let examples = dataset.getBatch(0)
+
+let numRights = 0;
+
+Helper.timeit(() => {
+    for (let i = 0; i < examples.length; i++ ) {
+        const pred = model.predict(examples[i].data)
+        //console.log(pred.toString())
+        const predArg = pred.argmax(0)
+        const labelArg = examples[i].label.argmax();
+        if (predArg == labelArg) {
+            numRights += 1
+        }
+    }
+}, false).then((seconds) => {
+    console.log("Num rights: " + numRights + " of " + examples.length + " (" + Math.round((numRights / examples.length) * 100) + " %)")
+    console.log("It took " + seconds + " seconds.")
+})
+
+
+
+
+
+/*
 const model = new Model([
     new DenseLayer(64,"sigmoid"),
     new DenseLayer(32,"sigmoid"),
@@ -15,20 +53,6 @@ const model = new Model([
 ])
 
 model.build(128*118, Losses.squared_error_derivative)
-
-model.load("./nn.json")
-
-const dataset = new Dataset();
-
-/*
-
-dataset.loadMnistTest("dataset/speech/", 10000);
-dataset.BATCH_SIZE = 10000
-
-let examples = dataset.getBatch(0)
- */
-
-
 
 const train_images: string[] = fs.readFileSync("./dataset/speech/test_list.txt", {encoding: "UTF-8"})
     .trim().split("\n").map((s: string) => s.trim())//.slice(0, 10)
@@ -87,4 +111,7 @@ async function run() {
 }
 
 run()
+
+ */
+
 
