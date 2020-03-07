@@ -8,8 +8,10 @@
     "start": "ts-node-dev src/main.ts",
     "predict": "ts-node-dev test/predict.ts",
     "build": "tsc -p tsconfig.json --declaration",
-    "postinstall": "npm run build"
   },
+  "files": [
+    "dist"
+  ],
   "keywords": [],
   "author": "",
   "license": "ISC",
@@ -17,10 +19,10 @@
     "@types/node": "^13.7.1",
     "gpu.js": "^2.6.9",
     "jimp": "^0.9.3",
-    "node-worker-threads-pool": "^1.1.2"
+    "node-worker-threads-pool": "^1.1.2",
+    "typescript": "^3.8.3"
   },
   "devDependencies": {
-    "ts-node-dev": "^1.0.0-pre.44",
-    "typescript": "^3.8.3"
+    "ts-node-dev": "^1.0.0-pre.44"
   }
 }
