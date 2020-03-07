@@ -1,7 +1,7 @@
 {
   "name": "nn-lib",
   "version": "1.0.0",
-  "description": "",
+  "description": "A minimal and pretty lightweight neural network library.",
   "main": "dist/main.js",
   "scripts": {
     "test": "ts-node-dev test/test.ts",
@@ -12,8 +12,8 @@
   "files": [
     "dist"
   ],
-  "keywords": [],
-  "author": "",
+  "keywords": ["nn", "neural", "network", "linear algebra", "linalg"],
+  "author": "Erik Landmark",
   "license": "ISC",
   "dependencies": {
     "@types/node": "^13.7.1",
