@@ -1,12 +1,12 @@
 import Dataset, {Example} from "./dataset";
-import OutputLayer from "./output_layer";
-import DenseLayer from "./dense_layer";
-import Layer from "./layer";
+import OutputLayer from "./lib/layers/output_layer";
+import DenseLayer from "./lib/layers/dense_layer";
+import Layer from "./lib/layers/layer";
 import * as fs from "fs";
 import Matrix from "./matrix";
 import Vector from "./vector";
 import {GPU} from 'gpu.js';
-import ArrayHelper from "./array_helper";
+import ArrayHelper from "./helpers/array_helper";
 
 interface SavedModel {
     layer_keys: string[],

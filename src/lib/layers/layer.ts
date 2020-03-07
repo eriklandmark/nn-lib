@@ -1,7 +1,7 @@
-import Matrix from "./matrix";
-import Vector from "./vector";
+import Matrix from "../../matrix";
+import Vector from "../../vector";
 import {GPU} from "gpu.js";
-import Activations, {IActivations} from "./activations";
+import Activations, {IActivations} from "../activations";
 
 export default class Layer {
     weights: Matrix

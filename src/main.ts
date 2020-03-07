@@ -1,1 +1,1 @@
-console.log("hejsan")
+export const NAME = "nn-lib"

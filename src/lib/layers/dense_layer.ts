@@ -1,5 +1,5 @@
 import Layer from "./layer";
-import Matrix from "./matrix";
+import Matrix from "../../matrix";
 
 export default class DenseLayer extends Layer {
 

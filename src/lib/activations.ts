@@ -1,5 +1,5 @@
-import Vector from "./vector";
-import Matrix from "./matrix";
+import Vector from "../vector";
+import Matrix from "../matrix";
 import {KernelFunction} from "gpu.js";
 
 export interface IActivations {
