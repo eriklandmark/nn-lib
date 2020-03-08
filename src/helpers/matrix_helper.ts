@@ -69,7 +69,7 @@ export default class MatrixHelper {
         const VL: Matrix = <Matrix> A.transpose().mm(A)
         const HL: Vector = <Vector> A.transpose().mm(y)
 
-        let xV = VL.inv().mm(HL)
+        let xV = VL.inv()!.mm(HL)
 
         console.log(xV.toString())
         //const reducedVL = this.row_reduction(VL)

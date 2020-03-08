@@ -19,7 +19,7 @@ export default class Model {
     learning_rate = 0;
     gpuInstance: GPU
     USE_GPU: boolean = false;
-    private isBuild = false;
+    private isBuilt = false;
 
     constructor(layers: Layer[]) {
         this.layers = layers
@@ -52,7 +52,7 @@ export default class Model {
             console.log("Successfully build model!")
         }
 
-        this.isBuild = true;
+        this.isBuilt = true;
     }
 
     train_on_batch(examples: Matrix, labels: Matrix): number {
@@ -74,7 +74,7 @@ export default class Model {
     }
 
     public async train(data: Example[] | Dataset, epochs: number, learning_rate: number, shuffle: boolean = false, verbose: boolean = true) {
-        if (!this.isBuild) {
+        if (!this.isBuilt) {
             throw "Model hasn't been build yet!.."
         }
 
@@ -139,7 +139,7 @@ export default class Model {
     }
 
     predict(data: Vector | Matrix): Matrix {
-        if (!this.isBuild) {
+        if (!this.isBuilt) {
             throw "Model hasn't been build yet!.."
         }
         let exampleMatrix: Matrix
@@ -201,7 +201,7 @@ export default class Model {
             }
         ))
 
-        if (!this.isBuild) {
+        if (!this.isBuilt) {
             throw "Model hasn't been build yet!.."
         }
     }

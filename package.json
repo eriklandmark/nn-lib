@@ -1,24 +1,36 @@
 {
   "name": "nn-lib",
   "version": "1.0.0",
-  "description": "A minimal and pretty lightweight neural network library.",
+  "description": "A minimal and very lightweight neural network library.",
   "main": "dist/main.js",
   "scripts": {
     "test": "ts-node-dev test/test.ts",
-    "start": "ts-node-dev src/main.ts",
+    "train": "ts-node-dev test/train.ts",
     "predict": "ts-node-dev test/predict.ts",
-    "build": "tsc -p tsconfig.json"
+    "build": "tsc -p tsconfig.json",
+    "build-native": "node-gyp rebuild"
   },
   "files": [
     "dist"
   ],
-  "keywords": ["nn", "neural", "network", "linear algebra", "linalg"],
+  "keywords": [
+    "nn",
+    "neural",
+    "network",
+    "linear algebra",
+    "linalg"
+  ],
   "author": "Erik Landmark",
   "license": "ISC",
+  "private": true,
+  "gypfile": true,
   "dependencies": {
+    "@types/mathjs": "^6.0.4",
     "@types/node": "^13.7.1",
     "gpu.js": "^2.6.9",
     "jimp": "^0.9.3",
+    "mathjs": "^6.6.1",
+    "node-addon-api": "^2.0.0",
     "node-worker-threads-pool": "^1.1.2",
     "typescript": "^3.8.3"
   },

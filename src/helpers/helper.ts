@@ -1,6 +1,6 @@
 export default class Helper {
 
-    public static timeit(func: Function, floorIt = true): Promise<number> {
+    public static timeit(func: Function, floorIt: boolean = true): Promise<number> {
         return new Promise<number>(async (resolve) => {
             const startTime = Date.now()
             func()

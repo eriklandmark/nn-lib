@@ -4,18 +4,18 @@ import {GPU} from "gpu.js";
 import Activations, {IActivations} from "../activations";
 
 export default class Layer {
-    weights: Matrix
-    bias: Vector
-    errorWeights: Matrix
-    errorBias: Matrix
-    output_error: Matrix
-    activation: Matrix
+    weights: Matrix = new Matrix()
+    bias: Vector = new Vector()
+    errorWeights: Matrix = new Matrix()
+    errorBias: Matrix = new Matrix()
+    output_error: Matrix = new Matrix()
+    activation: Matrix = new Matrix()
     activationString: string
-    actFunc: Function
-    actFuncDer: Function
+    actFunc: Function = () => {}
+    actFuncDer: Function | null = () => {}
     layerSize: number
     useGpu: boolean = false;
-    gpuInstance: GPU
+    gpuInstance: GPU = new GPU()
 
     constructor(layerSize: number, activation: string = "sigmoid") {
         this.layerSize = layerSize
@@ -70,7 +70,7 @@ export default class Layer {
             ffKernel.destroy()
         } else {
             const z = <Matrix>act.mm(this.weights)
-            z.iterate((i, j) => {
+            z.iterate((i: number, j: number) => {
                 z.set(i, j, z.get(i, j) + this.bias.get(j))
             })
             this.activation = this.actFunc(z)

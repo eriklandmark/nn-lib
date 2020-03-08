@@ -139,7 +139,9 @@ export default class Matrix {
     public static mmGpu(): KernelFunction {
         return function mm(a, b) {
             let sum = 0;
+            //@ts-ignore
             for (let i = 0; i < a[0].length; i++) {
+                //@ts-ignore
                 sum += a[this.thread.y][i] * b[i][this.thread.x];
             }
             return sum;
@@ -332,7 +334,7 @@ export default class Matrix {
             } else if (axis == 0) {
                 let m = new Matrix()
                 m.createEmptyArray(1, this.dim().c)
-                this.iterate((i, j) => {
+                this.iterate((i: number, j: number) => {
                     m.set(0, j, this.get(i, j) + m.get(0,j))
                 })
                 return m;

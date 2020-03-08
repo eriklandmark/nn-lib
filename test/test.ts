@@ -1,8 +1,36 @@
-import Model from "./lib/model";
+import Model from "../src/model";
+import {all, create} from "mathjs"
+import Matrix from "../src/matrix";
+import Helper from "../src/helpers/helper";
 
+const math = create(all, {})
 const model = new Model([])
 
 console.log(model.isGpuAvailable())
+
+const size = 1000;
+
+const ma = new Matrix()
+const mb = new Matrix()
+ma.createEmptyArray(size, size)
+mb.createEmptyArray(size, size)
+ma.populateRandom();
+mb.populateRandom();
+const a = ma.toNumberArray()
+const b = mb.toNumberArray()
+/*
+Helper.timeit(() => {
+    math.multiply(a, b)
+}).then((sec) => {
+    console.log("Math: " + sec)
+})
+*/
+Helper.timeit(() => {
+    ma.mm(mb)
+}).then((sec) => {
+    console.log("nn-lib: " + sec)
+})
+
 /*
 const gpu = new GPU({mode:"gpu"});
 

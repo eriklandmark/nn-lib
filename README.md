@@ -1,6 +1,6 @@
 # nn-lib
 
-##### A minimal and pretty lightweight neural network library. 
+##### A minimal and vary lightweight neural network library. 
 
 For no only support dense (fully connected) layers but will add convolution layer. Are also working/planing on to add
 GPU support for training and inference, but this will take a while. Because it is written in typescript it only 
@@ -53,3 +53,4 @@ run()
 * Try to make matrix multiplication multithreaded via c++ binding.
 * Add callbacks to training.
 * Make promised-based version of the main functions.
+* Maybe create documentation if needed.
