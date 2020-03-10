@@ -4,7 +4,7 @@
 
 For no only support dense (fully connected) layers but will add convolution layer. Are also working/planing on to add
 GPU support for training and inference, but this will take a while. Because it is written in typescript it only 
-runs on a single thread. Which is nice when run on a more simpler setup (like raspberry pi). 
+runs on a single thread. Which is nice when you want to run on a less powerful setup (like raspberry pi). 
 
 ### To install:
 ##### Before install:
@@ -28,22 +28,23 @@ dataset.BATCH_SIZE = 1000
 dataset.loadMnistTrain(path-to-dir-with-mnist-files)
 
 let layers = [
-    new DenseLayer(32,"sigmoid"),
-    new DenseLayer(32,"sigmoid"),
-    new DenseLayer(32,"sigmoid"),
-    new OutputLayer(10,"softmax")
+    new DenseLayer(32, new Sigmoid()),
+    new DenseLayer(32, new Sigmoid()),
+    new DropoutLayer(0.25),
+    new DenseLayer(32, new Sigmoid()),
+    new DropoutLayer(0.20),
+    new OutputLayer(10, new Softmax())
 ]
 
 let model = new Model(layers)
 
-model.build(28*28, Losses.squared_error_derivative)
+model.build([28*28], new MeanSquaredError())
 
 async function run() {
     await model.train(dataset, 30, 0.0005)
     model.save("./nn.json")
     console.log("Done")
 }
-
 run()
 ````
 
