@@ -335,7 +335,7 @@ export default class Matrix {
                 let m = new Matrix()
                 m.createEmptyArray(1, this.dim().c)
                 this.iterate((i: number, j: number) => {
-                    m.set(0, j, this.get(i, j) + m.get(0,j))
+                    m.set(0, j, this.get(i, j) + m.get(0, j))
                 })
                 return m;
             } else if (axis == 1) {

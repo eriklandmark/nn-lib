@@ -14,16 +14,16 @@ dataset.loadMnistTrain("./dataset/mnist")
 let layers = [
     new DenseLayer(32,"sigmoid"),
     new DenseLayer(32,"sigmoid"),
-    new DropoutLayer(0.20),
-    new DenseLayer(32,"sigmoid"),
     new DropoutLayer(0.25),
+    new DenseLayer(32,"sigmoid"),
+    new DropoutLayer(0.20),
     new OutputLayer(10,"softmax")
 ]
 
 let model = new Model(layers)
 model.USE_GPU = false
 
-model.build(28*28, Losses.squared_error_derivative)
+model.build([28*28], Losses.squared_error_derivative)
 
 async function run() {
     await model.train(dataset, 30, 0.0005)

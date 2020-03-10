@@ -30,12 +30,12 @@ export default class Model {
         return GPU.isGPUSupported
     }
 
-    public build(inputShape: number, lossFunction: Function, verbose = true) {
+    public build(inputShape: number[], lossFunction: Function, verbose = true) {
         this.layers[0].buildLayer(inputShape)
         this.layers[0].useGpu = this.USE_GPU
         this.layers[0].setGpuInstance(this.gpuInstance)
         for (let i = 1; i < this.layers.length; i++) {
-            this.layers[i].buildLayer(this.layers[i - 1].layerSize)
+            this.layers[i].buildLayer(this.layers[i - 1].shape)
             this.layers[i].useGpu = this.USE_GPU
             this.layers[i].setGpuInstance(this.gpuInstance)
         }
@@ -61,7 +61,7 @@ export default class Model {
             this.layers[i].feedForward(this.layers[i - 1], true)
         }
 
-        (<OutputLayer>this.layers[this.layers.length - 1]).backPropagationOutput(labels, this.layers[this.layers.length - 2])
+        (<OutputLayer>this.layers[this.layers.length - 1]).backPropagationOutputLayer(labels, this.layers[this.layers.length - 2])
         for (let i = this.layers.length - 2; i > 0; i--) {
             (<DenseLayer>this.layers[i]).backPropagation(this.layers[i + 1], this.layers[i - 1])
         }

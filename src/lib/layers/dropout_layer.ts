@@ -1,18 +1,19 @@
 import Layer from "./layer";
 import Matrix from "../../matrix";
+import DenseLayer from "./dense_layer";
 
-export default class DropoutLayer extends Layer {
+export default class DropoutLayer extends DenseLayer {
 
     rate: number = 0
 
     constructor(rate: number) {
-        super(0);
+        super(0, "sigmoid");
         this.rate = rate
     }
 
-    buildLayer(prevLayerSize: number) {
-        this.layerSize = prevLayerSize;
-        super.buildLayer(prevLayerSize);
+    buildLayer(prevLayerShape: number[]) {
+        this.layerSize = prevLayerShape[0];
+        super.buildLayer(prevLayerShape);
     }
 
     feedForward(input: Layer | Matrix, isInTraining: boolean) {

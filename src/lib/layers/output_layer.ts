@@ -1,13 +1,19 @@
 import Layer from "./layer";
 import Matrix from "../../matrix";
+import DenseLayer from "./dense_layer";
 
-export default class DenseLayer extends Layer{
+export default class OutputLayer extends DenseLayer {
 
     loss: number = 0;
+    layerSize: number = 0;
     lossFunction: Function = () => {}
 
-    public backPropagationOutput(labels: Matrix, next_layer: Layer) {
-        //this.loss = <number> labels.mul(this.activation.log()).mul(-1).sum()
+    constructor(layerSize: number, activation: string) {
+        super(layerSize, activation)
+        this.layerSize = layerSize
+    }
+
+    public backPropagationOutputLayer(labels: Matrix, next_layer: Layer) {
         this.loss = <number> labels.mul(-1).mul(this.activation.log()).sum()
         const nextActv = next_layer.activation.transpose()
         const gradient = <Matrix> this.lossFunction(this.activation, labels)
