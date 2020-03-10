@@ -1,14 +1,17 @@
 import Layer from "./layer";
 import Matrix from "../../matrix";
 import DenseLayer from "./dense_layer";
+import IActivation from "../activations/activations";
+import ILoss from "../losses/losses";
+import MeanSquaredError from "../losses/mean_squared_error";
 
 export default class OutputLayer extends DenseLayer {
 
     loss: number = 0;
     layerSize: number = 0;
-    lossFunction: Function = () => {}
+    lossFunction: ILoss = new MeanSquaredError()
 
-    constructor(layerSize: number, activation: string) {
+    constructor(layerSize: number, activation: IActivation) {
         super(layerSize, activation)
         this.layerSize = layerSize
     }
@@ -16,7 +19,7 @@ export default class OutputLayer extends DenseLayer {
     public backPropagationOutputLayer(labels: Matrix, next_layer: Layer) {
         this.loss = <number> labels.mul(-1).mul(this.activation.log()).sum()
         const nextActv = next_layer.activation.transpose()
-        const gradient = <Matrix> this.lossFunction(this.activation, labels)
+        const gradient = <Matrix> this.lossFunction.derivative(this.activation, labels)
         this.errorBias = gradient
         this.output_error = gradient
 

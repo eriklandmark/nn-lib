@@ -1,13 +1,14 @@
 import Layer from "./layer";
 import Matrix from "../../matrix";
-import Activations, {IActivations} from "../activations";
+import IActivation from "../activations/activations";
 import Vector from "../../vector";
+import {ThreadKernelVariable} from "gpu.js";
 
 export default class DenseLayer extends Layer {
 
     layerSize: number
 
-    constructor(layerSize: number, activation: string) {
+    constructor(layerSize: number, activation: IActivation) {
         super(activation);
         this.layerSize = layerSize;
     }
@@ -24,10 +25,6 @@ export default class DenseLayer extends Layer {
         this.errorBias = new Matrix()
         this.output_error = new Matrix()
         this.activation = new Matrix()
-
-        const {func, derv}: IActivations = Activations.lookUp(this.activationString)
-        this.actFunc = func;
-        this.actFuncDer = derv;
     }
 
     feedForward(input: Layer | Matrix, isInTraining: boolean) {
@@ -48,8 +45,8 @@ export default class DenseLayer extends Layer {
             const ffKernel = this.gpuInstance.createKernelMap({
                 addResult: Matrix.addGpu(),
                 multiplyResult: Matrix.mmGpu(),
-                actvResult: Activations.sigmoid_gpu()
-            }, function (a, b, c) {
+                actvResult: this.activationFunction.normal_gpu()
+            }, function (a: ThreadKernelVariable, b: ThreadKernelVariable, c: ThreadKernelVariable) {
                 //@ts-ignore
                 return actv(add(mm(a, b), c[this.thread.x]));
             }, {output: [this.weights.dim().c, act.dim().r], constants: {mmLength: act.dim().c}})
@@ -61,11 +58,11 @@ export default class DenseLayer extends Layer {
             z.iterate((i: number, j: number) => {
                 z.set(i, j, z.get(i, j) + this.bias.get(j))
             })
-            this.activation = this.actFunc(z)
+            this.activation = this.activationFunction.normal(z)
         }
     }
 
-    public backPropagation(prev_layer: Layer, next_layer: Layer | Matrix) {
+    backPropagation(prev_layer: Layer, next_layer: Layer | Matrix) {
         let dzh_dwh: Matrix
         if (next_layer instanceof Layer) {
             dzh_dwh = next_layer.activation
@@ -87,9 +84,16 @@ export default class DenseLayer extends Layer {
         new Matrix(<Float32Array[]>feedForwardKernel(a.toNumberArray(), b.toNumberArray(), c.toNumberArray()).result)
         */
 
-        const error = (<Matrix>prev_layer.output_error.mm(prev_layer.weights.transpose())).mul(this.actFuncDer!(this.activation))
+        const error = (<Matrix>prev_layer.output_error.mm(prev_layer.weights.transpose())).mul(this.activationFunction.derivative(this.activation))
         this.errorWeights = <Matrix>dzh_dwh.transpose().mm(error);
         this.errorBias = <Matrix>error.sum(0)
         this.output_error = error;
+    }
+
+    updateWeights(l_rate: number) {
+        this.weights = this.weights.sub(this.errorWeights.mul(l_rate))
+        this.bias.iterate((val: number, i: number) => {
+            this.bias.set(i, val - (this.errorBias.get(0, i) * l_rate))
+        })
     }
 }

@@ -1,13 +1,14 @@
 import Layer from "./layer";
 import Matrix from "../../matrix";
 import DenseLayer from "./dense_layer";
+import Sigmoid from "../activations/sigmoid";
 
 export default class DropoutLayer extends DenseLayer {
 
     rate: number = 0
 
     constructor(rate: number) {
-        super(0, "sigmoid");
+        super(0, new Sigmoid());
         this.rate = rate
     }
 

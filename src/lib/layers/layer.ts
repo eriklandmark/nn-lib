@@ -1,6 +1,8 @@
 import Matrix from "../../matrix";
 import Vector from "../../vector";
 import {GPU} from "gpu.js";
+import IActivation from "../activations/activations";
+import Sigmoid from "../activations/sigmoid";
 
 export default class Layer {
     weights: Matrix = new Matrix()
@@ -9,15 +11,13 @@ export default class Layer {
     errorBias: Matrix = new Matrix()
     output_error: Matrix = new Matrix()
     activation: Matrix = new Matrix()
-    activationString: string
-    actFunc: Function = () => {}
-    actFuncDer: Function | null = () => {}
+    activationFunction: IActivation
     useGpu: boolean = false;
     gpuInstance: GPU = new GPU()
     shape: number[] = []
 
-    constructor(activation: string = "sigmoid") {
-        this.activationString = activation
+    constructor(activation: IActivation = new Sigmoid()) {
+        this.activationFunction = activation
     }
 
     setGpuInstance(gpuIns: GPU) {
@@ -28,10 +28,5 @@ export default class Layer {
     feedForward(input: Layer | Matrix, isInTraining: boolean) {}
     backPropagation(prev_layer: Layer, next_layer: Layer | Matrix) {}
 
-    updateWeights(l_rate: number) {
-        this.weights = this.weights.sub(this.errorWeights.mul(l_rate))
-        this.bias.iterate((val: number, i: number) => {
-            this.bias.set(i, val - (this.errorBias.get(0, i) * l_rate))
-        })
-    }
+    updateWeights(l_rate: number) {}
 }

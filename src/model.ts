@@ -7,6 +7,7 @@ import Matrix from "./matrix";
 import Vector from "./vector";
 import {GPU} from 'gpu.js';
 import ArrayHelper from "./helpers/array_helper";
+import ILoss from "./lib/losses/losses";
 
 interface SavedModel {
     layer_keys: string[],
@@ -30,7 +31,7 @@ export default class Model {
         return GPU.isGPUSupported
     }
 
-    public build(inputShape: number[], lossFunction: Function, verbose = true) {
+    public build(inputShape: number[], lossFunction: ILoss, verbose = true) {
         this.layers[0].buildLayer(inputShape)
         this.layers[0].useGpu = this.USE_GPU
         this.layers[0].setGpuInstance(this.gpuInstance)

@@ -2,8 +2,10 @@ import Dataset from "../src/dataset"
 import DenseLayer from "../src/lib/layers/dense_layer";
 import OutputLayer from "../src/lib/layers/output_layer";
 import Model from "../src/model"
-import Losses from "../src/lib/losses";
 import DropoutLayer from "../src/lib/layers/dropout_layer";
+import Sigmoid from "../src/lib/activations/sigmoid";
+import Softmax from "../src/lib/activations/softmax";
+import MeanSquaredError from "../src/lib/losses/mean_squared_error";
 
 let dataset = new Dataset();
 
@@ -12,18 +14,18 @@ dataset.loadMnistTrain("./dataset/mnist")
 
 
 let layers = [
-    new DenseLayer(32,"sigmoid"),
-    new DenseLayer(32,"sigmoid"),
+    new DenseLayer(32, new Sigmoid()),
+    new DenseLayer(32, new Sigmoid()),
     new DropoutLayer(0.25),
-    new DenseLayer(32,"sigmoid"),
+    new DenseLayer(32, new Sigmoid()),
     new DropoutLayer(0.20),
-    new OutputLayer(10,"softmax")
+    new OutputLayer(10, new Softmax())
 ]
 
 let model = new Model(layers)
 model.USE_GPU = false
 
-model.build([28*28], Losses.squared_error_derivative)
+model.build([28*28], new MeanSquaredError())
 
 async function run() {
     await model.train(dataset, 30, 0.0005)

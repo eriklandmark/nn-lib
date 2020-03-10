@@ -1,25 +1,16 @@
-import Vector from "../vector";
-import Matrix from "../matrix";
+import Vector from "../../vector";
+import Matrix from "../../matrix";
 import {KernelFunction} from "gpu.js";
 
-export default class Losses {
+export default interface ILoss {
+    name: string
+    normal(input: Matrix, labels: Matrix): Matrix
+    derivative(input: Matrix, labels: Matrix): Matrix
+    normal_gpu(): KernelFunction
+    derivative_gpu(): KernelFunction
+}
 
-    public static squared_error(m: Matrix, labels: Matrix): Matrix {
-        if (m.dim().r != labels.dim().r || m.dim().c != labels.dim().c) throw "Labels and output vector doesn't match size..";
-        return m.sub(labels).pow(2)
-    }
-
-    public static squared_error_derivative(m: Matrix, labels: Matrix): Matrix {
-        if (m.dim().r != labels.dim().r || m.dim().c != labels.dim().c) throw "Labels and output vector doesn't match size..";
-        return m.sub(labels)
-    }
-
-    public static squared_error_derivative_gpu(): KernelFunction {
-        return function loss(m, label) {
-            //@ts-ignore
-            return m - label
-        }
-    }
+class Losses {
 
     public static CrossEntropy(v: Vector, labels: Vector): Vector {
         const out = new Vector(v.size());
@@ -32,7 +23,6 @@ export default class Losses {
             } else {
                 out.set(i, -1*((y*Math.log(a)) + (1 - y)*Math.log(1 - a)))
             }
-
         });
         return out;
     }
