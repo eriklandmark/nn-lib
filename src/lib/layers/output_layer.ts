@@ -4,10 +4,11 @@ import Matrix from "../../matrix";
 export default class DenseLayer extends Layer{
 
     loss: number = 0;
-    lossFunction: Function
+    lossFunction: Function = () => {}
 
-    public backPropagation(labels: Matrix, next_layer: Layer) {
-        this.loss = <number> labels.mul(this.activation.log()).mul(-1).sum()
+    public backPropagationOutput(labels: Matrix, next_layer: Layer) {
+        //this.loss = <number> labels.mul(this.activation.log()).mul(-1).sum()
+        this.loss = <number> labels.mul(-1).mul(this.activation.log()).sum()
         const nextActv = next_layer.activation.transpose()
         const gradient = <Matrix> this.lossFunction(this.activation, labels)
         this.errorBias = gradient

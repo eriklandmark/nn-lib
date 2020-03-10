@@ -1,35 +1,12 @@
-import Model from "../src/model";
-import {all, create} from "mathjs"
-import Matrix from "../src/matrix";
-import Helper from "../src/helpers/helper";
+let rights = 0;
 
-const math = create(all, {})
-const model = new Model([])
+for (let i = 0; i < 10000; i++) {
+    if(Math.random() < 0.25) {
+        rights += 1
+    }
+}
 
-console.log(model.isGpuAvailable())
-
-const size = 1000;
-
-const ma = new Matrix()
-const mb = new Matrix()
-ma.createEmptyArray(size, size)
-mb.createEmptyArray(size, size)
-ma.populateRandom();
-mb.populateRandom();
-const a = ma.toNumberArray()
-const b = mb.toNumberArray()
-/*
-Helper.timeit(() => {
-    math.multiply(a, b)
-}).then((sec) => {
-    console.log("Math: " + sec)
-})
-*/
-Helper.timeit(() => {
-    ma.mm(mb)
-}).then((sec) => {
-    console.log("nn-lib: " + sec)
-})
+console.log(rights)
 
 /*
 const gpu = new GPU({mode:"gpu"});

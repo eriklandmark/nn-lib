@@ -56,12 +56,12 @@ export default class Model {
     }
 
     train_on_batch(examples: Matrix, labels: Matrix): number {
-        this.layers[0].feedForward(examples)
+        this.layers[0].feedForward(examples, true)
         for (let i = 1; i < this.layers.length; i++) {
-            this.layers[i].feedForward(this.layers[i - 1])
+            this.layers[i].feedForward(this.layers[i - 1], true)
         }
 
-        (<OutputLayer>this.layers[this.layers.length - 1]).backPropagation(labels, this.layers[this.layers.length - 2])
+        (<OutputLayer>this.layers[this.layers.length - 1]).backPropagationOutput(labels, this.layers[this.layers.length - 2])
         for (let i = this.layers.length - 2; i > 0; i--) {
             (<DenseLayer>this.layers[i]).backPropagation(this.layers[i + 1], this.layers[i - 1])
         }
@@ -148,9 +148,9 @@ export default class Model {
         } else {
             exampleMatrix = data
         }
-        this.layers[0].feedForward(exampleMatrix)
+        this.layers[0].feedForward(exampleMatrix, false)
         for (let i = 1; i < this.layers.length; i++) {
-            this.layers[i].feedForward(this.layers[i - 1])
+            this.layers[i].feedForward(this.layers[i - 1], false)
         }
         return this.layers[this.layers.length - 1].activation
     }

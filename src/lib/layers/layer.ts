@@ -42,7 +42,7 @@ export default class Layer {
         this.gpuInstance = gpuIns;
     }
 
-    public feedForward(input: Layer | Matrix) {
+    public feedForward(input: Layer | Matrix, isInTraining: boolean) {
         let act
         if (input instanceof Matrix) {
             if (this.activation.empty()) {
@@ -76,6 +76,8 @@ export default class Layer {
             this.activation = this.actFunc(z)
         }
     }
+
+    backPropagation(prev_layer: Layer, next_layer: Layer | Matrix) {}
 
     updateWeights(l_rate: number) {
         this.weights = this.weights.sub(this.errorWeights.mul(l_rate))

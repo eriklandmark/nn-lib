@@ -3,16 +3,20 @@ import DenseLayer from "../src/lib/layers/dense_layer";
 import OutputLayer from "../src/lib/layers/output_layer";
 import Model from "../src/model"
 import Losses from "../src/lib/losses";
+import DropoutLayer from "../src/lib/layers/dropout_layer";
 
 let dataset = new Dataset();
 
 dataset.BATCH_SIZE = 1000
 dataset.loadMnistTrain("./dataset/mnist")
 
+
 let layers = [
     new DenseLayer(32,"sigmoid"),
     new DenseLayer(32,"sigmoid"),
+    new DropoutLayer(0.20),
     new DenseLayer(32,"sigmoid"),
+    new DropoutLayer(0.25),
     new OutputLayer(10,"softmax")
 ]
 
@@ -21,7 +25,6 @@ model.USE_GPU = false
 
 model.build(28*28, Losses.squared_error_derivative)
 
-run()
 async function run() {
     await model.train(dataset, 30, 0.0005)
     console.log("Done")
@@ -41,3 +44,4 @@ async function run() {
     }
     console.log("Num rights: " + numRights + " of 10000 (" + Math.round((numRights / 10000) * 100) + " %)")
 }
+run()

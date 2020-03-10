@@ -29,7 +29,6 @@
     "@types/node": "^13.7.1",
     "gpu.js": "^2.6.9",
     "jimp": "^0.9.3",
-    "mathjs": "^6.6.1",
     "node-addon-api": "^2.0.0",
     "node-worker-threads-pool": "^1.1.2",
     "typescript": "^3.8.3"
