@@ -171,7 +171,9 @@ var Matrix = /** @class */ (function () {
     Matrix.mmGpu = function () {
         return function mm(a, b) {
             var sum = 0;
+            //@ts-ignore
             for (var i = 0; i < a[0].length; i++) {
+                //@ts-ignore
                 sum += a[this.thread.y][i] * b[i][this.thread.x];
             }
             return sum;

@@ -19,9 +19,23 @@ Object.defineProperty(exports, "__esModule", { value: true });
 var layer_1 = __importDefault(require("./layer"));
 var ConvolutionLayer = /** @class */ (function (_super) {
     __extends(ConvolutionLayer, _super);
-    function ConvolutionLayer() {
-        return _super !== null && _super.apply(this, arguments) || this;
+    function ConvolutionLayer(filterSize) {
+        var _this = _super.call(this) || this;
+        _this.filterSize = [];
+        _this.filterSize = filterSize;
+        return _this;
     }
+    ConvolutionLayer.prototype.buildLayer = function (prevLayerShape) {
+        _super.prototype.buildLayer.call(this, prevLayerShape);
+    };
+    ConvolutionLayer.prototype.feedForward = function (input, isInTraining) {
+        this.activation = input.activation;
+    };
+    ConvolutionLayer.prototype.backPropagation = function (prev_layer, next_layer) {
+        this.weights = prev_layer.weights;
+        this.output_error = prev_layer.output_error;
+    };
+    ConvolutionLayer.prototype.updateWeights = function (l_rate) { };
     return ConvolutionLayer;
 }(layer_1.default));
 exports.default = ConvolutionLayer;

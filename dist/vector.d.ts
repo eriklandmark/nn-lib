@@ -8,7 +8,7 @@ export default class Vector {
     static fromBuffer(buff: Buffer): Vector;
     static toCategorical(index: number, size: number): Vector;
     toString: (vertical?: boolean) => string;
-    toNumberArray(): any;
+    toNumberArray(): never[];
     populateRandom(): void;
     iterate(func: Function): void;
     add(b: number | Vector): Vector;

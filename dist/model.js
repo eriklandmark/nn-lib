@@ -57,7 +57,7 @@ var Model = /** @class */ (function () {
     function Model(layers) {
         this.learning_rate = 0;
         this.USE_GPU = false;
-        this.isBuild = false;
+        this.isBuilt = false;
         this.layers = layers;
         this.gpuInstance = new gpu_js_1.GPU();
     }
@@ -70,7 +70,7 @@ var Model = /** @class */ (function () {
         this.layers[0].useGpu = this.USE_GPU;
         this.layers[0].setGpuInstance(this.gpuInstance);
         for (var i = 1; i < this.layers.length; i++) {
-            this.layers[i].buildLayer(this.layers[i - 1].layerSize);
+            this.layers[i].buildLayer(this.layers[i - 1].shape);
             this.layers[i].useGpu = this.USE_GPU;
             this.layers[i].setGpuInstance(this.gpuInstance);
         }
@@ -84,14 +84,14 @@ var Model = /** @class */ (function () {
         if (verbose) {
             console.log("Successfully build model!");
         }
-        this.isBuild = true;
+        this.isBuilt = true;
     };
     Model.prototype.train_on_batch = function (examples, labels) {
-        this.layers[0].feedForward(examples);
+        this.layers[0].feedForward(examples, true);
         for (var i = 1; i < this.layers.length; i++) {
-            this.layers[i].feedForward(this.layers[i - 1]);
+            this.layers[i].feedForward(this.layers[i - 1], true);
         }
-        this.layers[this.layers.length - 1].backPropagation(labels, this.layers[this.layers.length - 2]);
+        this.layers[this.layers.length - 1].backPropagationOutputLayer(labels, this.layers[this.layers.length - 2]);
         for (var i = this.layers.length - 2; i > 0; i--) {
             this.layers[i].backPropagation(this.layers[i + 1], this.layers[i - 1]);
         }
@@ -110,7 +110,7 @@ var Model = /** @class */ (function () {
             return __generator(this, function (_a) {
                 switch (_a.label) {
                     case 0:
-                        if (!this.isBuild) {
+                        if (!this.isBuilt) {
                             throw "Model hasn't been build yet!..";
                         }
                         this.learning_rate = learning_rate;
@@ -181,7 +181,7 @@ var Model = /** @class */ (function () {
         });
     };
     Model.prototype.predict = function (data) {
-        if (!this.isBuild) {
+        if (!this.isBuilt) {
             throw "Model hasn't been build yet!..";
         }
         var exampleMatrix;
@@ -191,9 +191,9 @@ var Model = /** @class */ (function () {
         else {
             exampleMatrix = data;
         }
-        this.layers[0].feedForward(exampleMatrix);
+        this.layers[0].feedForward(exampleMatrix, false);
         for (var i = 1; i < this.layers.length; i++) {
-            this.layers[i].feedForward(this.layers[i - 1]);
+            this.layers[i].feedForward(this.layers[i - 1], false);
         }
         return this.layers[this.layers.length - 1].activation;
     };
@@ -235,7 +235,7 @@ var Model = /** @class */ (function () {
         this.layers[this.layers.length - 1].bias = new vector_1.default(Object.keys(modelObj.output_layer.bias).map(function (item, index) {
             return modelObj.output_layer.bias[index.toString()];
         }));
-        if (!this.isBuild) {
+        if (!this.isBuilt) {
             throw "Model hasn't been build yet!..";
         }
     };
