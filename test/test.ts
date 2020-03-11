@@ -1,12 +1,16 @@
-let rights = 0;
+import Dataset from "../src/dataset";
+import Tensor from "../src/tensor";
 
-for (let i = 0; i < 10000; i++) {
-    if(Math.random() < 0.25) {
-        rights += 1
-    }
-}
+let dataset = new Dataset();
 
-console.log(rights)
+dataset.BATCH_SIZE = 1000
+dataset.loadMnistTrain("./dataset/mnist", 2)
+
+console.log(dataset.getBatch(0)[0].data.toString())
+
+let tensor = new Tensor([[[1,2,3], [1,2,3], [1,2,3]],[[1,2,3], [1,2,3], [1,2,3]],[[1,2,3], [1,2,3], [1,2,3]]])
+
+console.log(tensor.toString())
 
 /*
 const gpu = new GPU({mode:"gpu"});

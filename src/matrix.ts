@@ -11,7 +11,7 @@ export default class Matrix {
     public set: Function = (i: number, j: number, n: number) => {
         this.matrix[i][j] = n;
     };
-    public count: Function = (i: number, j: number, n: number) => {
+    public count: Function = () => {
         return this.dim().c * this.dim().r;
     };
 

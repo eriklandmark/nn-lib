@@ -2,9 +2,11 @@ import Vector from "./vector";
 import * as fs from "fs";
 import * as path from 'path';
 import Jimp from 'jimp';
+import Tensor from "./tensor";
+import Matrix from "./matrix";
 
 export interface Example {
-    data: Vector,
+    data: Vector | Matrix |Tensor,
     label: Vector
 }
 
@@ -24,14 +26,25 @@ export default class Dataset {
         this.GENERATOR = gen
     }
 
-    public static async read_image(path: string): Promise<Vector> {
+    public static async read_image(path: string): Promise<Tensor> {
         const image = await Jimp.read(path);
-        const v = new Vector(image.bitmap.data.length / 4)
+        const t = new Tensor()
         for (let i = 0; i < image.bitmap.data.length; i += 4) {
-            //console.log(image.bitmap.data[i], image.bitmap.data[i + 1], image.bitmap.data[i + 2], image.bitmap.data[i + 3])
-            const avg = (image.bitmap.data[i] + image.bitmap.data[i + 1] + image.bitmap.data[i + 2]) / 3
-            v.set(i / 4, avg);
+            let y = Math.floor((i/4) / image.getHeight())
+            let x = (i/4) - (y * image.getWidth())
+
+            for (let d = 0; d < 3; d++) {
+                t.set(y,x,d, image.bitmap.data[i + d])
+            }
         }
+        return t
+    }
+
+    public vectorize_image(image: Tensor): Vector {
+        const v = new Vector(image.count())
+        image.iterate((i: number, j: number , k: number) => {
+            v.set((i * image.dim().r + j * image.dim().c + k * image.dim().d), image.get(i,j,k))
+        })
         return v
     }
 
@@ -48,14 +61,17 @@ export default class Dataset {
         const labelFileBuffer = fs.readFileSync(path.join(folderPath + "/" + labelFileName));
 
         for (let imageIndex = 0; imageIndex < maxExamples; imageIndex++) {
-            let pixels: number[] = [];
+            let image: Tensor = new Tensor()
+            image.createEmptyArray(28,28,1)
+
             for (let x = 0; x < 28; x++) {
                 for (let y = 0; y < 28; y++) {
-                    pixels.push(trainFileBuffer[(imageIndex * 28 * 28) + (x + (y * 28)) + 15]);
+                    image.set(y,x,0, trainFileBuffer[(imageIndex * 28 * 28) + (x + (y * 28)) + 15])
                 }
             }
 
-            let exampleData = new Vector(pixels)
+
+            let exampleData = this.vectorize_image(image)
             exampleData = exampleData.div(255)
 
             let example: Example = {

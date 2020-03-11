@@ -6,6 +6,7 @@ import DropoutLayer from "../src/lib/layers/dropout_layer";
 import Sigmoid from "../src/lib/activations/sigmoid";
 import Softmax from "../src/lib/activations/softmax";
 import MeanSquaredError from "../src/lib/losses/mean_squared_error";
+import Vector from "../src/vector";
 
 let dataset = new Dataset();
 
@@ -38,7 +39,7 @@ async function run() {
     let examples = testDataset.getBatch(0)
     let numRights = 0;
     for (let i = 0; i < testDataset.size(); i++ ) {
-        const predArg = model.predict(examples[i].data).argmax(0)
+        const predArg = model.predict(<Vector> examples[i].data).argmax(0)
         const labelArg = examples[i].label.argmax();
         if (predArg == labelArg) {
             numRights += 1
