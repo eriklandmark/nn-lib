@@ -6,7 +6,7 @@ import Tensor from "./tensor";
 import Matrix from "./matrix";
 
 export interface Example {
-    data: Vector | Matrix |Tensor,
+    data: Vector | Matrix | Tensor,
     label: Vector
 }
 
@@ -16,7 +16,9 @@ export default class Dataset {
     public BATCH_SIZE = 1;
     public IS_GENERATOR = false;
     public TOTAL_EXAMPLES = 0;
-    public GENERATOR: Function = () => {};
+    public DATA_STRUCTURE: any = undefined
+    public GENERATOR: Function = () => {
+    };
 
     public size(): number {
         return this.data.length;
@@ -30,11 +32,11 @@ export default class Dataset {
         const image = await Jimp.read(path);
         const t = new Tensor()
         for (let i = 0; i < image.bitmap.data.length; i += 4) {
-            let y = Math.floor((i/4) / image.getHeight())
-            let x = (i/4) - (y * image.getWidth())
+            let y = Math.floor((i / 4) / image.getHeight())
+            let x = (i / 4) - (y * image.getWidth())
 
             for (let d = 0; d < 3; d++) {
-                t.set(y,x,d, image.bitmap.data[i + d])
+                t.set(y, x, d, image.bitmap.data[i + d])
             }
         }
         return t
@@ -42,36 +44,45 @@ export default class Dataset {
 
     public vectorize_image(image: Tensor): Vector {
         const v = new Vector(image.count())
-        image.iterate((i: number, j: number , k: number) => {
-            v.set((i * image.dim().r + j * image.dim().c + k * image.dim().d), image.get(i,j,k))
+        let index = 0;
+        image.iterate((i: number, j: number, k: number) => {
+            v.set(index, image.get(i, j, k))
+            index += 1
         })
+        this.DATA_STRUCTURE = Vector
         return v
     }
 
-    public loadMnistTrain(folderPath: string, maxExamples: number = 60000) {
-        this.loadMnist(folderPath, "train-images-idx3-ubyte", "train-labels-idx1-ubyte", maxExamples)
+    public loadMnistTrain(folderPath: string, maxExamples: number = 60000, vectorize: boolean = true) {
+        this.loadMnist(folderPath, "train-images-idx3-ubyte", "train-labels-idx1-ubyte", maxExamples, vectorize)
     }
 
-    public loadMnistTest(folderPath: string, maxExamples: number = 60000) {
-        this.loadMnist(folderPath, "t10k-images-idx3-ubyte", "t10k-labels-idx1-ubyte", maxExamples)
+    public loadMnistTest(folderPath: string, maxExamples: number = 60000, vectorize: boolean = true) {
+        this.loadMnist(folderPath, "t10k-images-idx3-ubyte", "t10k-labels-idx1-ubyte", maxExamples, vectorize)
     }
 
-    private loadMnist(folderPath: string, imageFileName: string, labelFileName: string, maxExamples: number) {
-        const trainFileBuffer  = fs.readFileSync(path.join(folderPath + "/" + imageFileName));
+    private loadMnist(folderPath: string, imageFileName: string, labelFileName: string, maxExamples: number, vectorize: boolean) {
+        const trainFileBuffer = fs.readFileSync(path.join(folderPath + "/" + imageFileName));
         const labelFileBuffer = fs.readFileSync(path.join(folderPath + "/" + labelFileName));
 
         for (let imageIndex = 0; imageIndex < maxExamples; imageIndex++) {
-            let image: Tensor = new Tensor()
-            image.createEmptyArray(28,28,1)
+            const image: Tensor = new Tensor()
+            image.createEmptyArray(28, 28, 1)
 
             for (let x = 0; x < 28; x++) {
                 for (let y = 0; y < 28; y++) {
-                    image.set(y,x,0, trainFileBuffer[(imageIndex * 28 * 28) + (x + (y * 28)) + 15])
+                    image.set(y, x, 0, trainFileBuffer[(imageIndex * 28 * 28) + (x + (y * 28)) + 15])
                 }
             }
 
+            let exampleData: Tensor | Vector
+            if (vectorize) {
+                exampleData = this.vectorize_image(image)
+            } else {
+                exampleData = image
+                this.DATA_STRUCTURE = Tensor
+            }
 
-            let exampleData = this.vectorize_image(image)
             exampleData = exampleData.div(255)
 
             let example: Example = {
@@ -84,7 +95,7 @@ export default class Dataset {
     }
 
     public loadTestData(path: string, maxExamples: number = 2100) {
-        const data  = JSON.parse(fs.readFileSync(path, {encoding:"UTF-8"}));
+        const data = JSON.parse(fs.readFileSync(path, {encoding: "UTF-8"}));
 
         for (let imageIndex = 0; imageIndex < maxExamples; imageIndex++) {
             let example: Example = {
@@ -97,6 +108,6 @@ export default class Dataset {
     }
 
     public getBatch(batch: number): Array<Example> {
-        return this.data.slice(batch*this.BATCH_SIZE, batch*this.BATCH_SIZE + this.BATCH_SIZE)
+        return this.data.slice(batch * this.BATCH_SIZE, batch * this.BATCH_SIZE + this.BATCH_SIZE)
     }
 }

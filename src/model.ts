@@ -8,6 +8,7 @@ import Vector from "./vector";
 import {GPU} from 'gpu.js';
 import ArrayHelper from "./helpers/array_helper";
 import ILoss from "./lib/losses/losses";
+import Tensor from "./tensor";
 
 interface SavedModel {
     layer_keys: string[],
@@ -116,9 +117,15 @@ export default class Model {
                             batch = data.getBatch(batch_id)
                         }
 
-                        const examples = new Matrix(batch.map((ex) => ex.data)).transpose()
+                        let examples: Matrix | Tensor[]
+                        let error: number = 0
                         const labels = new Matrix(batch.map((ex) => ex.label)).transpose()
-                        let error = this.train_on_batch(examples, labels);
+                        if (data.DATA_STRUCTURE == Vector) {
+                            examples = new Matrix(batch.map((ex) => <Vector> ex.data)).transpose()
+                            error = this.train_on_batch(examples, labels);
+                        } else if (data.DATA_STRUCTURE == Tensor) {
+
+                        }
 
                         console.log("Error for batch: " + batch_id + " =", error)
                     }
@@ -129,14 +136,14 @@ export default class Model {
             console.log("Done..")
             const duration = Math.floor((Date.now() - startTime) / 1000)
             console.log("Duration: " + duration + " seconds")
-        } else {
+        }/* else {
             let examples = new Matrix(data.map((ex) => ex.data)).transpose()
             let labels = new Matrix(data.map((ex) => ex.label)).transpose()
 
             for (let epoch = 0; epoch < epochs; epoch++) {
                 console.log(this.train_on_batch(examples, labels))
             }
-        }
+        }*/
     }
 
     predict(data: Vector | Matrix): Matrix {

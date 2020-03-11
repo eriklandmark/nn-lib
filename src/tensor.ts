@@ -20,7 +20,7 @@ export default class Tensor {
         }
     }
 
-    constructor(v: number[][][] | Float32Array[][] = [[[]]]) {
+    constructor(v: number[][][] | Float32Array[][] = []) {
         if (v.length > 0 && v[0][0] instanceof Float32Array) {
             this.tensor = <Float32Array[][]> v
         } else {
@@ -34,9 +34,10 @@ export default class Tensor {
     }
 
     public createEmptyArray(rows: number, columns: number, depth: number) {
+        this.tensor = []
         for (let i = 0; i < rows; i++) {
             this.tensor.push([]);
-            for (let j = 0; j < rows; j++) {
+            for (let j = 0; j < columns; j++) {
                 this.tensor[i].push(new Float32Array(depth).fill(0))
             }
         }
@@ -70,12 +71,87 @@ export default class Tensor {
                         s += j[d].toString().substr(0, maxCharCount) + " ";
                         return s;
                     }, "    ")
-                    acc += i.length > max_rows ? "  ... +" + (i.length - max_rows) + " elements\n" : "\n"
+                    acc += i.length > max_rows ? " ... +" + (i.length - max_rows) + " elements\n" : "\n"
                     return acc;
                 }, "") + (this.tensor.length > max_rows ?
                     "    ... +" + (this.tensor.length - max_rows) + " rows \n" : "\n")
             }
             return string + "]"
         }
+    }
+
+    public copy(full: boolean = true) {
+        let t = new Tensor()
+        t.createEmptyArray(this.dim().r, this.dim().c, this.dim().d)
+        if (full) {
+            t.iterate((i: number, j: number, k: number) => {
+                t.set(i, j, k, this.get(i, j, k))
+            })
+        }
+        return t
+    }
+
+    public populateRandom() {
+        this.iterate((i: number, j: number, k: number) => {
+            this.set(i, j, k, Math.random() * 2 - 1)
+        })
+    }
+
+    public empty(): boolean {
+        return this.dim().c == 0 || this.dim().r == 0 || this.dim().d == 0
+    }
+
+    public div(val: number | Tensor): Tensor {
+        let t = this.copy(false);
+        if (val instanceof Tensor) {
+            if (t.dim().r != this.dim().r || t.dim().c != this.dim().c || t.dim().d != this.dim().d) {
+                console.trace()
+                throw "Tensor Division: Not the same dimension"
+            }
+            this.iterate((i: number, j: number, k: number) => {
+                t.set(i, j, k, this.get(i, j, k) / val.get(i, j, k))
+            });
+        } else {
+            this.iterate((i: number, j: number, k: number) => {
+                t.set(i, j, k, this.get(i, j, k) / val)
+            });
+        }
+        return t
+    }
+
+    public mul(val: number | Tensor): Tensor {
+        let t = this.copy(false);
+        if (val instanceof Tensor) {
+            if (t.dim().r != this.dim().r || t.dim().c != this.dim().c || t.dim().d != this.dim().d) {
+                console.trace()
+                throw "Tensor Multiplication: Not the same dimension"
+            }
+            this.iterate((i: number, j: number, k: number) => {
+                t.set(i, j, k, this.get(i, j, k) * val.get(i, j, k))
+            });
+        } else {
+            this.iterate((i: number, j: number, k: number) => {
+                t.set(i, j, k, this.get(i, j, k) * val)
+            });
+        }
+        return t
+    }
+
+    public sub(val: number | Tensor): Tensor {
+        let t = this.copy(false);
+        if (val instanceof Tensor) {
+            if (t.dim().r != this.dim().r || t.dim().c != this.dim().c || t.dim().d != this.dim().d) {
+                console.trace()
+                throw "Tensor Subtraction: Not the same dimension"
+            }
+            this.iterate((i: number, j: number, k: number) => {
+                t.set(i, j, k, this.get(i, j, k) - val.get(i, j, k))
+            });
+        } else {
+            this.iterate((i: number, j: number, k: number) => {
+                t.set(i, j, k, this.get(i, j, k) - val)
+            });
+        }
+        return t
     }
 }

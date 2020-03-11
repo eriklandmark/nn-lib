@@ -1,16 +1,44 @@
-import Dataset from "../src/dataset";
 import Tensor from "../src/tensor";
 
-let dataset = new Dataset();
+/*let dataset = new Dataset();
 
 dataset.BATCH_SIZE = 1000
-dataset.loadMnistTrain("./dataset/mnist", 2)
-
+dataset.loadMnistTrain("./dataset/mnist", 1, false)
 console.log(dataset.getBatch(0)[0].data.toString())
+*/
 
-let tensor = new Tensor([[[1,2,3], [1,2,3], [1,2,3]],[[1,2,3], [1,2,3], [1,2,3]],[[1,2,3], [1,2,3], [1,2,3]]])
+const t = new Tensor([[[1], [7], [2]], [[11], [1], [23]], [[2], [2], [2]]])
+const fil = new Tensor([[[1], [1]], [[0], [1]]])
 
-console.log(tensor.toString())
+console.log(t.toString())
+console.log(fil.toString())
+
+const [h, w, ch] = [3,3,1]
+const [f_h, f_w, nr_f] = [2,2,1]
+const patch_width = w - f_w + 1
+const patch_height = h - f_h + 1
+const nr_patches = ch * nr_f
+
+let patch = new Tensor();
+patch.createEmptyArray(patch_height, patch_width, nr_patches)
+for (let d = 0; d < ch; d++) {
+    for (let f = 0; f < nr_f; f++) {
+        const b = (d * 3) + f
+        for (let r = 0; r < patch_height; r++) {
+            for (let c = 0; c < patch_width; c++) {
+                let val = 0
+                for (let c_f_h = 0; c_f_h < f_h; c_f_h++) {
+                    for (let c_f_w = 0; c_f_w < f_w; c_f_w++) {
+                        val += t.get(r + c_f_h, c + c_f_w, d) * fil.get(c_f_h, c_f_w, f)
+                    }
+                }
+                patch.set(r,c,b, val)
+            }
+        }
+    }
+}
+
+console.log(patch.toString())
 
 /*
 const gpu = new GPU({mode:"gpu"});
