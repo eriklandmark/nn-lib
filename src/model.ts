@@ -1,6 +1,5 @@
 import Dataset, {Example} from "./dataset";
 import OutputLayer from "./lib/layers/output_layer";
-import DenseLayer from "./lib/layers/dense_layer";
 import Layer from "./lib/layers/layer";
 import * as fs from "fs";
 import Matrix from "./matrix";
@@ -57,7 +56,7 @@ export default class Model {
         this.isBuilt = true;
     }
 
-    train_on_batch(examples: Matrix, labels: Matrix): number {
+    train_on_batch(examples: Matrix | Tensor[], labels: Matrix): number {
         this.layers[0].feedForward(examples, true)
         for (let i = 1; i < this.layers.length; i++) {
             this.layers[i].feedForward(this.layers[i - 1], true)
@@ -65,13 +64,14 @@ export default class Model {
 
         (<OutputLayer>this.layers[this.layers.length - 1]).backPropagationOutputLayer(labels, this.layers[this.layers.length - 2])
         for (let i = this.layers.length - 2; i > 0; i--) {
-            (<DenseLayer>this.layers[i]).backPropagation(this.layers[i + 1], this.layers[i - 1])
+            this.layers[i].backPropagation(this.layers[i + 1], this.layers[i - 1])
         }
-        (<DenseLayer>this.layers[0]).backPropagation(this.layers[1], examples)
+        this.layers[0].backPropagation(this.layers[1], examples)
 
         for (let layer of this.layers) {
             layer.updateWeights(this.learning_rate)
         }
+
         return (<OutputLayer>this.layers[this.layers.length - 1]).loss
     }
 
@@ -136,14 +136,15 @@ export default class Model {
             console.log("Done..")
             const duration = Math.floor((Date.now() - startTime) / 1000)
             console.log("Duration: " + duration + " seconds")
-        }/* else {
-            let examples = new Matrix(data.map((ex) => ex.data)).transpose()
+        }else {
+            let exampleData = <Vector[] | Tensor[]> data.map((ex) => ex.data)
+            let examples = exampleData[0] instanceof Vector ? new Matrix(<Vector[]> exampleData) : <Tensor[]> exampleData
             let labels = new Matrix(data.map((ex) => ex.label)).transpose()
 
             for (let epoch = 0; epoch < epochs; epoch++) {
                 console.log(this.train_on_batch(examples, labels))
             }
-        }*/
+        }
     }
 
     predict(data: Vector | Matrix): Matrix {
@@ -160,7 +161,7 @@ export default class Model {
         for (let i = 1; i < this.layers.length; i++) {
             this.layers[i].feedForward(this.layers[i - 1], false)
         }
-        return this.layers[this.layers.length - 1].activation
+        return <Matrix> this.layers[this.layers.length - 1].activation
     }
 
     save(path: string) {

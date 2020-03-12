@@ -67,11 +67,14 @@ export default class Dataset {
 
         for (let imageIndex = 0; imageIndex < maxExamples; imageIndex++) {
             const image: Tensor = new Tensor()
-            image.createEmptyArray(28, 28, 1)
+            image.createEmptyArray(28, 28, 3)
 
             for (let x = 0; x < 28; x++) {
                 for (let y = 0; y < 28; y++) {
-                    image.set(y, x, 0, trainFileBuffer[(imageIndex * 28 * 28) + (x + (y * 28)) + 15])
+                    const val = trainFileBuffer[(imageIndex * 28 * 28) + (x + (y * 28)) + 15]
+                    image.set(y, x, 0, val)
+                    image.set(y, x, 1, val)
+                    image.set(y, x, 2, val)
                 }
             }
 

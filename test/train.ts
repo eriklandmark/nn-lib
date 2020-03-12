@@ -2,49 +2,32 @@ import Dataset from "../src/dataset"
 import DenseLayer from "../src/lib/layers/dense_layer";
 import OutputLayer from "../src/lib/layers/output_layer";
 import Model from "../src/model"
-import DropoutLayer from "../src/lib/layers/dropout_layer";
 import Sigmoid from "../src/lib/activations/sigmoid";
 import Softmax from "../src/lib/activations/softmax";
 import MeanSquaredError from "../src/lib/losses/mean_squared_error";
-import Vector from "../src/vector";
+import ConvolutionLayer from "../src/lib/layers/conv_layer";
+import FlattenLayer from "../src/lib/layers/flatten_layer";
 
 let dataset = new Dataset();
 
-dataset.BATCH_SIZE = 1000
-dataset.loadMnistTrain("./dataset/mnist")
-
+dataset.BATCH_SIZE = 1
+dataset.loadMnistTrain("./dataset/mnist", 1, false)
 
 let layers = [
+    new ConvolutionLayer(4, [3,3], new Sigmoid()),
+    new FlattenLayer(),
     new DenseLayer(32, new Sigmoid()),
-    new DenseLayer(32, new Sigmoid()),
-    new DropoutLayer(0.25),
-    new DenseLayer(32, new Sigmoid()),
-    new DropoutLayer(0.20),
     new OutputLayer(10, new Softmax())
 ]
 
 let model = new Model(layers)
 model.USE_GPU = false
 
-model.build([28*28], new MeanSquaredError())
+model.build([28, 28, 3], new MeanSquaredError())
 
 async function run() {
-    await model.train(dataset, 30, 0.0005)
+    await model.train(dataset.getBatch(0), 1, 0.0005)
     console.log("Done")
     model.save("./nn.json")
-
-    const testDataset = new Dataset();
-    testDataset.loadMnistTest("./dataset/mnist", 10000);
-    testDataset.BATCH_SIZE = 10000
-    let examples = testDataset.getBatch(0)
-    let numRights = 0;
-    for (let i = 0; i < testDataset.size(); i++ ) {
-        const predArg = model.predict(<Vector> examples[i].data).argmax(0)
-        const labelArg = examples[i].label.argmax();
-        if (predArg == labelArg) {
-            numRights += 1
-        }
-    }
-    console.log("Num rights: " + numRights + " of 10000 (" + Math.round((numRights / 10000) * 100) + " %)")
 }
 run()

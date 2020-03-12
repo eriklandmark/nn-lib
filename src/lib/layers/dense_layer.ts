@@ -2,7 +2,6 @@ import Layer from "./layer";
 import Matrix from "../../matrix";
 import IActivation from "../activations/activations";
 import Vector from "../../vector";
-import {ThreadKernelVariable} from "gpu.js";
 
 export default class DenseLayer extends Layer {
 
@@ -28,20 +27,15 @@ export default class DenseLayer extends Layer {
     }
 
     feedForward(input: Layer | Matrix, isInTraining: boolean) {
-        let act
+        let act: Matrix
         if (input instanceof Matrix) {
-            if (this.activation.empty()) {
-                this.activation.createEmptyArray(input.dim().r, this.layerSize)
-            }
             act = input
         } else {
-            if (this.activation.empty()) {
-                this.activation.createEmptyArray(input.activation.dim().r, this.layerSize)
-            }
-
-            act = (<Layer>input).activation
+            act = <Matrix>(<Layer>input).activation
         }
+
         if (this.useGpu) {
+            /*
             const ffKernel = this.gpuInstance.createKernelMap({
                 addResult: Matrix.addGpu(),
                 multiplyResult: Matrix.mmGpu(),
@@ -52,20 +46,20 @@ export default class DenseLayer extends Layer {
             }, {output: [this.weights.dim().c, act.dim().r], constants: {mmLength: act.dim().c}})
             ffKernel.setLoopMaxIterations(Math.max(act.dim().c, this.weights.dim().r))
             this.activation = new Matrix(<Float32Array[]>ffKernel(act.toNumberArray(), this.weights.toNumberArray(), this.bias.toNumberArray())["result"]);
-            ffKernel.destroy()
+            ffKernel.destroy()*/
         } else {
             const z = <Matrix>act.mm(this.weights)
             z.iterate((i: number, j: number) => {
                 z.set(i, j, z.get(i, j) + this.bias.get(j))
             })
-            this.activation = this.activationFunction.normal(z)
+            this.activation = <Matrix>this.activationFunction.normal(z)
         }
     }
 
     backPropagation(prev_layer: Layer, next_layer: Layer | Matrix) {
         let dzh_dwh: Matrix
         if (next_layer instanceof Layer) {
-            dzh_dwh = next_layer.activation
+            dzh_dwh = <Matrix>next_layer.activation
         } else {
             dzh_dwh = next_layer
         }
@@ -84,7 +78,9 @@ export default class DenseLayer extends Layer {
         new Matrix(<Float32Array[]>feedForwardKernel(a.toNumberArray(), b.toNumberArray(), c.toNumberArray()).result)
         */
 
-        const error = (<Matrix>prev_layer.output_error.mm(prev_layer.weights.transpose())).mul(this.activationFunction.derivative(this.activation))
+        const deltaActv = <Matrix> this.activationFunction.derivative(<Matrix>this.activation)
+        // @ts-ignore
+        const error = ((<Matrix>prev_layer.output_error).mm(prev_layer.weights.transpose())).mul(deltaActv)
         this.errorWeights = <Matrix>dzh_dwh.transpose().mm(error);
         this.errorBias = <Matrix>error.sum(0)
         this.output_error = error;

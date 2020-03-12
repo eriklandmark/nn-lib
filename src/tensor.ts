@@ -1,3 +1,5 @@
+import Vector from "./vector";
+
 export default class Tensor {
 
     tensor: Float32Array[][] = [];
@@ -101,6 +103,16 @@ export default class Tensor {
         return this.dim().c == 0 || this.dim().r == 0 || this.dim().d == 0
     }
 
+    public vectorize(): Vector {
+        const v = new Vector(this.count())
+        let index = 0;
+        this.iterate((i: number, j: number, k: number) => {
+            v.set(index, this.get(i, j, k))
+            index += 1
+        })
+        return v
+    }
+
     public div(val: number | Tensor): Tensor {
         let t = this.copy(false);
         if (val instanceof Tensor) {
@@ -150,6 +162,24 @@ export default class Tensor {
         } else {
             this.iterate((i: number, j: number, k: number) => {
                 t.set(i, j, k, this.get(i, j, k) - val)
+            });
+        }
+        return t
+    }
+
+    public add(val: number | Tensor): Tensor {
+        let t = this.copy(false);
+        if (val instanceof Tensor) {
+            if (t.dim().r != this.dim().r || t.dim().c != this.dim().c || t.dim().d != this.dim().d) {
+                console.trace()
+                throw "Tensor Subtraction: Not the same dimension"
+            }
+            this.iterate((i: number, j: number, k: number) => {
+                t.set(i, j, k, this.get(i, j, k) + val.get(i, j, k))
+            });
+        } else {
+            this.iterate((i: number, j: number, k: number) => {
+                t.set(i, j, k, this.get(i, j, k) + val)
             });
         }
         return t

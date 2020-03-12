@@ -9,8 +9,8 @@ export default class Layer {
     weights: Matrix = new Matrix()
     bias: Vector = new Vector()
     errorWeights: Matrix = new Matrix()
-    errorBias: Matrix = new Matrix()
-    output_error: Matrix = new Matrix()
+    errorBias: Matrix | Vector = new Matrix()
+    output_error: Matrix | Tensor[] = new Matrix()
     activation: Matrix | Tensor[] = new Matrix()
     activationFunction: IActivation
     useGpu: boolean = false;
@@ -27,7 +27,7 @@ export default class Layer {
 
     buildLayer(prevLayerShape: number[]) {}
     feedForward(input: Layer | Matrix | Tensor[], isInTraining: boolean) {}
-    backPropagation(prev_layer: Layer, next_layer: Layer | Matrix) {}
+    backPropagation(prev_layer: Layer, next_layer: Layer | Matrix | Tensor[]) {}
 
     updateWeights(l_rate: number) {}
 }
