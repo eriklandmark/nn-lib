@@ -52,9 +52,6 @@ export default class ConvolutionLayer extends Layer {
         const [f_h, f_w] = this.filterSize
         const patch_width = ((w + 2 * this.padding) - f_w + 1) / this.stride
         const patch_height = ((h + 2 * this.padding) - f_h + 1) / this.stride
-        console.log(h,w,ch)
-        console.log(f_h,f_w)
-        console.log(patch_width, patch_height)
 
         let new_images: Tensor[] = []
 
@@ -156,9 +153,6 @@ export default class ConvolutionLayer extends Layer {
             })
         }
 
-        console.log(filterInv.length, this.nr_filters)
-
-
         for (let n = 0; n < N; n++) {
             for (let f = 0; f < this.nr_filters; f++) {
                 for (let i = 0; i < h + (2 * this.padding); i++) {
@@ -166,10 +160,9 @@ export default class ConvolutionLayer extends Layer {
                         for (let k = 0; k < f_h; k++) {
                             for (let l = 0; l < f_w; l++) {
                                 for (let c = 0; c < ch; c++) {
-                                    //console.log(filterInv[f].get(k, l, c))
                                     this.errorInput[n].set(i,j,c,
                                         this.errorInput[n].get(i,j,c) + (
-                                            doutp[n].get(i+k, j+l, f) * filterInv[f].get(k, l, c)
+                                            doutp[n].get(i+k, j+l, f) * filterInv[n].get(k, l, c)
                                         ))
                                 }
                             }
@@ -179,8 +172,12 @@ export default class ConvolutionLayer extends Layer {
             }
         }
 
-
+        this.output_error = this.errorInput;
     }
 
-    updateWeights(l_rate: number) {}
+    updateWeights(l_rate: number) {
+        for(let i = 0; i < this.filters.length; i++) {
+            this.filters[i] = this.filters[i].sub(this.filters[i].mul(l_rate))
+        }
+    }
 }

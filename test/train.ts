@@ -10,8 +10,8 @@ import FlattenLayer from "../src/lib/layers/flatten_layer";
 
 let dataset = new Dataset();
 
-dataset.BATCH_SIZE = 1
-dataset.loadMnistTrain("./dataset/mnist", 1, false)
+dataset.BATCH_SIZE = 10
+dataset.loadMnistTrain("./dataset/mnist", 100, false)
 
 let layers = [
     new ConvolutionLayer(4, [3,3], new Sigmoid()),
@@ -26,7 +26,7 @@ model.USE_GPU = false
 model.build([28, 28, 3], new MeanSquaredError())
 
 async function run() {
-    await model.train(dataset.getBatch(0), 1, 0.0005)
+    await model.train(dataset.getBatch(0), 100, 0.0005)
     console.log("Done")
     model.save("./nn.json")
 }

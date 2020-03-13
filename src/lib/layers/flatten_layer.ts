@@ -37,7 +37,7 @@ export default class FlattenLayer extends Layer {
             t[n].set(r,c,g, dout.get(n, i))
         })
 
-        console.log(t[0].toString())
+        //console.log(t[0].toString())
 
         this.output_error = t
     }
