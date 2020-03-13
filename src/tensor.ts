@@ -22,6 +22,10 @@ export default class Tensor {
         }
     }
 
+    public shape(): number[] {
+        return [this.dim().r, this.dim().c, this.dim().d]
+    }
+
     constructor(v: number[][][] | Float32Array[][] = []) {
         if (v.length > 0 && v[0][0] instanceof Float32Array) {
             this.tensor = <Float32Array[][]> v

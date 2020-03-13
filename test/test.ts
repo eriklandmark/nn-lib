@@ -7,72 +7,21 @@ dataset.loadMnistTrain("./dataset/mnist", 1, false)
 console.log(dataset.getBatch(0)[0].data.toString())
 */
 
-const t = new Tensor([[[1], [7], [2]], [[11], [1], [23]], [[2], [2], [2]]])
+const t = new Tensor([[[1], [7], [2], [1]], [[11], [1], [23], [8]], [[2], [2], [2], [7]]])
 const filters = [
     new Tensor([[[1], [1]], [[0], [1]]]),
     new Tensor([[[1], [1]], [[1], [1]]]),
 ]
 
-const nr_f = 2
-const [h, w, ch] = [3,3,1]
-const [f_h, f_w, _] = [2,2,1]
-const patch_width = w - f_w + 1
-const patch_height = h - f_h + 1
-const patch_depth = 1
+let shape = [4,5,7]
+let sum = shape.reduce((acc, i) => acc * i)
 
-let new_images: Tensor[] = []
-
-let patch = new Tensor();
-patch.createEmptyArray(patch_height, patch_width, nr_f)
-for (let f = 0; f < filters.length; f++) {
-    for (let r = 0; r < patch_height; r++) {
-        for (let c = 0; c < patch_width; c++) {
-            let val: number = 0
-            for (let c_f_c = 0; c_f_c < ch; c_f_c++) {
-                for (let c_f_h = 0; c_f_h < f_h; c_f_h++) {
-                    for (let c_f_w = 0; c_f_w < f_w; c_f_w++) {
-                        val += t.get(r + c_f_h, c + c_f_w, c_f_c) * filters[f].get(c_f_h, c_f_w, c_f_c)
-                    }
-                }
-            }
-            patch.set(r, c, f, val)
-        }
-    }
+for (let i = 0; i < sum; i++) {
+    let r = Math.floor(i / (shape[1]*shape[2]))
+    let c = Math.floor(i / (shape[2]) - (r*shape[1]))
+    let d = Math.floor(i - (c*(shape[2])) - (r*shape[1]*shape[2]))
+    console.log(r, c, d)
 }
-
-console.log(patch.toString())
-new_images.push(patch)
-
-const padding_width = 2
-const padding_height = 2
-const doutp: Tensor[] = new Array(new_images.length).fill(new Tensor())
-doutp.forEach((tensor) => {
-    tensor.createEmptyArray(2 * padding_height + patch_height, 2 * padding_width + patch_width, patch_depth)
-})
-
-for (let n = 0; n < doutp.length; n++) {
-    for (let i = 0; i < patch_height; i++) {
-        for (let j = 0; j < patch_width; j++) {
-            for (let c = 0; c < patch_depth; c++) {
-                doutp[n].set(i + padding_height, j + padding_width, c, new_images[n].get(i,j,c))
-            }
-        }
-    }
-}
-
-console.log(doutp[0].toString())
-
-const filterInv = doutp.map((f) => f.copy(false))
-console.log(filterInv.length)
-for (let n = 0; n < filterInv.length; n++) {
-    filterInv[n].iterate((i: number, j: number, k: number) => {
-        filterInv[n].set(filterInv[n].dim().r - 1 - i, filterInv[n].dim().c - 1 - j , k, doutp[n].get(i,j,k))
-    })
-}
-
-console.log(filterInv[0].toString())
-
-
 
 /*
 

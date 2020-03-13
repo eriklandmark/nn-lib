@@ -84,7 +84,7 @@ export default class ConvolutionLayer extends Layer {
 
     backPropagation(prev_layer: Layer, next_layer: Layer | Tensor[]) {
         let input: Tensor[]
-        let dout: Tensor[] = <Tensor[]> prev_layer.output_error
+        let prev_layer_output: Tensor[] = <Tensor[]> prev_layer.output_error
         if (next_layer instanceof Layer) {
             input = <Tensor[]> next_layer.activation
         } else {
@@ -94,12 +94,23 @@ export default class ConvolutionLayer extends Layer {
         this.errorInput = input.map((inp) => inp.copy(false))
         this.errorBias = new Vector(this.bias.size())
 
+        const dout: Tensor[] = []
+        prev_layer_output.forEach((t )=> {
+            let ex = t.copy();
+            ex.iterate((x: number, y : number, z: number) => {
+                ex.set(x,y,z, this.activationFunction.derivative(t.get(x,y,z)))
+            })
+            dout.push(ex)
+        })
+
         const N = input.length
         const [h, w, ch] = this.prevLayerShape // X
         const [f_h, f_w] = this.filterSize // W
         const patch_width = dout[0].dim().c
         const patch_height =  dout[0].dim().r
         const patch_depth =  dout[0].dim().c
+
+
 
         for (let n = 0; n < N; n++) {
             for (let f = 0; f < this.nr_filters; f++) {
@@ -145,6 +156,8 @@ export default class ConvolutionLayer extends Layer {
             })
         }
 
+        console.log(filterInv.length, this.nr_filters)
+
 
         for (let n = 0; n < N; n++) {
             for (let f = 0; f < this.nr_filters; f++) {
@@ -153,6 +166,7 @@ export default class ConvolutionLayer extends Layer {
                         for (let k = 0; k < f_h; k++) {
                             for (let l = 0; l < f_w; l++) {
                                 for (let c = 0; c < ch; c++) {
+                                    //console.log(filterInv[f].get(k, l, c))
                                     this.errorInput[n].set(i,j,c,
                                         this.errorInput[n].get(i,j,c) + (
                                             doutp[n].get(i+k, j+l, f) * filterInv[f].get(k, l, c)
@@ -164,7 +178,6 @@ export default class ConvolutionLayer extends Layer {
                 }
             }
         }
-
 
 
     }
