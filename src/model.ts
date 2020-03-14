@@ -119,13 +119,16 @@ export default class Model {
 
                         let examples: Matrix | Tensor[]
                         let error: number = 0
+                        let exampleData = <Vector[] | Tensor[]> batch.map((ex) => ex.data)
                         const labels = new Matrix(batch.map((ex) => ex.label)).transpose()
                         if (data.DATA_STRUCTURE == Vector) {
                             examples = new Matrix(batch.map((ex) => <Vector> ex.data)).transpose()
                             error = this.train_on_batch(examples, labels);
                         } else if (data.DATA_STRUCTURE == Tensor) {
-
+                            examples = <Tensor[]> exampleData
                         }
+
+                        error = this.train_on_batch(examples, labels);
 
                         console.log("Error for batch: " + batch_id + " =", error)
                     }
