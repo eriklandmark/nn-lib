@@ -69,7 +69,7 @@ export default class ConvolutionLayer extends Layer {
                                 }
                             }
                         }
-                        patch.set(r, c, f, val)
+                        patch.set(r, c, f, this.activationFunction.normal(val))
                     }
                 }
             }

@@ -147,11 +147,11 @@ export default class Model {
         }
     }
 
-    predict(data: Vector | Matrix): Matrix {
+    predict(data: Vector | Matrix | Tensor[]): Matrix {
         if (!this.isBuilt) {
             throw "Model hasn't been build yet!.."
         }
-        let exampleMatrix: Matrix
+        let exampleMatrix: Matrix | Tensor[]
         if (data instanceof Vector) {
             exampleMatrix = new Matrix([data]).transpose()
         } else {
