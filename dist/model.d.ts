@@ -27,6 +27,7 @@ export default class Model {
     constructor(layers: Layer[]);
     isGpuAvailable(): boolean;
     build(inputShape: number[], lossFunction: ILoss, verbose?: boolean): void;
+    summary(): void;
     train_on_batch(examples: Matrix | Tensor[], labels: Matrix): number;
     train(data: Example[] | Dataset, epochs: number, learning_rate: number, shuffle?: boolean, verbose?: boolean): Promise<void>;
     predict(data: Vector | Matrix | Tensor): Matrix;

@@ -22,6 +22,13 @@ var Layer = /** @class */ (function () {
     Layer.prototype.setGpuInstance = function (gpuIns) {
         this.gpuInstance = gpuIns;
     };
+    Layer.prototype.getLayerInfo = function () {
+        return {
+            type: this.type,
+            shape: this.shape,
+            activation: this.activationFunction ? this.activationFunction.name : "NO ACTIVATION"
+        };
+    };
     Layer.prototype.buildLayer = function (prevLayerShape) { };
     Layer.prototype.feedForward = function (input, isInTraining) { };
     Layer.prototype.backPropagation = function (prev_layer, next_layer) { };

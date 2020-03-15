@@ -18,6 +18,11 @@ export default class Layer {
     shape: number[];
     type: string;
     setGpuInstance(gpuIns: GPU): void;
+    getLayerInfo(): {
+        type: string;
+        shape: number[];
+        activation: string;
+    };
     buildLayer(prevLayerShape: number[]): void;
     feedForward(input: Layer | Matrix | Tensor[], isInTraining: boolean): void;
     backPropagation(prev_layer: Layer, next_layer: Layer | Matrix | Tensor[]): void;

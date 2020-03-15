@@ -88,6 +88,15 @@ var Model = /** @class */ (function () {
         }
         this.isBuilt = true;
     };
+    Model.prototype.summary = function () {
+        if (this.isBuilt) {
+            var layer_info = this.layers.map(function (layer) { return layer.getLayerInfo(); });
+            console.table(layer_info);
+        }
+        else {
+            console.log("Model hasn't been built yet!..");
+        }
+    };
     Model.prototype.train_on_batch = function (examples, labels) {
         this.layers[0].feedForward(examples, true);
         for (var i = 1; i < this.layers.length; i++) {

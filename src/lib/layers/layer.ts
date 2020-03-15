@@ -22,10 +22,16 @@ export default class Layer {
         this.gpuInstance = gpuIns;
     }
 
+    getLayerInfo() {
+        return {
+            type: this.type,
+            shape: this.shape,
+            activation: this.activationFunction ? this.activationFunction.name : "NO ACTIVATION"
+        }
+    }
     buildLayer(prevLayerShape: number[]) {}
     feedForward(input: Layer | Matrix | Tensor[], isInTraining: boolean) {}
     backPropagation(prev_layer: Layer, next_layer: Layer | Matrix | Tensor[]) {}
-
     updateWeights(l_rate: number) {}
     toSavedModel(): SavedLayer {return}
     fromSavedModel(data: SavedLayer) {}

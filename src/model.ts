@@ -23,12 +23,12 @@ export interface SavedLayer {
     prevLayerShape?: number[]
 }
 
-
 export default class Model {
     layers: Layer[]
     learning_rate = 0;
     gpuInstance: GPU
     USE_GPU: boolean = false;
+    input_shape: number[] = []
     private isBuilt = false;
 
     constructor(layers: Layer[]) {
@@ -41,6 +41,7 @@ export default class Model {
     }
 
     public build(inputShape: number[], lossFunction: ILoss, verbose = true) {
+        this.input_shape = inputShape
         this.layers[0].buildLayer(inputShape)
         this.layers[0].useGpu = this.USE_GPU
         this.layers[0].setGpuInstance(this.gpuInstance)
@@ -63,6 +64,21 @@ export default class Model {
         }
 
         this.isBuilt = true;
+    }
+
+    public summary() {
+        if (this.isBuilt) {
+            let input = {type: "input", shape:this.input_shape, activation:"NO ACTIVATION"}
+            let layer_info = this.layers.map((layer) => layer.getLayerInfo())
+            const sum = (acc: number, val: any) => acc + val
+            let total_neurons = layer_info.map((info) => info.shape).reduce((acc, val) => {
+                return acc + val.reduce(sum, 0)
+            }, 0)
+            console.table([input, ...layer_info])
+            console.log("Total: neurons: ", total_neurons)
+        } else {
+            console.log("Model hasn't been built yet!..")
+        }
     }
 
     train_on_batch(examples: Matrix | Tensor[], labels: Matrix): number {
