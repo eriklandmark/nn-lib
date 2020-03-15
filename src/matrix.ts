@@ -66,12 +66,9 @@ export default class Matrix {
     }
 
     public static fromJsonObject(obj: any[]) {
-        let m = new Matrix()
-        m.createEmptyArray(obj.length, Object.keys(obj[0]).length)
-        m.iterate((i: number, j: number) => {
-            m.set(i, j, obj[i][j.toString()])
-        })
-        return m;
+        return new Matrix(obj.map((row: any) => {
+            return Object.keys(row).map((item, index) => row[index.toString()])
+        }))
     }
 
     public toNumberArray(): number[][] {

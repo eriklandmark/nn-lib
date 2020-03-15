@@ -1,30 +1,24 @@
-import Dataset from "./lib/dataset";
-import Model from "./lib/model";
-import DenseLayer from "./lib/dense_layer";
-import OutputLayer from "./lib/output_layer";
-import Losses from "./lib/losses";
-import Helper from "./lib/helper";
+import Model from "../src/model";
+import Dataset from "../src/dataset";
 
-const model = new Model([
-    new DenseLayer(32,"sigmoid"),
-    new DenseLayer(32,"sigmoid"),
-    new DenseLayer(32,"sigmoid"),
-    new OutputLayer(10,"softmax")
-])
+console.log("s")
 
-model.build(28*28, Losses.squared_error_derivative)
+const model = new Model([])
 
 model.load("./nn.json")
 
 const dataset = new Dataset();
 
-dataset.loadMnistTest("dataset/mnist/", 10000);
-dataset.BATCH_SIZE = 10000
+dataset.loadMnistTrain("dataset/mnist", 1, false);
+dataset.BATCH_SIZE = 1
 
-let examples = dataset.getBatch(0)
+let examples = dataset.getBatch(0)[0]
 
+const pred = model.predict(examples.data)
+console.log(pred.toString())
 let numRights = 0;
 
+/*
 Helper.timeit(() => {
     for (let i = 0; i < examples.length; i++ ) {
         const pred = model.predict(examples[i].data)
@@ -39,7 +33,7 @@ Helper.timeit(() => {
     console.log("Num rights: " + numRights + " of " + examples.length + " (" + Math.round((numRights / examples.length) * 100) + " %)")
     console.log("It took " + seconds + " seconds.")
 })
-
+*/
 
 
 

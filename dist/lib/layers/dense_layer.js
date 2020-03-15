@@ -18,12 +18,18 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 var layer_1 = __importDefault(require("./layer"));
 var matrix_1 = __importDefault(require("../../matrix"));
+var activations_1 = __importDefault(require("../activations/activations"));
 var vector_1 = __importDefault(require("../../vector"));
+var sigmoid_1 = __importDefault(require("../activations/sigmoid"));
 var DenseLayer = /** @class */ (function (_super) {
     __extends(DenseLayer, _super);
     function DenseLayer(layerSize, activation) {
-        var _this = _super.call(this, activation) || this;
+        if (layerSize === void 0) { layerSize = 1; }
+        if (activation === void 0) { activation = new sigmoid_1.default(); }
+        var _this = _super.call(this) || this;
+        _this.activationFunction = activation;
         _this.layerSize = layerSize;
+        _this.type = "dense";
         return _this;
     }
     DenseLayer.prototype.buildLayer = function (prevLayerShape) {
@@ -42,29 +48,24 @@ var DenseLayer = /** @class */ (function (_super) {
         var _this = this;
         var act;
         if (input instanceof matrix_1.default) {
-            if (this.activation.empty()) {
-                this.activation.createEmptyArray(input.dim().r, this.layerSize);
-            }
             act = input;
         }
         else {
-            if (this.activation.empty()) {
-                this.activation.createEmptyArray(input.activation.dim().r, this.layerSize);
-            }
             act = input.activation;
         }
         if (this.useGpu) {
-            var ffKernel = this.gpuInstance.createKernelMap({
-                addResult: matrix_1.default.addGpu(),
-                multiplyResult: matrix_1.default.mmGpu(),
+            /*
+            const ffKernel = this.gpuInstance.createKernelMap({
+                addResult: Matrix.addGpu(),
+                multiplyResult: Matrix.mmGpu(),
                 actvResult: this.activationFunction.normal_gpu()
-            }, function (a, b, c) {
+            }, function (a: ThreadKernelVariable, b: ThreadKernelVariable, c: ThreadKernelVariable) {
                 //@ts-ignore
                 return actv(add(mm(a, b), c[this.thread.x]));
-            }, { output: [this.weights.dim().c, act.dim().r], constants: { mmLength: act.dim().c } });
-            ffKernel.setLoopMaxIterations(Math.max(act.dim().c, this.weights.dim().r));
-            this.activation = new matrix_1.default(ffKernel(act.toNumberArray(), this.weights.toNumberArray(), this.bias.toNumberArray())["result"]);
-            ffKernel.destroy();
+            }, {output: [this.weights.dim().c, act.dim().r], constants: {mmLength: act.dim().c}})
+            ffKernel.setLoopMaxIterations(Math.max(act.dim().c, this.weights.dim().r))
+            this.activation = new Matrix(<Float32Array[]>ffKernel(act.toNumberArray(), this.weights.toNumberArray(), this.bias.toNumberArray())["result"]);
+            ffKernel.destroy()*/
         }
         else {
             var z_1 = act.mm(this.weights);
@@ -96,7 +97,9 @@ var DenseLayer = /** @class */ (function (_super) {
 
         new Matrix(<Float32Array[]>feedForwardKernel(a.toNumberArray(), b.toNumberArray(), c.toNumberArray()).result)
         */
-        var error = prev_layer.output_error.mm(prev_layer.weights.transpose()).mul(this.activationFunction.derivative(this.activation));
+        var deltaActv = this.activationFunction.derivative(this.activation);
+        // @ts-ignore
+        var error = (prev_layer.output_error.mm(prev_layer.weights.transpose())).mul(deltaActv);
         this.errorWeights = dzh_dwh.transpose().mm(error);
         this.errorBias = error.sum(0);
         this.output_error = error;
@@ -107,6 +110,20 @@ var DenseLayer = /** @class */ (function (_super) {
         this.bias.iterate(function (val, i) {
             _this.bias.set(i, val - (_this.errorBias.get(0, i) * l_rate));
         });
+    };
+    DenseLayer.prototype.toSavedModel = function () {
+        return {
+            weights: this.weights.matrix,
+            bias: this.bias.vector,
+            shape: this.shape,
+            activation: this.activationFunction.name
+        };
+    };
+    DenseLayer.prototype.fromSavedModel = function (data) {
+        this.weights = matrix_1.default.fromJsonObject(data.weights);
+        this.bias = vector_1.default.fromJsonObj(data.bias);
+        this.shape = data.shape;
+        this.activationFunction = activations_1.default.fromName(data.activation);
     };
     return DenseLayer;
 }(layer_1.default));

@@ -43,6 +43,11 @@ var Vector = /** @class */ (function () {
             this.vector = Float32Array.from(defaultValue);
         }
     }
+    Vector.fromJsonObj = function (obj) {
+        return new Vector(Object.keys(obj).map(function (item, index) {
+            return obj[index.toString()];
+        }));
+    };
     Vector.fromBuffer = function (buff) {
         var v = new Vector(buff.length);
         for (var i = 0; i < v.size(); i++) {

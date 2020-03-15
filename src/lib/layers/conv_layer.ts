@@ -1,7 +1,9 @@
 import Layer from "./layer";
 import Tensor from "../../tensor";
-import IActivation from "../activations/activations";
+import Activation, {IActivation} from "../activations/activations";
 import Vector from "../../vector";
+import {SavedLayer} from "../../model";
+import Sigmoid from "../activations/sigmoid";
 
 export default class ConvolutionLayer extends Layer {
 
@@ -14,11 +16,14 @@ export default class ConvolutionLayer extends Layer {
     errorFilters: Tensor[] = []
     errorInput: Tensor[] = []
 
-    constructor(nr_filters: number = 3, filterSize: number[], activation: IActivation) {
-        super(activation);
+    constructor(nr_filters: number = 3, filterSize: number[] = [3, 3], activation: IActivation = new Sigmoid()) {
+        super();
+        this.activationFunction = activation
         this.filterSize = filterSize
         this.nr_filters = nr_filters
         this.errorBias = new Vector(nr_filters)
+
+        this.type = "conv"
     }
 
     buildLayer(prevLayerShape: number[]) {
@@ -50,8 +55,8 @@ export default class ConvolutionLayer extends Layer {
 
         const [h, w, ch] = this.prevLayerShape
         const [f_h, f_w] = this.filterSize
-        const patch_width = ((w + 2 * this.padding) - f_w + 1) / this.stride
-        const patch_height = ((h + 2 * this.padding) - f_h + 1) / this.stride
+        const patch_width = this.shape[1]
+        const patch_height = this.shape[0]
 
         let new_images: Tensor[] = []
 
@@ -179,5 +184,27 @@ export default class ConvolutionLayer extends Layer {
         for(let i = 0; i < this.filters.length; i++) {
             this.filters[i] = this.filters[i].sub(this.filters[i].mul(l_rate))
         }
+    }
+
+    toSavedModel(): SavedLayer {
+        return {
+            filters: this.filters.map((t) => t.tensor),
+            nr_filters: this.nr_filters,
+            filterSize: this.filterSize,
+            bias: this.bias.vector,
+            shape: this.shape,
+            activation: this.activationFunction.name,
+            prevLayerShape: this.prevLayerShape
+        }
+    }
+
+    fromSavedModel(data: SavedLayer) {
+        this.filters = data.filters.map((t) => Tensor.fromJsonObject(t))
+        this.nr_filters = data.nr_filters
+        this.filterSize = data.filterSize
+        this.bias = Vector.fromJsonObj(data.bias)
+        this.shape = data.shape
+        this.activationFunction = Activation.fromName(data.activation)
+        this.prevLayerShape = data.prevLayerShape
     }
 }

@@ -36,5 +36,5 @@ export default class Matrix {
     div(scalar: number | Matrix): Matrix;
     transpose(): Matrix;
     argmax(i?: number, row?: boolean): number;
-    inv(): Matrix | undefined;
+    inv(): Matrix;
 }

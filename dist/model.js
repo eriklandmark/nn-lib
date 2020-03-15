@@ -53,6 +53,8 @@ var matrix_1 = __importDefault(require("./matrix"));
 var vector_1 = __importDefault(require("./vector"));
 var gpu_js_1 = require("gpu.js");
 var array_helper_1 = __importDefault(require("./helpers/array_helper"));
+var tensor_1 = __importDefault(require("./tensor"));
+var layer_helper_1 = require("./lib/layers/layer_helper");
 var Model = /** @class */ (function () {
     function Model(layers) {
         this.learning_rate = 0;
@@ -106,7 +108,7 @@ var Model = /** @class */ (function () {
         if (shuffle === void 0) { shuffle = false; }
         if (verbose === void 0) { verbose = true; }
         return __awaiter(this, void 0, void 0, function () {
-            var startTime, batch_count, epoch, batch_id, batch, examples, labels, error, batch_count, epoch, batch_id, batch, examples, labels, error, duration, examples, labels, epoch;
+            var startTime, batch_count, epoch, batch_id, batch, examples, labels, error, batch_count, epoch, batch_id, batch, examples, error, exampleData, labels, duration, exampleData, examples, labels, epoch;
             return __generator(this, function (_a) {
                 switch (_a.label) {
                     case 0:
@@ -156,8 +158,17 @@ var Model = /** @class */ (function () {
                                 else {
                                     batch = data.getBatch(batch_id);
                                 }
-                                examples = new matrix_1.default(batch.map(function (ex) { return ex.data; })).transpose();
+                                examples = void 0;
+                                error = 0;
+                                exampleData = batch.map(function (ex) { return ex.data; });
                                 labels = new matrix_1.default(batch.map(function (ex) { return ex.label; })).transpose();
+                                if (data.DATA_STRUCTURE == vector_1.default) {
+                                    examples = new matrix_1.default(batch.map(function (ex) { return ex.data; })).transpose();
+                                    error = this.train_on_batch(examples, labels);
+                                }
+                                else if (data.DATA_STRUCTURE == tensor_1.default) {
+                                    examples = exampleData;
+                                }
                                 error = this.train_on_batch(examples, labels);
                                 console.log("Error for batch: " + batch_id + " =", error);
                             }
@@ -169,7 +180,8 @@ var Model = /** @class */ (function () {
                         console.log("Duration: " + duration + " seconds");
                         return [3 /*break*/, 10];
                     case 9:
-                        examples = new matrix_1.default(data.map(function (ex) { return ex.data; })).transpose();
+                        exampleData = data.map(function (ex) { return ex.data; });
+                        examples = exampleData[0] instanceof vector_1.default ? new matrix_1.default(exampleData) : exampleData;
                         labels = new matrix_1.default(data.map(function (ex) { return ex.label; })).transpose();
                         for (epoch = 0; epoch < epochs; epoch++) {
                             console.log(this.train_on_batch(examples, labels));
@@ -189,7 +201,7 @@ var Model = /** @class */ (function () {
             exampleMatrix = new matrix_1.default([data]).transpose();
         }
         else {
-            exampleMatrix = data;
+            exampleMatrix = [data];
         }
         this.layers[0].feedForward(exampleMatrix, false);
         for (var i = 1; i < this.layers.length; i++) {
@@ -198,46 +210,53 @@ var Model = /** @class */ (function () {
         return this.layers[this.layers.length - 1].activation;
     };
     Model.prototype.save = function (path) {
-        var modelObj = {
-            layer_keys: [],
-            layers: {},
-            output_layer: {}
-        };
-        for (var i = 0; i < this.layers.length - 1; i++) {
-            modelObj.layers["layer_" + i] = {};
-            modelObj.layers["layer_" + i]["weights"] = this.layers[i].weights.matrix;
-            modelObj.layers["layer_" + i]["bias"] = this.layers[i].bias.vector;
-            modelObj.layer_keys.push("layer_" + i);
+        var modelObj = { layers: {} };
+        for (var i = 0; i < this.layers.length; i++) {
+            modelObj.layers["layer_" + i] = {
+                type: this.layers[i].type,
+                info: this.layers[i].toSavedModel()
+            };
         }
-        modelObj["output_layer"] = {};
-        modelObj["output_layer"]["weights"] = this.layers[this.layers.length - 1].weights.matrix;
-        modelObj["output_layer"]["bias"] = this.layers[this.layers.length - 1].bias.vector;
         fs.writeFileSync(path, JSON.stringify(modelObj));
     };
     Model.prototype.load = function (path) {
         var modelObj = JSON.parse(fs.readFileSync(path, { encoding: "UTF-8" }));
-        var _loop_1 = function (i) {
-            var layer = modelObj.layer_keys[i];
-            this_1.layers[i].weights = new matrix_1.default(modelObj.layers[layer].weights.map(function (row) {
-                return Object.keys(row).map(function (item, index) { return row[index.toString()]; });
-            }));
-            this_1.layers[i].bias = new vector_1.default(Object.keys(modelObj.layers[layer].bias).map(function (item, index) {
-                return modelObj.layers[layer].bias[index.toString()];
-            }));
-        };
-        var this_1 = this;
-        for (var i = 0; i < modelObj.layer_keys.length; i++) {
-            _loop_1(i);
+        var layer_keys = Object.keys(modelObj.layers).sort();
+        this.layers = [];
+        for (var _i = 0, layer_keys_1 = layer_keys; _i < layer_keys_1.length; _i++) {
+            var layer_key = layer_keys_1[_i];
+            var layer = layer_helper_1.LayerHelper.fromType(modelObj.layers[layer_key].type);
+            layer.fromSavedModel(modelObj.layers[layer_key].info);
+            this.layers.push(layer);
         }
-        this.layers[this.layers.length - 1].weights = new matrix_1.default(modelObj.output_layer.weights.map(function (row) {
-            return Object.keys(row).map(function (item, index) { return row[index.toString()]; });
-        }));
-        this.layers[this.layers.length - 1].bias = new vector_1.default(Object.keys(modelObj.output_layer.bias).map(function (item, index) {
-            return modelObj.output_layer.bias[index.toString()];
-        }));
+        this.isBuilt = true;
+        /*
+        for (let i = 0; i < modelObj.layer_keys.length; i++) {
+            const layer = modelObj.layer_keys[i]
+            this.layers[i].weights = new Matrix(modelObj.layers[layer].weights.map((row: any) => {
+                return Object.keys(row).map((item, index) => row[index.toString()])
+            }))
+
+            this.layers[i].bias = new Vector(Object.keys(modelObj.layers[layer].bias).map(
+                (item, index) => {
+                    return modelObj.layers[layer].bias[index.toString()]
+                }
+                ))
+        }
+
+        this.layers[this.layers.length - 1].weights = new Matrix(modelObj.output_layer.weights.map((row: any) => {
+            return Object.keys(row).map((item, index) => row[index.toString()])
+        }))
+
+        this.layers[this.layers.length - 1].bias = new Vector(Object.keys(modelObj.output_layer.bias).map(
+            (item, index) => {
+                return modelObj.output_layer.bias[index.toString()]
+            }
+        ))
+
         if (!this.isBuilt) {
-            throw "Model hasn't been build yet!..";
-        }
+            throw "Model hasn't been build yet!.."
+        }*/
     };
     return Model;
 }());

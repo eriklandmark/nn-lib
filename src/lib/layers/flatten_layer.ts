@@ -1,13 +1,11 @@
 import Layer from "./layer";
 import Tensor from "../../tensor";
 import Matrix from "../../matrix";
+import {SavedLayer} from "../../model";
 
 export default class FlattenLayer extends Layer {
 
-    constructor() {
-        super();
-    }
-
+    type: string = "flatten"
     prevShape: number[] = []
 
     buildLayer(prevLayerShape: number[]) {
@@ -31,14 +29,23 @@ export default class FlattenLayer extends Layer {
 
         let [h, w, d] = this.prevShape
         dout.iterate((n: number, i: number) => {
-            let r = Math.floor(i / (w*d))
-            let c = Math.floor(i / (d) - (r*w))
-            let g = Math.floor(i - (c*d) - (r*w*d))
+            const r = Math.floor(i / (w*d))
+            const c = Math.floor(i / (d) - (r*w))
+            const g = Math.floor(i - (c*d) - (r*w*d))
             t[n].set(r,c,g, dout.get(n, i))
         })
 
-        //console.log(t[0].toString())
-
         this.output_error = t
     }
+
+    toSavedModel(): SavedLayer {
+        return {
+            shape: this.prevShape
+        }
+    }
+
+    fromSavedModel(data: SavedLayer) {
+        this.buildLayer(data.shape)
+    }
+
 }

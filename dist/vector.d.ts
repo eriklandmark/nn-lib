@@ -5,10 +5,11 @@ export default class Vector {
     get: Function;
     set: Function;
     constructor(defaultValue?: Float32Array | number[] | number);
+    static fromJsonObj(obj: any): Vector;
     static fromBuffer(buff: Buffer): Vector;
     static toCategorical(index: number, size: number): Vector;
     toString: (vertical?: boolean) => string;
-    toNumberArray(): never[];
+    toNumberArray(): any;
     populateRandom(): void;
     iterate(func: Function): void;
     add(b: number | Vector): Vector;

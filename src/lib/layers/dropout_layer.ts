@@ -1,28 +1,27 @@
 import Layer from "./layer";
 import Matrix from "../../matrix";
-import DenseLayer from "./dense_layer";
-import Sigmoid from "../activations/sigmoid";
+import {SavedLayer} from "../../model";
 
-export default class DropoutLayer extends DenseLayer {
+export default class DropoutLayer extends Layer {
 
     rate: number = 0
+    type: string = "dropout"
 
-    constructor(rate: number) {
-        super(0, new Sigmoid());
+    constructor(rate: number = 0.2) {
+        super()
         this.rate = rate
     }
 
     buildLayer(prevLayerShape: number[]) {
-        this.layerSize = prevLayerShape[0];
-        super.buildLayer(prevLayerShape);
+        this.shape = prevLayerShape
     }
 
     feedForward(input: Layer | Matrix, isInTraining: boolean) {
         this.activation = (<Layer>input).activation
         if (isInTraining) {
-            this.activation.iterate((i: number, j: number) => {
+            (<Matrix> this.activation).iterate((i: number, j: number) => {
                 if(Math.random() < this.rate) {
-                    this.activation.set(i,j, 0)
+                    (<Matrix> this.activation).set(i,j, 0)
                 }
             })
         }
@@ -34,4 +33,16 @@ export default class DropoutLayer extends DenseLayer {
     }
 
     updateWeights(l_rate: number) {}
+
+    toSavedModel(): SavedLayer {
+        return {
+            rate: this.rate,
+            shape: this.shape
+        }
+    }
+
+    fromSavedModel(data: SavedLayer) {
+        this.shape = data.shape
+        this.rate = data.rate
+    }
 }

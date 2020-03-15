@@ -6,14 +6,23 @@ import Matrix from "./matrix";
 import Vector from "./vector";
 import {GPU} from 'gpu.js';
 import ArrayHelper from "./helpers/array_helper";
-import ILoss from "./lib/losses/losses";
+import {ILoss} from "./lib/losses/losses";
 import Tensor from "./tensor";
+import {LayerHelper} from "./lib/layers/layer_helper";
 
-interface SavedModel {
-    layer_keys: string[],
-    layers: any,
-    output_layer : any
+export interface SavedLayer {
+    weights?: Float32Array[]
+    bias?: Float32Array
+    shape?: number[]
+    filters?: Float32Array[][][]
+    nr_filters?: number
+    filterSize?: number[]
+    activation?: string
+    loss?: string
+    rate?: number
+    prevLayerShape?: number[]
 }
+
 
 export default class Model {
     layers: Layer[]
@@ -150,7 +159,7 @@ export default class Model {
         }
     }
 
-    predict(data: Vector | Matrix | Tensor[]): Matrix {
+    predict(data: Vector | Matrix | Tensor): Matrix {
         if (!this.isBuilt) {
             throw "Model hasn't been build yet!.."
         }
@@ -158,7 +167,7 @@ export default class Model {
         if (data instanceof Vector) {
             exampleMatrix = new Matrix([data]).transpose()
         } else {
-            exampleMatrix = data
+            exampleMatrix = [<Tensor> data]
         }
         this.layers[0].feedForward(exampleMatrix, false)
         for (let i = 1; i < this.layers.length; i++) {
@@ -168,28 +177,34 @@ export default class Model {
     }
 
     save(path: string) {
-        const modelObj: SavedModel = {
-            layer_keys: [],
-            layers: {},
-            output_layer: {}
-        }
+        const modelObj = {layers: {}}
 
-        for (let i = 0; i < this.layers.length - 1; i++) {
-            modelObj.layers[`layer_${i}`] = {}
-            modelObj.layers[`layer_${i}`]["weights"] = this.layers[i].weights.matrix
-            modelObj.layers[`layer_${i}`]["bias"] = this.layers[i].bias.vector
-            modelObj.layer_keys.push(`layer_${i}`)
+        for (let i = 0; i < this.layers.length; i++) {
+            modelObj.layers[`layer_${i}`] = {
+                type: this.layers[i].type,
+                info: this.layers[i].toSavedModel()
+            }
         }
-        modelObj["output_layer"] = {}
-        modelObj["output_layer"]["weights"] = this.layers[this.layers.length - 1].weights.matrix
-        modelObj["output_layer"]["bias"] = this.layers[this.layers.length - 1].bias.vector
 
         fs.writeFileSync(path, JSON.stringify(modelObj))
     }
 
     load(path: string) {
+
         const modelObj = JSON.parse(fs.readFileSync(path, {encoding: "UTF-8"}))
 
+        const layer_keys: string[] = Object.keys(modelObj.layers).sort()
+        this.layers = []
+        for (let layer_key of layer_keys) {
+            let layer = LayerHelper.fromType(modelObj.layers[layer_key].type)
+            layer.fromSavedModel(modelObj.layers[layer_key].info)
+            this.layers.push(layer)
+        }
+
+        this.isBuilt = true
+
+
+        /*
         for (let i = 0; i < modelObj.layer_keys.length; i++) {
             const layer = modelObj.layer_keys[i]
             this.layers[i].weights = new Matrix(modelObj.layers[layer].weights.map((row: any) => {
@@ -215,6 +230,6 @@ export default class Model {
 
         if (!this.isBuilt) {
             throw "Model hasn't been build yet!.."
-        }
+        }*/
     }
 }

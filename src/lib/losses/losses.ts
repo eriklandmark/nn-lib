@@ -1,8 +1,10 @@
 import Vector from "../../vector";
 import Matrix from "../../matrix";
 import {KernelFunction} from "gpu.js";
+import CrossEntropy from "./cross_entropy";
+import MeanSquaredError from "./mean_squared_error";
 
-export default interface ILoss {
+export interface ILoss {
     name: string
     normal(input: Matrix, labels: Matrix): Matrix
     derivative(input: Matrix, labels: Matrix): Matrix
@@ -10,7 +12,14 @@ export default interface ILoss {
     derivative_gpu(): KernelFunction
 }
 
-class Losses {
+export default class Losses {
+
+    static fromName(name: string) {
+        switch (name) {
+            case "cross_entropy": return new CrossEntropy()
+            case "mean_squared_error": return new MeanSquaredError()
+        }
+    }
 
     public static CrossEntropy(v: Vector, labels: Vector): Vector {
         const out = new Vector(v.size());

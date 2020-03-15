@@ -1,9 +1,9 @@
 import Matrix from "../../matrix";
 import Vector from "../../vector";
 import {GPU} from "gpu.js";
-import IActivation from "../activations/activations";
-import Sigmoid from "../activations/sigmoid";
+import {IActivation} from "../activations/activations";
 import Tensor from "../../tensor";
+import {SavedLayer} from "../../model";
 
 export default class Layer {
     weights: Matrix = new Matrix()
@@ -16,10 +16,7 @@ export default class Layer {
     useGpu: boolean = false;
     gpuInstance: GPU = new GPU()
     shape: number[] = []
-
-    constructor(activation: IActivation = new Sigmoid()) {
-        this.activationFunction = activation
-    }
+    type: string = ""
 
     setGpuInstance(gpuIns: GPU) {
         this.gpuInstance = gpuIns;
@@ -30,4 +27,6 @@ export default class Layer {
     backPropagation(prev_layer: Layer, next_layer: Layer | Matrix | Tensor[]) {}
 
     updateWeights(l_rate: number) {}
+    toSavedModel(): SavedLayer {return}
+    fromSavedModel(data: SavedLayer) {}
 }

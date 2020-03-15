@@ -50,13 +50,16 @@ var vector_1 = __importDefault(require("./vector"));
 var fs = __importStar(require("fs"));
 var path = __importStar(require("path"));
 var jimp_1 = __importDefault(require("jimp"));
+var tensor_1 = __importDefault(require("./tensor"));
 var Dataset = /** @class */ (function () {
     function Dataset() {
         this.data = [];
         this.BATCH_SIZE = 1;
         this.IS_GENERATOR = false;
         this.TOTAL_EXAMPLES = 0;
-        this.GENERATOR = function () { };
+        this.DATA_STRUCTURE = undefined;
+        this.GENERATOR = function () {
+        };
     }
     Dataset.prototype.size = function () {
         return this.data.length;
@@ -66,41 +69,67 @@ var Dataset = /** @class */ (function () {
     };
     Dataset.read_image = function (path) {
         return __awaiter(this, void 0, void 0, function () {
-            var image, v, i, avg;
+            var image, t, i, y, x, d;
             return __generator(this, function (_a) {
                 switch (_a.label) {
                     case 0: return [4 /*yield*/, jimp_1.default.read(path)];
                     case 1:
                         image = _a.sent();
-                        v = new vector_1.default(image.bitmap.data.length / 4);
+                        t = new tensor_1.default();
                         for (i = 0; i < image.bitmap.data.length; i += 4) {
-                            avg = (image.bitmap.data[i] + image.bitmap.data[i + 1] + image.bitmap.data[i + 2]) / 3;
-                            v.set(i / 4, avg);
+                            y = Math.floor((i / 4) / image.getHeight());
+                            x = (i / 4) - (y * image.getWidth());
+                            for (d = 0; d < 3; d++) {
+                                t.set(y, x, d, image.bitmap.data[i + d]);
+                            }
                         }
-                        return [2 /*return*/, v];
+                        return [2 /*return*/, t];
                 }
             });
         });
     };
-    Dataset.prototype.loadMnistTrain = function (folderPath, maxExamples) {
-        if (maxExamples === void 0) { maxExamples = 60000; }
-        this.loadMnist(folderPath, "train-images-idx3-ubyte", "train-labels-idx1-ubyte", maxExamples);
+    Dataset.prototype.vectorize_image = function (image) {
+        var v = new vector_1.default(image.count());
+        var index = 0;
+        image.iterate(function (i, j, k) {
+            v.set(index, image.get(i, j, k));
+            index += 1;
+        });
+        this.DATA_STRUCTURE = vector_1.default;
+        return v;
     };
-    Dataset.prototype.loadMnistTest = function (folderPath, maxExamples) {
+    Dataset.prototype.loadMnistTrain = function (folderPath, maxExamples, vectorize) {
         if (maxExamples === void 0) { maxExamples = 60000; }
-        this.loadMnist(folderPath, "t10k-images-idx3-ubyte", "t10k-labels-idx1-ubyte", maxExamples);
+        if (vectorize === void 0) { vectorize = true; }
+        this.loadMnist(folderPath, "train-images-idx3-ubyte", "train-labels-idx1-ubyte", maxExamples, vectorize);
     };
-    Dataset.prototype.loadMnist = function (folderPath, imageFileName, labelFileName, maxExamples) {
+    Dataset.prototype.loadMnistTest = function (folderPath, maxExamples, vectorize) {
+        if (maxExamples === void 0) { maxExamples = 60000; }
+        if (vectorize === void 0) { vectorize = true; }
+        this.loadMnist(folderPath, "t10k-images-idx3-ubyte", "t10k-labels-idx1-ubyte", maxExamples, vectorize);
+    };
+    Dataset.prototype.loadMnist = function (folderPath, imageFileName, labelFileName, maxExamples, vectorize) {
         var trainFileBuffer = fs.readFileSync(path.join(folderPath + "/" + imageFileName));
         var labelFileBuffer = fs.readFileSync(path.join(folderPath + "/" + labelFileName));
         for (var imageIndex = 0; imageIndex < maxExamples; imageIndex++) {
-            var pixels = [];
+            var image = new tensor_1.default();
+            image.createEmptyArray(28, 28, 3);
             for (var x = 0; x < 28; x++) {
                 for (var y = 0; y < 28; y++) {
-                    pixels.push(trainFileBuffer[(imageIndex * 28 * 28) + (x + (y * 28)) + 15]);
+                    var val = trainFileBuffer[(imageIndex * 28 * 28) + (x + (y * 28)) + 15];
+                    image.set(y, x, 0, val);
+                    image.set(y, x, 1, val);
+                    image.set(y, x, 2, val);
                 }
             }
-            var exampleData = new vector_1.default(pixels);
+            var exampleData = void 0;
+            if (vectorize) {
+                exampleData = this.vectorize_image(image);
+            }
+            else {
+                exampleData = image;
+                this.DATA_STRUCTURE = tensor_1.default;
+            }
             exampleData = exampleData.div(255);
             var example = {
                 data: exampleData,

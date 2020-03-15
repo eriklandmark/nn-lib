@@ -21,6 +21,14 @@ export default class Vector {
         }
     }
 
+    public static fromJsonObj(obj: any) {
+        return new Vector(Object.keys(obj).map(
+            (item, index) => {
+                return obj[index.toString()]
+            }
+        ))
+    }
+
     public static fromBuffer(buff: Buffer): Vector {
         let v: Vector = new Vector(buff.length)
         for (let i = 0; i < v.size(); i++) {

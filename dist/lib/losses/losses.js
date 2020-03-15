@@ -3,25 +3,17 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-var vector_1 = __importDefault(require("../vector"));
+var vector_1 = __importDefault(require("../../vector"));
+var cross_entropy_1 = __importDefault(require("./cross_entropy"));
+var mean_squared_error_1 = __importDefault(require("./mean_squared_error"));
 var Losses = /** @class */ (function () {
     function Losses() {
     }
-    Losses.squared_error = function (m, labels) {
-        if (m.dim().r != labels.dim().r || m.dim().c != labels.dim().c)
-            throw "Labels and output vector doesn't match size..";
-        return m.sub(labels).pow(2);
-    };
-    Losses.squared_error_derivative = function (m, labels) {
-        if (m.dim().r != labels.dim().r || m.dim().c != labels.dim().c)
-            throw "Labels and output vector doesn't match size..";
-        return m.sub(labels);
-    };
-    Losses.squared_error_derivative_gpu = function () {
-        return function loss(m, label) {
-            //@ts-ignore
-            return m - label;
-        };
+    Losses.fromName = function (name) {
+        switch (name) {
+            case "cross_entropy": return new cross_entropy_1.default();
+            case "mean_squared_error": return new mean_squared_error_1.default();
+        }
     };
     Losses.CrossEntropy = function (v, labels) {
         var out = new vector_1.default(v.size());

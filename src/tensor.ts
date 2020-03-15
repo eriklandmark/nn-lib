@@ -49,6 +49,14 @@ export default class Tensor {
         }
     }
 
+    public static fromJsonObject(obj: any[][]) {
+        return new Tensor(obj.map((row: any[]) => {
+            return row.map((col: any) => {
+                return Object.keys(col).map((item, index) => col[index.toString()])
+            })
+        }))
+    }
+
     public iterate(func: Function): void {
         for (let i: number = 0; i < this.dim().r; i++) {
             for (let j: number = 0; j < this.dim().c; j++) {

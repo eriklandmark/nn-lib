@@ -1,15 +1,20 @@
 import Layer from "./layer";
 import Matrix from "../../matrix";
-import IActivation from "../activations/activations";
+import Activation, {IActivation} from "../activations/activations";
 import Vector from "../../vector";
+import {SavedLayer} from "../../model";
+import Sigmoid from "../activations/sigmoid";
 
 export default class DenseLayer extends Layer {
 
     layerSize: number
 
-    constructor(layerSize: number, activation: IActivation) {
-        super(activation);
+    constructor(layerSize: number = 1, activation: IActivation = new Sigmoid()) {
+        super();
+        this.activationFunction = activation
         this.layerSize = layerSize;
+
+        this.type = "dense"
     }
 
     buildLayer(prevLayerShape: number[]) {
@@ -91,5 +96,21 @@ export default class DenseLayer extends Layer {
         this.bias.iterate((val: number, i: number) => {
             this.bias.set(i, val - (this.errorBias.get(0, i) * l_rate))
         })
+    }
+
+    toSavedModel(): SavedLayer {
+        return {
+            weights: this.weights.matrix,
+            bias: this.bias.vector,
+            shape: this.shape,
+            activation: this.activationFunction.name
+        }
+    }
+
+    fromSavedModel(data: SavedLayer) {
+        this.weights = Matrix.fromJsonObject(data.weights)
+        this.bias = Vector.fromJsonObj(data.bias)
+        this.shape = data.shape
+        this.activationFunction = Activation.fromName(data.activation)
     }
 }

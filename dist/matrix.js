@@ -52,7 +52,7 @@ var Matrix = /** @class */ (function () {
         this.set = function (i, j, n) {
             _this.matrix[i][j] = n;
         };
-        this.count = function (i, j, n) {
+        this.count = function () {
             return _this.dim().c * _this.dim().r;
         };
         this.toString = function (max_rows) {
@@ -106,12 +106,9 @@ var Matrix = /** @class */ (function () {
         return { r: this.matrix.length, c: this.matrix[0] ? this.matrix[0].length : 0 };
     };
     Matrix.fromJsonObject = function (obj) {
-        var m = new Matrix();
-        m.createEmptyArray(obj.length, Object.keys(obj[0]).length);
-        m.iterate(function (i, j) {
-            m.set(i, j, obj[i][j.toString()]);
-        });
-        return m;
+        return new Matrix(obj.map(function (row) {
+            return Object.keys(row).map(function (item, index) { return row[index.toString()]; });
+        }));
     };
     Matrix.prototype.toNumberArray = function () {
         return this.matrix.map(function (floatArray) { return [].slice.call(floatArray); });

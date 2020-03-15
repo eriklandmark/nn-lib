@@ -7,12 +7,11 @@ import Softmax from "../src/lib/activations/softmax";
 import MeanSquaredError from "../src/lib/losses/mean_squared_error";
 import ConvolutionLayer from "../src/lib/layers/conv_layer";
 import FlattenLayer from "../src/lib/layers/flatten_layer";
-import Tensor from "../src/tensor";
 
 let dataset = new Dataset();
 
-dataset.BATCH_SIZE = 32
-dataset.loadMnistTrain("./dataset/mnist", 10000, false)
+dataset.BATCH_SIZE = 10
+dataset.loadMnistTrain("./dataset/mnist", 10, false)
 
 let layers = [
     new ConvolutionLayer(4, [4,4], new Sigmoid()),
@@ -27,11 +26,11 @@ model.USE_GPU = false
 model.build([28, 28, 3], new MeanSquaredError())
 
 async function run() {
-    await model.train(dataset, 20, 0.0005)
+    await model.train(dataset, 500, 0.0005)
     console.log("Done")
-    //model.save("./nn.json")
+    model.save("./nn.json")
     let ex = dataset.getBatch(0)[0]
-    console.log(model.predict([<Tensor> ex.data]).toString())
+    console.log(model.predict(ex.data).toString())
     console.log(ex.label.toString())
 }
 run()
