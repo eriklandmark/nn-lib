@@ -1,6 +1,6 @@
 import Matrix from "../../matrix";
 import IActivation from "./activations";
-import {KernelFunction} from "gpu.js";
+import {GPUFunction, KernelFunction, ThreadKernelVariable} from "gpu.js";
 
 export default class ReLu implements IActivation {
 
@@ -23,10 +23,12 @@ export default class ReLu implements IActivation {
     }
 
     normal_gpu(): KernelFunction {
-        return function actv() {}
+        return function actv(a) {}
     }
 
-    derivative_gpu(): KernelFunction {
-        return function actv() {}
+    derivative_gpu(): GPUFunction<ThreadKernelVariable[]> {
+        return function actv(a: any) {
+            return a
+        }
     }
 }

@@ -10,13 +10,19 @@ export default class Layer {
     bias: Vector = new Vector()
     errorWeights: Matrix = new Matrix()
     errorBias: Matrix | Vector = new Matrix()
-    output_error: Matrix | Tensor[] = new Matrix()
+    output_error: any
     activation: Matrix | Tensor[] = new Matrix()
     activationFunction: IActivation
     useGpu: boolean = false;
     gpuInstance: GPU = new GPU()
     shape: number[] = []
+    prevLayerShape: number[] = []
     type: string = ""
+
+    ff_kernel: any
+    act_kernel: any
+    bp_error_kernel: any
+    bp_error_weight_kernel: any
 
     setGpuInstance(gpuIns: GPU) {
         this.gpuInstance = gpuIns;
@@ -29,9 +35,13 @@ export default class Layer {
             activation: this.activationFunction ? this.activationFunction.name : "NO ACTIVATION"
         }
     }
+
     buildLayer(prevLayerShape: number[]) {}
-    feedForward(input: Layer | Matrix | Tensor[], isInTraining: boolean) {}
-    backPropagation(prev_layer: Layer, next_layer: Layer | Matrix | Tensor[]) {}
+    feedForward(input: Layer | Matrix | Tensor[], isInTraining: boolean, gpu: boolean = false) {}
+    buildFFKernels(batch_size: number) {}
+    buildBPKernels(size: number) {}
+    backPropagation(prev_layer: Layer, next_layer: Layer | Matrix | Tensor[], gpu: boolean = false) {}
+    calculate_errors(error: any, next_layer: Layer | Matrix) {}
     updateWeights(l_rate: number) {}
     toSavedModel(): SavedLayer {return}
     fromSavedModel(data: SavedLayer) {}

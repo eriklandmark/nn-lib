@@ -1,5 +1,4 @@
 import Dataset, {Example} from "./dataset";
-import OutputLayer from "./lib/layers/output_layer";
 import Layer from "./lib/layers/layer";
 import * as fs from "fs";
 import Matrix from "./matrix";
@@ -9,6 +8,8 @@ import ArrayHelper from "./helpers/array_helper";
 import {ILoss} from "./lib/losses/losses";
 import Tensor from "./tensor";
 import {LayerHelper} from "./lib/layers/layer_helper";
+import Helper from "./helpers/helper";
+import OutputLayer from "./lib/layers/output_layer";
 
 export interface SavedLayer {
     weights?: Float32Array[]
@@ -36,19 +37,20 @@ export default class Model {
         this.gpuInstance = new GPU()
     }
 
-    public isGpuAvailable():boolean {
+    public isGpuAvailable(): boolean {
         return GPU.isGPUSupported
     }
 
     public build(inputShape: number[], lossFunction: ILoss, verbose = true) {
         this.input_shape = inputShape
-        this.layers[0].buildLayer(inputShape)
-        this.layers[0].useGpu = this.USE_GPU
         this.layers[0].setGpuInstance(this.gpuInstance)
+        this.layers[0].useGpu = this.USE_GPU
+        this.layers[0].buildLayer(inputShape)
+
         for (let i = 1; i < this.layers.length; i++) {
-            this.layers[i].buildLayer(this.layers[i - 1].shape)
-            this.layers[i].useGpu = this.USE_GPU
             this.layers[i].setGpuInstance(this.gpuInstance)
+            this.layers[i].useGpu = this.USE_GPU
+            this.layers[i].buildLayer(this.layers[i - 1].shape)
         }
 
         const lastLayer = this.layers[this.layers.length - 1]
@@ -68,7 +70,7 @@ export default class Model {
 
     public summary() {
         if (this.isBuilt) {
-            let input = {type: "input", shape:this.input_shape, activation:"NO ACTIVATION"}
+            let input = {type: "input", shape: this.input_shape, activation: "NO ACTIVATION"}
             let layer_info = this.layers.map((layer) => layer.getLayerInfo())
             const sum = (acc: number, val: any) => acc + val
             let total_neurons = layer_info.map((info) => info.shape).reduce((acc, val) => {
@@ -82,22 +84,46 @@ export default class Model {
     }
 
     train_on_batch(examples: Matrix | Tensor[], labels: Matrix): number {
-        this.layers[0].feedForward(examples, true)
-        for (let i = 1; i < this.layers.length; i++) {
-            this.layers[i].feedForward(this.layers[i - 1], true)
-        }
+        if (this.USE_GPU) {
+            let result: any = (<Matrix>examples).toNumberArray()
+            let batch_size: number = (<Matrix>examples).dim().r
+            for (let i = 0; i < this.layers.length; i++) {
+                this.layers[i].buildFFKernels(batch_size)
+                result = this.layers[i].feedForward(result, true, true)
+            }
 
-        (<OutputLayer>this.layers[this.layers.length - 1]).backPropagationOutputLayer(labels, this.layers[this.layers.length - 2])
-        for (let i = this.layers.length - 2; i > 0; i--) {
-            this.layers[i].backPropagation(this.layers[i + 1], this.layers[i - 1])
-        }
-        this.layers[0].backPropagation(this.layers[1], examples)
+            //@ts-ignore
+            this.layers[this.layers.length - 1].backPropagationOutputLayer(labels, this.layers[this.layers.length - 2])
+            this.layers[this.layers.length - 1].output_error = (<Matrix>(<OutputLayer>this.layers[this.layers.length - 1]).output_error).toNumberArray()
+            for (let i = this.layers.length - 2; i >= 0; i--) {
+                this.layers[i].buildBPKernels(this.layers[i + 1].weights.dim().c)
+                let input: Matrix | Layer = i == 0 ? <Matrix>examples : this.layers[i - 1]
+                this.layers[i].backPropagation(this.layers[i + 1], input, true)
+            }
 
-        for (let layer of this.layers) {
-            layer.updateWeights(this.learning_rate)
-        }
+            for (let layer of this.layers) {
+                layer.updateWeights(this.learning_rate)
+            }
 
-        return (<OutputLayer>this.layers[this.layers.length - 1]).loss
+            return (<OutputLayer>this.layers[this.layers.length - 1]).loss
+        } else {
+            this.layers[0].feedForward(examples, true)
+            for (let i = 1; i < this.layers.length; i++) {
+                this.layers[i].feedForward(this.layers[i - 1], true, false)
+            }
+
+            (<OutputLayer>this.layers[this.layers.length - 1]).backPropagationOutputLayer(labels, this.layers[this.layers.length - 2])
+            for (let i = this.layers.length - 2; i > 0; i--) {
+                this.layers[i].backPropagation(this.layers[i + 1], this.layers[i - 1])
+            }
+            this.layers[0].backPropagation(this.layers[1], examples)
+
+            for (let layer of this.layers) {
+                layer.updateWeights(this.learning_rate)
+            }
+
+            return (<OutputLayer>this.layers[this.layers.length - 1]).loss
+        }
     }
 
     public async train(data: Example[] | Dataset, epochs: number, learning_rate: number, shuffle: boolean = false, verbose: boolean = true) {
@@ -144,18 +170,19 @@ export default class Model {
 
                         let examples: Matrix | Tensor[]
                         let error: number = 0
-                        let exampleData = <Vector[] | Tensor[]> batch.map((ex) => ex.data)
+                        let exampleData = <Vector[] | Tensor[]>batch.map((ex) => ex.data)
                         const labels = new Matrix(batch.map((ex) => ex.label)).transpose()
                         if (data.DATA_STRUCTURE == Vector) {
-                            examples = new Matrix(batch.map((ex) => <Vector> ex.data)).transpose()
-                            error = this.train_on_batch(examples, labels);
+                            examples = new Matrix(batch.map((ex) => <Vector>ex.data)).transpose()
                         } else if (data.DATA_STRUCTURE == Tensor) {
-                            examples = <Tensor[]> exampleData
+                            examples = <Tensor[]>exampleData
                         }
 
-                        error = this.train_on_batch(examples, labels);
+                        const seconds = await Helper.timeit(() => {
+                            error = this.train_on_batch(examples, labels);
+                        }, false)
 
-                        console.log("Error for batch: " + batch_id + " =", error)
+                        console.log("Error for batch: " + batch_id + " =", error, "| Time:", seconds, "seconds")
                     }
 
                 }
@@ -164,9 +191,9 @@ export default class Model {
             console.log("Done..")
             const duration = Math.floor((Date.now() - startTime) / 1000)
             console.log("Duration: " + duration + " seconds")
-        }else {
-            let exampleData = <Vector[] | Tensor[]> data.map((ex) => ex.data)
-            let examples = exampleData[0] instanceof Vector ? new Matrix(<Vector[]> exampleData) : <Tensor[]> exampleData
+        } else {
+            let exampleData = <Vector[] | Tensor[]>data.map((ex) => ex.data)
+            let examples = exampleData[0] instanceof Vector ? new Matrix(<Vector[]>exampleData) : <Tensor[]>exampleData
             let labels = new Matrix(data.map((ex) => ex.label)).transpose()
 
             for (let epoch = 0; epoch < epochs; epoch++) {
@@ -183,13 +210,13 @@ export default class Model {
         if (data instanceof Vector) {
             exampleMatrix = new Matrix([data]).transpose()
         } else {
-            exampleMatrix = [<Tensor> data]
+            exampleMatrix = [<Tensor>data]
         }
         this.layers[0].feedForward(exampleMatrix, false)
         for (let i = 1; i < this.layers.length; i++) {
             this.layers[i].feedForward(this.layers[i - 1], false)
         }
-        return <Matrix> this.layers[this.layers.length - 1].activation
+        return <Matrix>this.layers[this.layers.length - 1].activation
     }
 
     save(path: string) {

@@ -1,5 +1,5 @@
 import IActivation from "./activations";
-import {KernelFunction} from "gpu.js";
+import {GPUFunction, KernelFunction, ThreadKernelVariable} from "gpu.js";
 import Matrix from "../../matrix";
 
 export default class Sigmoid implements IActivation {
@@ -8,13 +8,13 @@ export default class Sigmoid implements IActivation {
 
     normal_gpu(): KernelFunction {
         return function actv(a) {
-            return (1 / (1 + Math.exp(-a)))
+            return (1 / (1 + Math.exp(-a[this.thread.y][this.thread.x])))
         }
     }
 
-    derivative_gpu(): KernelFunction {
-        return function actv(a) {
-            return (1 / (1 + Math.exp(-a)))
+    derivative_gpu(): GPUFunction<ThreadKernelVariable[]> {
+        return function actv_der(a: number) {
+            return a * (1 - a)
         }
     }
 

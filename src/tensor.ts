@@ -57,6 +57,10 @@ export default class Tensor {
         }))
     }
 
+    public toNumberArray(): number[][] {
+        return this.tensor.map((array) => array.map((floatArray) => [].slice.call(floatArray)))
+    }
+
     public iterate(func: Function): void {
         for (let i: number = 0; i < this.dim().r; i++) {
             for (let j: number = 0; j < this.dim().c; j++) {

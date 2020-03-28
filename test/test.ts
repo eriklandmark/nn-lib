@@ -1,4 +1,238 @@
 import Tensor from "../src/tensor";
+import {GPU} from "gpu.js"
+import Sigmoid from "../src/lib/activations/sigmoid";
+import Matrix from "../src/matrix";
+import Vector from "../src/vector";
+import Helper from "../src/helpers/helper";
+
+let size = 300
+
+const a = new Matrix()
+a.createEmptyArray(size, size)
+a.populateRandom()
+
+const b = new Matrix()
+b.createEmptyArray(size, size)
+b.populateRandom()
+
+const c = new Matrix()
+c.createEmptyArray(a.dim().r, b.dim().c)
+c.populateRandom()
+
+const d = new Vector(size)
+d.populateRandom()
+
+const actv = new Sigmoid()
+
+const gpu = new GPU({mode: "cpu"});
+
+/*const filters = [
+    new Tensor([[[1], [2], [3]], [[4], [5], [6]], [[7], [8], [9]]]),
+    new Tensor([[[2], [3], [4]], [[5], [6], [7]], [[8], [9], [10]]]),
+]
+
+const images = [new Tensor([[[9, 54, 113], [139, 86, 118], [8,5,1]]]),
+    new Tensor([[[1], [7], [24], [1]], [[113], [1], [23], [88]], [[2], [25], [62], [7]]])]*/
+const channel_first = true
+
+const channels = 3
+const f_size = 5
+const filters = []
+/*filters.forEach((filter: Tensor) => {
+    filter.createEmptyArray(f_size, f_size, channels);
+    filter.populateRandom()
+})*/
+
+for (let i = 0; i < 3; i++) {
+    const t = new Tensor()
+    t.createEmptyArray(f_size, f_size, channels);
+    t.populateRandom()
+    filters.push(t)
+}
+filters.forEach((filter) => console.log(filter.toString()))
+
+function gen(size: number) {
+    const images = new Array(100).fill(new Tensor())
+    images.forEach((image: Tensor) => {
+        if (channel_first) {
+            image.createEmptyArray(channels, size, size)
+        } else {
+            image.createEmptyArray(size, size, channels)
+        }
+        image.populateRandom()
+    })
+
+    return images
+}
+
+function conv(image: Tensor, patch_height, patch_width) {
+    let patch = new Tensor();
+    patch.createEmptyArray(filters.length, patch_height, patch_width)
+    for (let f = 0; f < filters.length; f++) {
+        for (let r = 0; r < patch_height; r++) {
+            for (let c = 0; c < patch_width; c++) {
+                let val: number = 0
+                for (let c_f_c = 0; c_f_c < channels; c_f_c++) {
+                    for (let c_f_h = 0; c_f_h < f_size; c_f_h++) {
+                        for (let c_f_w = 0; c_f_w < f_size; c_f_w++) {
+                            if (channel_first) {
+                                val += image.get(c_f_c, r + c_f_h, c + c_f_w) * filters[f].get(c_f_h, c_f_w, c_f_c)
+                            } else {
+                                val += image.get(r + c_f_h, c + c_f_w, c_f_c) * filters[f].get(c_f_h, c_f_w, c_f_c)
+                            }
+                        }
+                    }
+                }
+                patch.set(f, r, c, actv.normal(val))
+            }
+        }
+    }
+    return patch
+}
+
+function buildKernel() {
+    return gpu.createKernel(function (image, filter, ch_first) {
+        let val: number = 0
+        for (let c_f_c = 0; c_f_c < this.constants.channels; c_f_c++) {
+            for (let c_f_h = 0; c_f_h < this.constants.filter_height; c_f_h++) {
+                for (let c_f_w = 0; c_f_w < this.constants.filter_width; c_f_w++) {
+                    if (ch_first) {
+                        val += image[c_f_c][this.thread.y + c_f_h][this.thread.x + c_f_w] * filter[c_f_h][c_f_w][c_f_c]
+                    } else {
+                        val += image[this.thread.y + c_f_h][this.thread.x + c_f_w][c_f_c] * filter[c_f_h][c_f_w][c_f_c]
+                    }
+                }
+            }
+        }
+        return val;
+    }).setConstants({
+        channels: channels,//channel_first? image.dim().r: image.dim().c,
+        filter_height: f_size,
+        filter_width: f_size,
+    }).setPrecision("single")
+}
+
+
+const filterArray = filters.map((fil) => fil.toNumberArray())
+
+let results = []
+
+async function test() {
+    for (let size = 10; size < 200; size += 10) {
+        let res = {x: size, c_y: 0, g_y: 0}
+        const images = gen(size)
+        const imageArray = images.map((im: Tensor) => im.toNumberArray())
+        const patch_width = ((size) - f_size + 1)
+        const patch_height = ((size) - f_size + 1)
+        const bp = buildKernel()
+        bp.setOutput([patch_width, patch_height])
+        bp.immutable = true
+        const act = gpu.createKernel(actv.normal_gpu()).setOutput([patch_width, patch_height])
+        act.immutable = true;
+        let gpu_images = []
+        let cpu_images = []
+
+        res.g_y = await Helper.timeit(() => {
+            gpu_images = imageArray.map((image) => {
+                return filterArray.map((filter) => {return act(bp(image, filter, channel_first))})
+            })
+        }, false)
+
+        res.c_y = await Helper.timeit(() => {
+            cpu_images = images.map((image) => conv(image, patch_height, patch_width))}, false)
+
+        if (Math.abs(gpu_images[0][1][2][0] - cpu_images[0].get(1,2,0)) > 1000) {
+            console.log("heheh")
+        }
+        //console.log(cpu_images[0].tensor)
+        //console.log(gpu_images[0])
+        console.log(res)
+        results.push(res)
+    }
+}
+
+let result = [
+    { x: 10, c_y: 0.028, g_y: 0.457 },
+    { x: 20, c_y: 0.043, g_y: 0.429 },
+    { x: 30, c_y: 0.442, g_y: 0.45 },
+    { x: 40, c_y: 0.803, g_y: 0.454 },
+    { x: 50, c_y: 1.312, g_y: 0.536 },
+    { x: 60, c_y: 1.912, g_y: 0.59 },
+    { x: 70, c_y: 2.67, g_y: 0.726 },
+    { x: 80, c_y: 3.52, g_y: 0.742 },
+    { x: 90, c_y: 4.497, g_y: 0.814 },
+    { x: 100, c_y: 5.628, g_y: 0.725 },
+    { x: 110, c_y: 6.852, g_y: 0.869 },
+    { x: 120, c_y: 8.227, g_y: 0.812 },
+    { x: 130, c_y: 9.66, g_y: 0.968 },
+    { x: 140, c_y: 11.361, g_y: 0.884 },
+    { x: 150, c_y: 12.968, g_y: 1.003 },
+    { x: 160, c_y: 14.787, g_y: 1.048 },
+    { x: 170, c_y: 16.813, g_y: 1.164 },
+    { x: 180, c_y: 18.904, g_y: 1.099 },
+    { x: 190, c_y: 21.146, g_y: 1.255 },
+    { x: 200, c_y: 23.355, g_y: 1.297 },
+    { x: 210, c_y: 25.885, g_y: 1.273 },
+    { x: 220, c_y: 28.632, g_y: 1.281 },
+    { x: 230, c_y: 31.259, g_y: 1.37 },
+    { x: 240, c_y: 34.154, g_y: 1.386 },
+    { x: 250, c_y: 37.138, g_y: 1.533 },
+    { x: 260, c_y: 40.44, g_y: 1.619 },
+    { x: 270, c_y: 43.626, g_y: 1.732 },
+    { x: 280, c_y: 47.167, g_y: 1.83 },
+    { x: 290, c_y: 50.617, g_y: 1.924 },
+    { x: 300, c_y: 54.558, g_y: 1.952 },
+    { x: 310, c_y: 58.32, g_y: 2.079 },
+    { x: 320, c_y: 62.461, g_y: 2.123 },
+    { x: 330, c_y: 66.31, g_y: 2.228 },
+    { x: 340, c_y: 70.925, g_y: 2.311 },
+    { x: 350, c_y: 75.062, g_y: 2.383 },
+    { x: 360, c_y: 80.01, g_y: 2.547 },
+    { x: 370, c_y: 84.019, g_y: 2.522 },
+    { x: 380, c_y: 89.729, g_y: 2.743 },
+    { x: 390, c_y: 94.558, g_y: 2.799 },
+    { x: 400, c_y: 99.558, g_y: 2.93 },
+]
+
+async function msa() {
+    const a_f = (x: number) => x**2
+    const b_f = (x: number) => x
+
+    const a_vector = new Vector(results.map((res: any) => a_f(res.x)))
+    const b_vector = new Vector(results.map((res: any) => b_f(res.x)))
+
+    const y = new Vector(results.map((res) => res.g_y))
+
+    const A = new Matrix([a_vector, b_vector])
+
+    const VL = <Matrix> A.transpose().mm(A)
+    const HL = A.transpose().mm(y)
+
+    let xV = VL.inv()!.mm(HL)
+    console.log(xV.toString())
+}
+
+async function run() {
+    await test()
+    //await msa()
+}
+
+run()
+
+
+
+//console.log(xV.toString())
+
+
+
+
+/*
+import * as testAddon from "../build/Release/matrix_native.node";
+
+let arr = new Float32Array(1)
+arr[0] = 5
+
+console.log(testAddon.mm([arr]))
 
 /*let dataset = new Dataset();
 
@@ -7,6 +241,7 @@ dataset.loadMnistTrain("./dataset/mnist", 1, false)
 console.log(dataset.getBatch(0)[0].data.toString())
 */
 
+/*
 const t = new Tensor([[[1], [7], [2], [1]], [[11], [1], [23], [8]], [[2], [2], [2], [7]]])
 const filters = [
     new Tensor([[[1], [1]], [[0], [1]]]),

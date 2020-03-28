@@ -4,7 +4,6 @@
       "target_name": "matrix_native",
       "sources": [
         "./src/bindings/matrix_native.cpp"
-        "./src/bindings/matrix_native.h"
       ],
      'include_dirs': [
          "<!@(node -p \"require('node-addon-api').include\")"

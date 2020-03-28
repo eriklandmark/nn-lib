@@ -7,29 +7,32 @@ import Softmax from "../src/lib/activations/softmax";
 import MeanSquaredError from "../src/lib/losses/mean_squared_error";
 import ConvolutionLayer from "../src/lib/layers/conv_layer";
 import FlattenLayer from "../src/lib/layers/flatten_layer";
+import DropoutLayer from "../src/lib/layers/dropout_layer";
 
 let dataset = new Dataset();
 
-dataset.BATCH_SIZE = 32
-dataset.loadMnistTrain("./dataset/mnist", 10000, false)
+dataset.BATCH_SIZE = 25
+dataset.loadMnistTrain("./dataset/mnist", 200, false)
 
 let layers = [
-    new ConvolutionLayer(4, [4,4], new Sigmoid()),
-    new ConvolutionLayer(5, [5,5], new Sigmoid()),
+    new ConvolutionLayer(4, [4,4], false, new Sigmoid()),
+    new ConvolutionLayer(5, [5,5], false, new Sigmoid()),
     new FlattenLayer(),
-    new DenseLayer(1000, new Sigmoid()),
-    new DenseLayer(500, new Sigmoid()),
+    //new DenseLayer(500, new Sigmoid()),
+    new DenseLayer(250, new Sigmoid()),
+    //new DropoutLayer(0.1),
+    new DenseLayer(100, new Sigmoid()),
     new OutputLayer(10, new Softmax())
 ]
 
 let model = new Model(layers)
 model.USE_GPU = false
 
-model.build([28, 28, 3], new MeanSquaredError())
+model.build([28,28,3], new MeanSquaredError())
 model.summary()
 
 async function run() {
-    await model.train(dataset, 10, 0.0005)
+    await model.train(dataset, 150, 0.00005)
     console.log("Done")
     model.save("./nn.json")
     let ex = dataset.getBatch(0)[0]

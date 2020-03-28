@@ -1,5 +1,5 @@
 import Matrix from "../../matrix";
-import {KernelFunction} from "gpu.js";
+import {GPUFunction, KernelFunction, KernelVariable, ThreadKernelVariable} from "gpu.js";
 import Sigmoid from "./sigmoid";
 import ReLu from "./relu";
 import Softmax from "./softmax";
@@ -9,7 +9,7 @@ export interface IActivation {
     normal(input: Matrix | number): Matrix | number
     derivative(input: Matrix | number): Matrix | number
     normal_gpu(): KernelFunction
-    derivative_gpu(): KernelFunction
+    derivative_gpu(): GPUFunction<ThreadKernelVariable[]>
 }
 
 export default class Activation {
