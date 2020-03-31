@@ -12,7 +12,7 @@ import ReLu from "../src/lib/activations/relu";
 
 let dataset = new Dataset();
 
-dataset.BATCH_SIZE = 24
+dataset.BATCH_SIZE = 25
 dataset.loadMnistTrain("./dataset/mnist-fashion", 200, false)
 
 let layers = [
