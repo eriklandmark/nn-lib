@@ -36,7 +36,7 @@ export default class DenseLayer extends Layer {
         this.activation = new Matrix()
     }
 
-    buildFFKernels(batch_size) {
+    buildFFKernels(batch_size: number) {
         const output_shape = [this.weights.dim().c, batch_size]
         this.ff_kernel = this.gpuInstance.createKernel(function (a, w, b) {
             let sum = 0;

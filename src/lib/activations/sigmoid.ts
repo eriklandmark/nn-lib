@@ -28,7 +28,6 @@ export default class Sigmoid implements IActivation {
         } else {
             return 1 / (1 + Math.exp(-input))
         }
-
     }
 
     derivative(input: Matrix | number): Matrix | number {
