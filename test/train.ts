@@ -12,7 +12,7 @@ import ReLu from "../src/lib/activations/relu";
 
 let dataset = new Dataset();
 
-dataset.BATCH_SIZE = 50
+dataset.BATCH_SIZE = 24
 dataset.loadMnistTrain("./dataset/mnist-fashion", 200, false)
 
 let layers = [
@@ -32,7 +32,7 @@ model.build([96,96,3], new MeanSquaredError())
 model.summary()
 
 async function run() {
-    await model.train(dataset, 150, 0.00005)
+    await model.train(dataset, 10, 0.01)
     console.log("Done")
     model.save("./nn.json")
     let ex = dataset.getBatch(0)[0]
