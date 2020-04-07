@@ -4,6 +4,7 @@
   "description": "A minimal and very lightweight neural network library.",
   "main": "dist/main.js",
   "scripts": {
+    "system-check": "ts-node-dev test/system_check.ts",
     "test": "ts-node-dev test/test.ts",
     "train": "ts-node-dev test/train.ts",
     "predict": "ts-node-dev test/predict.ts",

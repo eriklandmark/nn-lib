@@ -26,8 +26,7 @@ d.populateRandom()
 
 const actv = new Sigmoid()
 
-const gpu = new GPU({mode: "cpu"});
-
+const gpu = new GPU({mode: "gpu"});
 /*const filters = [
     new Tensor([[[1], [2], [3]], [[4], [5], [6]], [[7], [8], [9]]]),
     new Tensor([[[2], [3], [4]], [[5], [6], [7]], [[8], [9], [10]]]),
