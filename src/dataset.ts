@@ -64,15 +64,18 @@ export default class Dataset {
     private loadMnist(folderPath: string, imageFileName: string, labelFileName: string, maxExamples: number, vectorize: boolean) {
         const trainFileBuffer = fs.readFileSync(path.join(folderPath + "/" + imageFileName));
         const labelFileBuffer = fs.readFileSync(path.join(folderPath + "/" + labelFileName));
-        let size = folderPath == "mnist"? 28 : 96
 
         for (let imageIndex = 0; imageIndex < maxExamples; imageIndex++) {
             const image: Tensor = new Tensor()
+            const size = 28
             image.createEmptyArray(size, size, vectorize? 1: 3)
 
             for (let x = 0; x < size; x++) {
                 for (let y = 0; y < size; y++) {
                     const val = trainFileBuffer[(imageIndex * size * size) + (x + (y * size)) + 15]
+                    if (isNaN(val)) {
+                        console.log("Failes", val)
+                    }
                     image.set(y, x, 0, val)
                     if (!vectorize) {
                         image.set(y, x, 1, val)
