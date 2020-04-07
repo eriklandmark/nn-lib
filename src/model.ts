@@ -46,6 +46,11 @@ export default class Model {
             throw "Last layer must be an OutputLayer!..."
         }
 
+        if(!this.isGpuAvailable()) {
+            console.error("GPU is not supported.. falling back on CPU.")
+            this.USE_GPU = false
+        }
+
         this.input_shape = inputShape
         this.layers[0].setGpuInstance(this.gpuInstance)
         this.layers[0].useGpu = this.USE_GPU
