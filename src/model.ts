@@ -42,6 +42,10 @@ export default class Model {
     }
 
     public build(inputShape: number[], lossFunction: ILoss, verbose = true) {
+        if (!(this.layers[this.layers.length - 1] instanceof OutputLayer)) {
+            throw "Last layer must be an OutputLayer!..."
+        }
+
         this.input_shape = inputShape
         this.layers[0].setGpuInstance(this.gpuInstance)
         this.layers[0].useGpu = this.USE_GPU
@@ -50,15 +54,10 @@ export default class Model {
         for (let i = 1; i < this.layers.length; i++) {
             this.layers[i].setGpuInstance(this.gpuInstance)
             this.layers[i].useGpu = this.USE_GPU
+            if (i == this.layers.length - 1) {
+                (<OutputLayer>this.layers[i]).lossFunction = lossFunction
+            }
             this.layers[i].buildLayer(this.layers[i - 1].shape)
-        }
-
-        const lastLayer = this.layers[this.layers.length - 1]
-
-        if (lastLayer instanceof OutputLayer) {
-            lastLayer.lossFunction = lossFunction
-        } else {
-            throw "Last layer must be an OutputLayer!..."
         }
 
         if (verbose) {

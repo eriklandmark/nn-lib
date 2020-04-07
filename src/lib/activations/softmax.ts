@@ -11,8 +11,20 @@ export default class Softmax implements IActivation{
         return exp.div(exp.sum(1, true))
     }
 
-    derivative(input: Matrix): Matrix {
-        return input
+    derivative(input: Matrix | number): Matrix | number {
+        if (input instanceof Matrix) {
+            const m = input.copy()
+            m.iterate((i: number, j: number) => {
+                if (i == j) {
+                    m.set(i, j, input.get(i, j) * (1 - input.get(i, j)))
+                } else {
+                    m.set(i, j, -(input.get(i, j)*input.get(i,j)))
+                }
+            });
+            return m
+        } else {
+            return input * (1 - input)
+        }
     }
 
     normal_gpu(): KernelFunction {
@@ -26,8 +38,8 @@ export default class Softmax implements IActivation{
     }
 
     derivative_gpu(): GPUFunction<ThreadKernelVariable[]> {
-        return function actv_der(a) {
-            return (1 / (1 + Math.exp(-a)))
+        return function actv_der(a: number) {
+            return a * (1 - a)
         }
     }
 }

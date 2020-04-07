@@ -9,30 +9,31 @@ import ConvolutionLayer from "../src/lib/layers/conv_layer";
 import FlattenLayer from "../src/lib/layers/flatten_layer";
 import DropoutLayer from "../src/lib/layers/dropout_layer";
 import ReLu from "../src/lib/activations/relu";
+import CrossEntropy from "../src/lib/losses/cross_entropy";
 
 let dataset = new Dataset();
 
-dataset.BATCH_SIZE = 25
-dataset.loadMnistTrain("./dataset/mnist-fashion", 200, false)
+dataset.BATCH_SIZE = 1000
+dataset.loadMnistTrain("./dataset/mnist-fashion", 10000, true)
 
 let layers = [
-    new ConvolutionLayer(4, [4,4], false, new ReLu()),
-    new ConvolutionLayer(4, [5,5], false, new ReLu()),
-    new FlattenLayer(),
-    //new DenseLayer(500, new Sigmoid()),
-    new DenseLayer(256, new Sigmoid()),
+    //new ConvolutionLayer(4, [4,4], false, new ReLu()),
+    //new ConvolutionLayer(4, [5,5], false, new ReLu()),
+    //new FlattenLayer(),
+    new DenseLayer(128, new Sigmoid()),
+    new DenseLayer(64, new Sigmoid()),
     //new DropoutLayer(0.1),
     new OutputLayer(10, new Softmax())
 ]
 
 let model = new Model(layers)
-model.USE_GPU = false
+model.USE_GPU = true
 
-model.build([96,96,3], new MeanSquaredError())
+model.build([28*28], new CrossEntropy())
 model.summary()
 
 async function run() {
-    await model.train(dataset, 10, 0.01)
+    await model.train(dataset, 40, 0.001)
     console.log("Done")
     model.save("./nn.json")
     let ex = dataset.getBatch(0)[0]

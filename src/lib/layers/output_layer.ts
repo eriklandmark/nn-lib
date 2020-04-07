@@ -3,16 +3,17 @@ import Matrix from "../../matrix";
 import DenseLayer from "./dense_layer";
 import Activation, {IActivation} from "../activations/activations";
 import Losses, {ILoss} from "../losses/losses";
-import MeanSquaredError from "../losses/mean_squared_error";
 import {SavedLayer} from "../../model";
 import Vector from "../../vector";
 import Sigmoid from "../activations/sigmoid";
+import Gradients, {IGradient} from "../losses/gradients";
 
 export default class OutputLayer extends DenseLayer {
 
     loss: number = 0;
     layerSize: number = 0;
-    lossFunction: ILoss = new MeanSquaredError()
+    lossFunction: ILoss
+    gradientFunction: IGradient
 
     constructor(layerSize: number = 1, activation: IActivation = new Sigmoid()) {
         super(layerSize, activation)
@@ -20,9 +21,17 @@ export default class OutputLayer extends DenseLayer {
         this.type = "output"
     }
 
+    buildLayer(prevLayerShape: number[]) {
+        super.buildLayer(prevLayerShape);
+        this.gradientFunction = Gradients.get_gradient(this.activationFunction, this.lossFunction)
+    }
+
     public backPropagationOutputLayer(labels: Matrix, next_layer: Layer) {
         this.loss = <number> labels.mul(-1).mul((<Matrix> this.activation).log()).sum()
-        const gradient = <Matrix> this.lossFunction.derivative((<Matrix> this.activation), labels)
+       //console.log(this.activation.toString(10, 6))
+        //console.log(labels.toString(10, 6))
+        const gradient = this.gradientFunction((<Matrix> this.activation), labels)
+        //console.log(gradient.toString(10,6))
         this.errorBias = gradient
         this.output_error = gradient
 

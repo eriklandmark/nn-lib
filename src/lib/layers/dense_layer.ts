@@ -105,10 +105,12 @@ export default class DenseLayer extends Layer {
                 act = <Matrix>(<Layer>input).activation
             }
             const z = <Matrix>act.mm(this.weights)
+            //console.log(z.toString(10, 6))
             z.iterate((i: number, j: number) => {
                 z.set(i, j, z.get(i, j) + this.bias.get(j))
             })
             this.activation = <Matrix>this.activationFunction.normal(z)
+            //console.log(this.activation.toString())
         }
     }
 

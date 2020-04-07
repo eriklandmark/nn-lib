@@ -9,6 +9,10 @@ export default class Matrix {
         return this.matrix[i][j]
     };
     public set: Function = (i: number, j: number, n: number) => {
+        if (isNaN(n)) {
+            console.trace()
+            throw "Number is NaN..."
+        }
         this.matrix[i][j] = n;
     };
     public count: Function = () => {
@@ -42,20 +46,14 @@ export default class Matrix {
         return {r: this.matrix.length, c: this.matrix[0] ? this.matrix[0].length : 0}
     }
 
-    public toString = (max_rows: number = 10): string => {
+    public toString = (max_rows: number = 10, precision: number = 3): string => {
         if (this.matrix.length == 0) {
             return "Matrix: 0x0 []"
         } else {
-            let maxCharCount = 0;
-            this.iterate((i: number, j: number) => {
-                let val = this.get(i, j).toString()
-                if (val.length > maxCharCount) maxCharCount = val.length
-            })
-            maxCharCount = Math.min(maxCharCount, 7)
             return this.matrix.slice(0, Math.min(max_rows, this.matrix.length)).reduce((acc, i) => {
                 acc += i.slice(0, Math.min(max_rows, i.length)).reduce((s, i) => {
-                    s += " ".repeat(Math.max(maxCharCount - i.toString().length, 0))
-                    s += i.toString().substr(0, maxCharCount) + " ";
+                    s += " "//.repeat(Math.max(maxCharCount - i.toPrecision(precision).length, 1))
+                    s += this.numberToString(i, precision, true);
                     return s;
                 }, "    ")
                 acc += i.length > max_rows ? "  ... +" + (i.length - max_rows) + " elements\n" : "\n"
@@ -63,6 +61,13 @@ export default class Matrix {
             }, `Matrix: ${this.dim().r}x${this.dim().c} [\n`) + (this.matrix.length > max_rows ?
                 "    ... +" + (this.matrix.length - max_rows) + " rows \n]" : " ]")
         }
+    }
+
+    private numberToString(nr: number, precision: number = 5, autoFill: boolean = false) {
+        const expStr = nr.toExponential()
+        return (+expStr.substr(0, expStr.lastIndexOf("e"))).toPrecision(precision)
+            + expStr.substr(expStr.lastIndexOf("e")) +
+            (autoFill? " ".repeat(4-expStr.substr(expStr.lastIndexOf("e")).length) : "")
     }
 
     public static fromJsonObject(obj: any[]) {
@@ -75,12 +80,14 @@ export default class Matrix {
         return this.matrix.map((floatArray) => [].slice.call(floatArray))
     }
 
-    public copy() {
+    public copy(full: boolean = true) {
         let m = new Matrix()
         m.createEmptyArray(this.dim().r, this.dim().c)
-        m.iterate((i: number, j: number) => {
-            m.set(i, j, this.get(i, j))
-        })
+        if (full) {
+            m.iterate((i: number, j: number) => {
+                m.set(i, j, this.get(i, j))
+            })
+        }
         return m
     }
 
@@ -310,6 +317,16 @@ export default class Matrix {
                     arr.forEach((val, j) => m.set(i, j, sum))
                 });
             } else if (axis == 0) {
+                for (let j = 0; j < this.dim().c; j++) {
+                    let sum = 0;
+                    for (let i = 0; i < this.dim().r; i++) {
+                        sum += this.get(i,j)
+                    }
+                    for (let i = 0; i < this.dim().r; i++) {
+                        m.set(i,j, sum)
+                    }
+                }
+            } else if (axis == -1) {
                 const sum = m.matrix.reduce((acc, val) => {
                     acc += val.reduce((acc, val) => acc + val, 0)
                     return acc;
@@ -317,7 +334,6 @@ export default class Matrix {
                 this.iterate((i: number, j: number) => {
                     m.set(i, j, sum)
                 });
-                return m;
             } else if (axis == 2) {
                 return this.copy()
             }

@@ -4,6 +4,8 @@ import Sigmoid from "../src/lib/activations/sigmoid";
 import Matrix from "../src/matrix";
 import Vector from "../src/vector";
 import Helper from "../src/helpers/helper";
+import CrossEntropy from "../src/lib/losses/cross_entropy";
+import Softmax from "../src/lib/activations/softmax";
 
 let size = 300
 
@@ -65,25 +67,35 @@ function gen(size: number) {
     return images
 }
 
-function conv(image: Tensor, patch_height, patch_width) {
+function conv(image: Tensor, patch_height: number, patch_width: number, filts: Tensor[], channel_first = true) {
     let patch = new Tensor();
-    patch.createEmptyArray(filters.length, patch_height, patch_width)
-    for (let f = 0; f < filters.length; f++) {
+    if (channel_first) {
+        patch.createEmptyArray(filts.length, patch_height, patch_width)
+    } else {
+        patch.createEmptyArray(patch_height, patch_width, filts.length)
+    }
+
+    const chs = channel_first? image.dim().r : image.dim().d
+    for (let f = 0; f < filts.length; f++) {
         for (let r = 0; r < patch_height; r++) {
             for (let c = 0; c < patch_width; c++) {
                 let val: number = 0
-                for (let c_f_c = 0; c_f_c < channels; c_f_c++) {
-                    for (let c_f_h = 0; c_f_h < f_size; c_f_h++) {
-                        for (let c_f_w = 0; c_f_w < f_size; c_f_w++) {
+                for (let c_f_c = 0; c_f_c < chs; c_f_c++) {
+                    for (let c_f_h = 0; c_f_h < filts[f].dim().r; c_f_h++) {
+                        for (let c_f_w = 0; c_f_w < filts[f].dim().c; c_f_w++) {
                             if (channel_first) {
-                                val += image.get(c_f_c, r + c_f_h, c + c_f_w) * filters[f].get(c_f_h, c_f_w, c_f_c)
+                                val += image.get(c_f_c, r + c_f_h, c + c_f_w) * filts[f].get(c_f_h, c_f_w, c_f_c)
                             } else {
-                                val += image.get(r + c_f_h, c + c_f_w, c_f_c) * filters[f].get(c_f_h, c_f_w, c_f_c)
+                                val += image.get(r + c_f_h, c + c_f_w, c_f_c) * filts[f].get(c_f_h, c_f_w, c_f_c)
                             }
                         }
                     }
                 }
-                patch.set(f, r, c, actv.normal(val))
+                if(channel_first) {
+                    patch.set(f, r, c, val)
+                } else {
+                    patch.set(r, c, f, val)
+                }
             }
         }
     }
@@ -139,7 +151,7 @@ async function test() {
         }, false)
 
         res.c_y = await Helper.timeit(() => {
-            cpu_images = images.map((image) => conv(image, patch_height, patch_width))}, false)
+            cpu_images = images.map((image) => conv(image, patch_height, patch_width, filters))}, false)
 
         if (Math.abs(gpu_images[0][1][2][0] - cpu_images[0].get(1,2,0)) > 1000) {
             console.log("heheh")
@@ -213,15 +225,27 @@ async function msa() {
 }
 
 async function run() {
-    await test()
+    //await test()
     //await msa()
 }
 
-run()
 
+const patch_width = (4 - 3 + 1)
+const patch_height = (4 - 3 + 1)
 
+const filtr = [
+    new Tensor([[[1], [2], [3]], [[4], [5], [6]], [[7], [8], [9]]]),
+    new Tensor([[[2], [3], [4]], [[5], [6], [7]], [[8], [9], [10]]]),
+]
 
-//console.log(xV.toString())
+const images = [new Tensor([[[9, 54, 113], [139, 86, 118], [8,5,1]]]),
+    new Tensor([
+        [[1], [7], [24], [1]],
+        [[113], [1], [23], [88]],
+        [[2], [25], [62], [7]],
+        [[2], [25], [62], [7]]])]
+console.log(conv(images[1], patch_height, patch_width, filtr, false).toString())
+
 
 
 
