@@ -31,7 +31,7 @@ model.build([28,28,3], new CrossEntropy())
 model.summary()
 
 async function run() {
-    await model.train(dataset, 40, 0.001)
+    await model.train(dataset, 5, 0.00001)
     console.log("Done")
     model.save("./nn.json")
     let ex = dataset.getBatch(0)[0]

@@ -163,7 +163,7 @@ export default class Model {
                 const batch_count = Math.floor(data.size() / data.BATCH_SIZE)
 
                 for (let epoch = 0; epoch < epochs; epoch++) {
-                    console.log("Starting Epoch:", epoch)
+                    console.log("Starting Epoch:", epoch + 1, "/", epochs)
                     for (let batch_id = 0; batch_id < batch_count; batch_id++) {
                         let batch: Example[]
                         if (shuffle) {
@@ -186,9 +186,9 @@ export default class Model {
                             error = this.train_on_batch(examples, labels);
                         }, false)
 
-                        console.log("Error for batch: " + batch_id + " =", error, "| Time:", seconds, "seconds")
+                        console.log("Error for batch:", (batch_id + 1), "/", batch_count,
+                            "=", error, "| Time:", seconds, "seconds")
                     }
-
                 }
             }
 
