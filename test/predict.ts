@@ -8,7 +8,7 @@ model.load("./nn.json")
 
 const dataset = new Dataset();
 
-dataset.loadMnistTest("dataset/mnist", 10000, true);
+dataset.loadMnistTest("dataset/mnist-fashion", 10000, true);
 dataset.BATCH_SIZE = 10000
 
 let examples = dataset.getBatch(0)
@@ -19,7 +19,7 @@ let numRights = 0;
 
 
 Helper.timeit(() => {
-    for (let i = 0; i < 1/*examples.length*/; i++ ) {
+    for (let i = 0; i < examples.length; i++ ) {
         const pred = model.predict(examples[i].data)
         //console.log(pred.toString())
         const predArg = pred.argmax(0)
