@@ -15,8 +15,8 @@ let dataset = new Dataset();
 dataset.BATCH_SIZE = 50
 dataset.loadMnistTrain("./dataset/mnist-fashion", 10000, false)
 let layers = [
-    new ConvolutionLayer(8, [4,4], false, new ReLu()),
-    new ConvolutionLayer(16, [5,5], false, new ReLu()),
+    new ConvolutionLayer(8, [5,5], false, new ReLu()),
+    //new ConvolutionLayer(16, [5,5], false, new ReLu()),
     new FlattenLayer(),
     new DenseLayer(500, new Sigmoid()),
     new DenseLayer(100, new Sigmoid()),
