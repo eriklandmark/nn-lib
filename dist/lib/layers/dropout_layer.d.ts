@@ -1,7 +1,6 @@
 import Layer from "./layer";
 import Matrix from "../../matrix";
-import {SavedLayer} from "../../model";
-
+import { SavedLayer } from "../../model";
 export default class DropoutLayer extends Layer {
     rate: number;
     type: string;

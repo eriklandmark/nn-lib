@@ -20,9 +20,9 @@ var matrix_1 = __importDefault(require("../../matrix"));
 var dense_layer_1 = __importDefault(require("./dense_layer"));
 var activations_1 = __importDefault(require("../activations/activations"));
 var losses_1 = __importDefault(require("../losses/losses"));
-var mean_squared_error_1 = __importDefault(require("../losses/mean_squared_error"));
 var vector_1 = __importDefault(require("../../vector"));
 var sigmoid_1 = __importDefault(require("../activations/sigmoid"));
+var gradients_1 = __importDefault(require("../losses/gradients"));
 var OutputLayer = /** @class */ (function (_super) {
     __extends(OutputLayer, _super);
     function OutputLayer(layerSize, activation) {
@@ -31,27 +31,23 @@ var OutputLayer = /** @class */ (function (_super) {
         var _this = _super.call(this, layerSize, activation) || this;
         _this.loss = 0;
         _this.layerSize = 0;
-        _this.lossFunction = new mean_squared_error_1.default();
         _this.layerSize = layerSize;
         _this.type = "output";
         return _this;
     }
+    OutputLayer.prototype.buildLayer = function (prevLayerShape) {
+        _super.prototype.buildLayer.call(this, prevLayerShape);
+        this.gradientFunction = gradients_1.default.get_gradient(this.activationFunction, this.lossFunction);
+    };
     OutputLayer.prototype.backPropagationOutputLayer = function (labels, next_layer) {
         this.loss = labels.mul(-1).mul(this.activation.log()).sum();
-        var nextActv = next_layer.activation.transpose();
-        var gradient = this.lossFunction.derivative(this.activation, labels);
+        //console.log(this.activation.toString(10, 6))
+        //console.log(labels.toString(10, 6))
+        var gradient = this.gradientFunction(this.activation, labels);
+        //console.log(gradient.toString(10,6))
         this.errorBias = gradient;
         this.output_error = gradient;
-        if (this.useGpu) {
-            var errorWeightsKernel = this.gpuInstance.createKernel(matrix_1.default.mmGpu())
-                .setOutput([labels.dim().c, nextActv.dim().r]).setConstants({ mmLength: labels.dim().r });
-            errorWeightsKernel.setLoopMaxIterations(Math.max(this.activation.dim().r, nextActv.dim().c));
-            this.errorWeights = new matrix_1.default(errorWeightsKernel(nextActv.toNumberArray(), gradient.toNumberArray()));
-            errorWeightsKernel.destroy();
-        }
-        else {
-            this.errorWeights = next_layer.activation.transpose().mm(gradient);
-        }
+        this.errorWeights = next_layer.activation.transpose().mm(gradient);
     };
     OutputLayer.prototype.toSavedModel = function () {
         return {

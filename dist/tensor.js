@@ -4,6 +4,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 var vector_1 = __importDefault(require("./vector"));
+var matrix_1 = __importDefault(require("./matrix"));
 var Tensor = /** @class */ (function () {
     function Tensor(v) {
         var _this = this;
@@ -88,11 +89,26 @@ var Tensor = /** @class */ (function () {
             });
         }));
     };
-    Tensor.prototype.iterate = function (func) {
-        for (var i = 0; i < this.dim().r; i++) {
-            for (var j = 0; j < this.dim().c; j++) {
-                for (var k = 0; k < this.dim().d; k++) {
-                    func(i, j, k);
+    Tensor.prototype.toNumberArray = function () {
+        return this.tensor.map(function (array) { return array.map(function (floatArray) { return [].slice.call(floatArray); }); });
+    };
+    Tensor.prototype.iterate = function (func, channel_first) {
+        if (channel_first === void 0) { channel_first = false; }
+        if (channel_first) {
+            for (var k = 0; k < this.dim().d; k++) {
+                for (var i = 0; i < this.dim().r; i++) {
+                    for (var j = 0; j < this.dim().c; j++) {
+                        func(i, j, k);
+                    }
+                }
+            }
+        }
+        else {
+            for (var i = 0; i < this.dim().r; i++) {
+                for (var j = 0; j < this.dim().c; j++) {
+                    for (var k = 0; k < this.dim().d; k++) {
+                        func(i, j, k);
+                    }
                 }
             }
         }
@@ -118,14 +134,15 @@ var Tensor = /** @class */ (function () {
     Tensor.prototype.empty = function () {
         return this.dim().c == 0 || this.dim().r == 0 || this.dim().d == 0;
     };
-    Tensor.prototype.vectorize = function () {
+    Tensor.prototype.vectorize = function (channel_first) {
         var _this = this;
+        if (channel_first === void 0) { channel_first = false; }
         var v = new vector_1.default(this.count());
         var index = 0;
         this.iterate(function (i, j, k) {
             v.set(index, _this.get(i, j, k));
             index += 1;
-        });
+        }, channel_first);
         return v;
     };
     Tensor.prototype.div = function (val) {
@@ -202,6 +219,43 @@ var Tensor = /** @class */ (function () {
                 t.set(i, j, k, _this.get(i, j, k) + val);
             });
         }
+        return t;
+    };
+    Tensor.prototype.padding = function (padding_height, padding_width) {
+        var t = new Tensor();
+        t.createEmptyArray(2 * padding_height + this.dim().r, 2 * padding_width + this.dim().c, this.dim().d);
+        for (var i = 0; i < this.dim().r; i++) {
+            for (var j = 0; j < this.dim().c; j++) {
+                for (var c = 0; c < this.dim().d; c++) {
+                    t.set(i + padding_height, j + padding_width, c, this.get(i, j, c));
+                }
+            }
+        }
+        return t;
+    };
+    Tensor.prototype.im2patches = function (patch_height, patch_width, filter_height, filter_width) {
+        var cols = [];
+        for (var r = 0; r < patch_height; r++) {
+            for (var c = 0; c < patch_width; c++) {
+                var v = [];
+                for (var c_f_c = 0; c_f_c < this.dim().d; c_f_c++) {
+                    for (var c_f_h = 0; c_f_h < filter_height; c_f_h++) {
+                        for (var c_f_w = 0; c_f_w < filter_width; c_f_w++) {
+                            v.push(this.get(r + c_f_h, c + c_f_w, c_f_c));
+                        }
+                    }
+                }
+                cols.push(new vector_1.default(v));
+            }
+        }
+        return new matrix_1.default(cols);
+    };
+    Tensor.prototype.rotate180 = function () {
+        var _this = this;
+        var t = this.copy(false);
+        this.iterate(function (i, j, k) {
+            t.set(_this.dim().r - 1 - i, _this.dim().c - 1 - j, k, _this.get(i, j, k));
+        });
         return t;
     };
     return Tensor;

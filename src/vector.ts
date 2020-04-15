@@ -1,3 +1,5 @@
+import Tensor from "./tensor";
+
 export default class Vector {
     vector: Float32Array;
 
@@ -163,5 +165,22 @@ export default class Vector {
 
     public argmax() {
         return this.vector.reduce((acc: number, va: number, ind) => va > this.get(acc) ? ind : acc, 0)
+    }
+
+    public reshape(shape: number[]) {
+        if(this.size() != shape.reduce((acc, n) => acc * n, 1)) {
+            throw "Product of shape must be the same as size of vector!"
+        }
+        const t = new Tensor();
+        t.createEmptyArray(shape[0], shape[1], shape[2])
+        let [h, w, d] = shape
+
+        this.iterate((val: number, i: number) => {
+            const r = Math.floor(i / (w*d))
+            const c = Math.floor(i / (d) - (r*w))
+            const g = Math.floor(i - (c*d) - (r*w*d))
+            t.set(r,c,g, val)
+        })
+        return t
     }
 }

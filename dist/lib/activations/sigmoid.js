@@ -10,12 +10,12 @@ var Sigmoid = /** @class */ (function () {
     }
     Sigmoid.prototype.normal_gpu = function () {
         return function actv(a) {
-            return (1 / (1 + Math.exp(-a)));
+            return (1 / (1 + Math.exp(-a[this.thread.y][this.thread.x])));
         };
     };
     Sigmoid.prototype.derivative_gpu = function () {
-        return function actv(a) {
-            return (1 / (1 + Math.exp(-a)));
+        return function actv_der(a) {
+            return a * (1 - a);
         };
     };
     Sigmoid.prototype.normal = function (input) {

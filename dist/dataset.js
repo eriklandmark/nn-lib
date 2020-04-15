@@ -113,13 +113,19 @@ var Dataset = /** @class */ (function () {
         var labelFileBuffer = fs.readFileSync(path.join(folderPath + "/" + labelFileName));
         for (var imageIndex = 0; imageIndex < maxExamples; imageIndex++) {
             var image = new tensor_1.default();
-            image.createEmptyArray(28, 28, 3);
-            for (var x = 0; x < 28; x++) {
-                for (var y = 0; y < 28; y++) {
-                    var val = trainFileBuffer[(imageIndex * 28 * 28) + (x + (y * 28)) + 15];
+            var size = 28;
+            image.createEmptyArray(size, size, vectorize ? 1 : 3);
+            for (var x = 0; x < size; x++) {
+                for (var y = 0; y < size; y++) {
+                    var val = trainFileBuffer[(imageIndex * size * size) + (x + (y * size)) + 15];
+                    if (isNaN(val)) {
+                        console.log("Failes", val);
+                    }
                     image.set(y, x, 0, val);
-                    image.set(y, x, 1, val);
-                    image.set(y, x, 2, val);
+                    if (!vectorize) {
+                        image.set(y, x, 1, val);
+                        image.set(y, x, 2, val);
+                    }
                 }
             }
             var exampleData = void 0;

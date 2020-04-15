@@ -12,11 +12,11 @@ import CrossEntropy from "../src/lib/losses/cross_entropy";
 
 let dataset = new Dataset();
 
-dataset.BATCH_SIZE = 50
-dataset.loadMnistTrain("./dataset/mnist-fashion", 10000, false)
+dataset.BATCH_SIZE = 25
+dataset.loadMnistTrain("./dataset/mnist-fashion", 100, false)
 let layers = [
     new ConvolutionLayer(8, [5,5], false, new ReLu()),
-    //new ConvolutionLayer(16, [5,5], false, new ReLu()),
+    new ConvolutionLayer(16, [5,5], false, new ReLu()),
     new FlattenLayer(),
     new DenseLayer(500, new Sigmoid()),
     new DenseLayer(100, new Sigmoid()),
@@ -31,7 +31,7 @@ model.build([28,28,3], new CrossEntropy())
 model.summary()
 
 async function run() {
-    await model.train(dataset, 5, 0.00001)
+    await model.train(dataset, 40, 0.0001)
     console.log("Done")
     model.save("./nn.json")
     let ex = dataset.getBatch(0)[0]

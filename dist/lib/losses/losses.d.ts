@@ -1,9 +1,8 @@
 import Vector from "../../vector";
 import Matrix from "../../matrix";
-import {KernelFunction} from "gpu.js";
+import { KernelFunction } from "gpu.js";
 import CrossEntropy from "./cross_entropy";
 import MeanSquaredError from "./mean_squared_error";
-
 export interface ILoss {
     name: string;
     normal(input: Matrix, labels: Matrix): Matrix;

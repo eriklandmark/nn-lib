@@ -1,5 +1,9 @@
 "use strict";
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
 Object.defineProperty(exports, "__esModule", { value: true });
+var tensor_1 = __importDefault(require("./tensor"));
 var Vector = /** @class */ (function () {
     function Vector(defaultValue) {
         var _this = this;
@@ -158,6 +162,21 @@ var Vector = /** @class */ (function () {
     Vector.prototype.argmax = function () {
         var _this = this;
         return this.vector.reduce(function (acc, va, ind) { return va > _this.get(acc) ? ind : acc; }, 0);
+    };
+    Vector.prototype.reshape = function (shape) {
+        if (this.size() != shape.reduce(function (acc, n) { return acc * n; }, 1)) {
+            throw "Product of shape must be the same as size of vector!";
+        }
+        var t = new tensor_1.default();
+        t.createEmptyArray(shape[0], shape[1], shape[2]);
+        var h = shape[0], w = shape[1], d = shape[2];
+        this.iterate(function (val, i) {
+            var r = Math.floor(i / (w * d));
+            var c = Math.floor(i / (d) - (r * w));
+            var g = Math.floor(i - (c * d) - (r * w * d));
+            t.set(r, c, g, val);
+        });
+        return t;
     };
     return Vector;
 }());

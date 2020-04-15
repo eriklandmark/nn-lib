@@ -14,13 +14,13 @@ export default class FlattenLayer extends Layer {
     }
 
     feedForward(input: Layer, isInTraining: boolean) {
-        const matrix = new Matrix((<Tensor[]>input.activation).map((tensor) => tensor.vectorize()))
+        const matrix = new Matrix((<Tensor[]>input.activation).map((tensor) => tensor.vectorize(true)))
         this.activation = matrix.transpose()
     }
 
     backPropagation(prev_layer: Layer, next_layer: Layer | Matrix) {
         const dout = <Matrix> (<Matrix>prev_layer.output_error).mm(prev_layer.weights.transpose())
-        let t: Tensor[] = new Array(dout.dim().r);
+        let t: Tensor[] = new Array(prev_layer.output_error.dim().r);
 
         for(let i = 0; i < t.length; i++) {
             t[i] = new Tensor();

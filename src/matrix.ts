@@ -421,4 +421,8 @@ export default class Matrix {
             ]).mul(1 / ((this.get(0, 0) * this.get(1, 1)) - (this.get(0, 1) * this.get(1, 0))))
         }
     }
+
+    public rowVectors() {
+        return this.matrix.map((row) => new Vector(row))
+    }
 }

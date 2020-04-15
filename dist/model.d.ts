@@ -1,11 +1,10 @@
-import Dataset, {Example} from "./dataset";
+import Dataset, { Example } from "./dataset";
 import Layer from "./lib/layers/layer";
 import Matrix from "./matrix";
 import Vector from "./vector";
-import {GPU} from 'gpu.js';
-import {ILoss} from "./lib/losses/losses";
+import { GPU } from 'gpu.js';
+import { ILoss } from "./lib/losses/losses";
 import Tensor from "./tensor";
-
 export interface SavedLayer {
     weights?: Float32Array[];
     bias?: Float32Array;
@@ -23,6 +22,7 @@ export default class Model {
     learning_rate: number;
     gpuInstance: GPU;
     USE_GPU: boolean;
+    input_shape: number[];
     private isBuilt;
     constructor(layers: Layer[]);
     isGpuAvailable(): boolean;

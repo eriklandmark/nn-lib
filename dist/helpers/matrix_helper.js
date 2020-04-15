@@ -71,6 +71,21 @@ var MatrixHelper = /** @class */ (function () {
         //let zerosCount = new Vector(reducedVL.dim().r)
         //reducedVL.iterate((i,j) => {zerosCount.set(i, zerosCount.get(i) + (reducedVL.get(i,j) == 0? 1 : 0))})
     };
+    MatrixHelper.linear_least_squares_pol = function (x, y) {
+        var A = new matrix_1.default();
+        A.createEmptyArray(x.size(), 2);
+        A.matrix.forEach(function (val, index) {
+            A.set(index, 0, 1);
+            A.set(index, 1, x.get(index));
+        });
+        var VL = A.transpose().mm(A);
+        var HL = A.transpose().mm(y);
+        var xV = VL.inv().mm(HL);
+        console.log(xV.toString());
+        //const reducedVL = this.row_reduction(VL)
+        //let zerosCount = new Vector(reducedVL.dim().r)
+        //reducedVL.iterate((i,j) => {zerosCount.set(i, zerosCount.get(i) + (reducedVL.get(i,j) == 0? 1 : 0))})
+    };
     return MatrixHelper;
 }());
 exports.default = MatrixHelper;

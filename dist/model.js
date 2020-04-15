@@ -35,6 +35,13 @@ var __generator = (this && this.__generator) || function (thisArg, body) {
         if (op[0] & 5) throw op[1]; return { value: op[0] ? op[1] : void 0, done: true };
     }
 };
+var __spreadArrays = (this && this.__spreadArrays) || function () {
+    for (var s = 0, i = 0, il = arguments.length; i < il; i++) s += arguments[i].length;
+    for (var r = Array(s), k = 0, i = 0; i < il; i++)
+        for (var a = arguments[i], j = 0, jl = a.length; j < jl; j++, k++)
+            r[k] = a[j];
+    return r;
+};
 var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
@@ -47,7 +54,6 @@ var __importStar = (this && this.__importStar) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 var dataset_1 = __importDefault(require("./dataset"));
-var output_layer_1 = __importDefault(require("./lib/layers/output_layer"));
 var fs = __importStar(require("fs"));
 var matrix_1 = __importDefault(require("./matrix"));
 var vector_1 = __importDefault(require("./vector"));
@@ -55,10 +61,13 @@ var gpu_js_1 = require("gpu.js");
 var array_helper_1 = __importDefault(require("./helpers/array_helper"));
 var tensor_1 = __importDefault(require("./tensor"));
 var layer_helper_1 = require("./lib/layers/layer_helper");
+var helper_1 = __importDefault(require("./helpers/helper"));
+var output_layer_1 = __importDefault(require("./lib/layers/output_layer"));
 var Model = /** @class */ (function () {
     function Model(layers) {
         this.learning_rate = 0;
         this.USE_GPU = false;
+        this.input_shape = [];
         this.isBuilt = false;
         this.layers = layers;
         this.gpuInstance = new gpu_js_1.GPU();
@@ -68,20 +77,24 @@ var Model = /** @class */ (function () {
     };
     Model.prototype.build = function (inputShape, lossFunction, verbose) {
         if (verbose === void 0) { verbose = true; }
-        this.layers[0].buildLayer(inputShape);
-        this.layers[0].useGpu = this.USE_GPU;
-        this.layers[0].setGpuInstance(this.gpuInstance);
-        for (var i = 1; i < this.layers.length; i++) {
-            this.layers[i].buildLayer(this.layers[i - 1].shape);
-            this.layers[i].useGpu = this.USE_GPU;
-            this.layers[i].setGpuInstance(this.gpuInstance);
-        }
-        var lastLayer = this.layers[this.layers.length - 1];
-        if (lastLayer instanceof output_layer_1.default) {
-            lastLayer.lossFunction = lossFunction;
-        }
-        else {
+        if (!(this.layers[this.layers.length - 1] instanceof output_layer_1.default)) {
             throw "Last layer must be an OutputLayer!...";
+        }
+        if (!this.isGpuAvailable()) {
+            console.error("GPU is not supported.. falling back on CPU.");
+            this.USE_GPU = false;
+        }
+        this.input_shape = inputShape;
+        this.layers[0].setGpuInstance(this.gpuInstance);
+        this.layers[0].useGpu = this.USE_GPU;
+        this.layers[0].buildLayer(inputShape);
+        for (var i = 1; i < this.layers.length; i++) {
+            this.layers[i].setGpuInstance(this.gpuInstance);
+            this.layers[i].useGpu = this.USE_GPU;
+            if (i == this.layers.length - 1) {
+                this.layers[i].lossFunction = lossFunction;
+            }
+            this.layers[i].buildLayer(this.layers[i - 1].shape);
         }
         if (verbose) {
             console.log("Successfully build model!");
@@ -90,34 +103,64 @@ var Model = /** @class */ (function () {
     };
     Model.prototype.summary = function () {
         if (this.isBuilt) {
+            var input = { type: "input", shape: this.input_shape, activation: "NO ACTIVATION" };
             var layer_info = this.layers.map(function (layer) { return layer.getLayerInfo(); });
-            console.table(layer_info);
+            var sum_1 = function (acc, val) { return acc + val; };
+            var total_neurons = layer_info.map(function (info) { return info.shape; }).reduce(function (acc, val) {
+                return acc + val.reduce(sum_1, 0);
+            }, 0);
+            console.table(__spreadArrays([input], layer_info));
+            console.log("Total: neurons: ", total_neurons);
         }
         else {
             console.log("Model hasn't been built yet!..");
         }
     };
     Model.prototype.train_on_batch = function (examples, labels) {
-        this.layers[0].feedForward(examples, true);
-        for (var i = 1; i < this.layers.length; i++) {
-            this.layers[i].feedForward(this.layers[i - 1], true);
+        if (this.USE_GPU) {
+            var result = examples.toNumberArray();
+            var batch_size = examples.dim().r;
+            for (var i = 0; i < this.layers.length; i++) {
+                this.layers[i].buildFFKernels(batch_size);
+                result = this.layers[i].feedForward(result, true, true);
+            }
+            //@ts-ignore
+            this.layers[this.layers.length - 1].backPropagationOutputLayer(labels, this.layers[this.layers.length - 2]);
+            this.layers[this.layers.length - 1].output_error = this.layers[this.layers.length - 1].output_error.toNumberArray();
+            for (var i = this.layers.length - 2; i >= 0; i--) {
+                this.layers[i].buildBPKernels(this.layers[i + 1].weights.dim().c);
+                var input = i == 0 ? examples : this.layers[i - 1];
+                this.layers[i].backPropagation(this.layers[i + 1], input, true);
+            }
+            for (var _i = 0, _a = this.layers; _i < _a.length; _i++) {
+                var layer = _a[_i];
+                layer.updateWeights(this.learning_rate);
+            }
+            return this.layers[this.layers.length - 1].loss;
         }
-        this.layers[this.layers.length - 1].backPropagationOutputLayer(labels, this.layers[this.layers.length - 2]);
-        for (var i = this.layers.length - 2; i > 0; i--) {
-            this.layers[i].backPropagation(this.layers[i + 1], this.layers[i - 1]);
+        else {
+            this.layers[0].feedForward(examples, true);
+            for (var i = 1; i < this.layers.length; i++) {
+                this.layers[i].feedForward(this.layers[i - 1], true, false);
+            }
+            this.layers[this.layers.length - 1].backPropagationOutputLayer(labels, this.layers[this.layers.length - 2]);
+            for (var i = this.layers.length - 2; i > 0; i--) {
+                this.layers[i].backPropagation(this.layers[i + 1], this.layers[i - 1]);
+            }
+            this.layers[0].backPropagation(this.layers[1], examples);
+            for (var _b = 0, _c = this.layers; _b < _c.length; _b++) {
+                var layer = _c[_b];
+                layer.updateWeights(this.learning_rate);
+            }
+            return this.layers[this.layers.length - 1].loss;
         }
-        this.layers[0].backPropagation(this.layers[1], examples);
-        for (var _i = 0, _a = this.layers; _i < _a.length; _i++) {
-            var layer = _a[_i];
-            layer.updateWeights(this.learning_rate);
-        }
-        return this.layers[this.layers.length - 1].loss;
     };
     Model.prototype.train = function (data, epochs, learning_rate, shuffle, verbose) {
         if (shuffle === void 0) { shuffle = false; }
         if (verbose === void 0) { verbose = true; }
         return __awaiter(this, void 0, void 0, function () {
-            var startTime, batch_count, epoch, batch_id, batch, examples, labels, error, batch_count, epoch, batch_id, batch, examples, error, exampleData, labels, duration, exampleData, examples, labels, epoch;
+            var startTime, batch_count, epoch, batch_id, batch, examples, labels, error, batch_count, epoch, _loop_1, batch_id, duration, exampleData, examples, labels, epoch;
+            var _this = this;
             return __generator(this, function (_a) {
                 switch (_a.label) {
                     case 0:
@@ -125,7 +168,7 @@ var Model = /** @class */ (function () {
                             throw "Model hasn't been build yet!..";
                         }
                         this.learning_rate = learning_rate;
-                        if (!(data instanceof dataset_1.default)) return [3 /*break*/, 9];
+                        if (!(data instanceof dataset_1.default)) return [3 /*break*/, 14];
                         console.log("Starting training...");
                         startTime = Date.now();
                         if (!data.IS_GENERATOR) return [3 /*break*/, 7];
@@ -154,49 +197,73 @@ var Model = /** @class */ (function () {
                     case 5:
                         epoch++;
                         return [3 /*break*/, 1];
-                    case 6: return [3 /*break*/, 8];
+                    case 6: return [3 /*break*/, 13];
                     case 7:
                         batch_count = Math.floor(data.size() / data.BATCH_SIZE);
-                        for (epoch = 0; epoch < epochs; epoch++) {
-                            console.log("Starting Epoch:", epoch);
-                            for (batch_id = 0; batch_id < batch_count; batch_id++) {
-                                batch = void 0;
-                                if (shuffle) {
-                                    batch = array_helper_1.default.shuffle(data.getBatch(batch_id));
-                                }
-                                else {
-                                    batch = data.getBatch(batch_id);
-                                }
-                                examples = void 0;
-                                error = 0;
-                                exampleData = batch.map(function (ex) { return ex.data; });
-                                labels = new matrix_1.default(batch.map(function (ex) { return ex.label; })).transpose();
-                                if (data.DATA_STRUCTURE == vector_1.default) {
-                                    examples = new matrix_1.default(batch.map(function (ex) { return ex.data; })).transpose();
-                                    error = this.train_on_batch(examples, labels);
-                                }
-                                else if (data.DATA_STRUCTURE == tensor_1.default) {
-                                    examples = exampleData;
-                                }
-                                error = this.train_on_batch(examples, labels);
-                                console.log("Error for batch: " + batch_id + " =", error);
-                            }
-                        }
+                        epoch = 0;
                         _a.label = 8;
                     case 8:
+                        if (!(epoch < epochs)) return [3 /*break*/, 13];
+                        console.log("Starting Epoch:", epoch + 1, "/", epochs);
+                        _loop_1 = function (batch_id) {
+                            var batch, examples, error, exampleData, labels, seconds;
+                            return __generator(this, function (_a) {
+                                switch (_a.label) {
+                                    case 0:
+                                        batch = void 0;
+                                        if (shuffle) {
+                                            batch = array_helper_1.default.shuffle(data.getBatch(batch_id));
+                                        }
+                                        else {
+                                            batch = data.getBatch(batch_id);
+                                        }
+                                        error = 0;
+                                        exampleData = batch.map(function (ex) { return ex.data; });
+                                        labels = new matrix_1.default(batch.map(function (ex) { return ex.label; })).transpose();
+                                        if (data.DATA_STRUCTURE == vector_1.default) {
+                                            examples = new matrix_1.default(batch.map(function (ex) { return ex.data; })).transpose();
+                                        }
+                                        else if (data.DATA_STRUCTURE == tensor_1.default) {
+                                            examples = exampleData;
+                                        }
+                                        return [4 /*yield*/, helper_1.default.timeit(function () {
+                                                error = _this.train_on_batch(examples, labels);
+                                            }, false)];
+                                    case 1:
+                                        seconds = _a.sent();
+                                        console.log("Error for batch:", (batch_id + 1), "/", batch_count, "=", error, "| Time:", seconds, "seconds");
+                                        return [2 /*return*/];
+                                }
+                            });
+                        };
+                        batch_id = 0;
+                        _a.label = 9;
+                    case 9:
+                        if (!(batch_id < batch_count)) return [3 /*break*/, 12];
+                        return [5 /*yield**/, _loop_1(batch_id)];
+                    case 10:
+                        _a.sent();
+                        _a.label = 11;
+                    case 11:
+                        batch_id++;
+                        return [3 /*break*/, 9];
+                    case 12:
+                        epoch++;
+                        return [3 /*break*/, 8];
+                    case 13:
                         console.log("Done..");
                         duration = Math.floor((Date.now() - startTime) / 1000);
                         console.log("Duration: " + duration + " seconds");
-                        return [3 /*break*/, 10];
-                    case 9:
+                        return [3 /*break*/, 15];
+                    case 14:
                         exampleData = data.map(function (ex) { return ex.data; });
                         examples = exampleData[0] instanceof vector_1.default ? new matrix_1.default(exampleData) : exampleData;
                         labels = new matrix_1.default(data.map(function (ex) { return ex.label; })).transpose();
                         for (epoch = 0; epoch < epochs; epoch++) {
                             console.log(this.train_on_batch(examples, labels));
                         }
-                        _a.label = 10;
-                    case 10: return [2 /*return*/];
+                        _a.label = 15;
+                    case 15: return [2 /*return*/];
                 }
             });
         });

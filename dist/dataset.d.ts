@@ -1,7 +1,6 @@
 import Vector from "./vector";
 import Tensor from "./tensor";
 import Matrix from "./matrix";
-
 export interface Example {
     data: Vector | Matrix | Tensor;
     label: Vector;

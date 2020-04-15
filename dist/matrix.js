@@ -50,28 +50,26 @@ var Matrix = /** @class */ (function () {
             return _this.matrix[i][j];
         };
         this.set = function (i, j, n) {
+            if (isNaN(n)) {
+                console.trace();
+                throw "Number is NaN...";
+            }
             _this.matrix[i][j] = n;
         };
         this.count = function () {
             return _this.dim().c * _this.dim().r;
         };
-        this.toString = function (max_rows) {
+        this.toString = function (max_rows, precision) {
             if (max_rows === void 0) { max_rows = 10; }
+            if (precision === void 0) { precision = 3; }
             if (_this.matrix.length == 0) {
                 return "Matrix: 0x0 []";
             }
             else {
-                var maxCharCount_1 = 0;
-                _this.iterate(function (i, j) {
-                    var val = _this.get(i, j).toString();
-                    if (val.length > maxCharCount_1)
-                        maxCharCount_1 = val.length;
-                });
-                maxCharCount_1 = Math.min(maxCharCount_1, 7);
                 return _this.matrix.slice(0, Math.min(max_rows, _this.matrix.length)).reduce(function (acc, i) {
                     acc += i.slice(0, Math.min(max_rows, i.length)).reduce(function (s, i) {
-                        s += " ".repeat(Math.max(maxCharCount_1 - i.toString().length, 0));
-                        s += i.toString().substr(0, maxCharCount_1) + " ";
+                        s += " "; //.repeat(Math.max(maxCharCount - i.toPrecision(precision).length, 1))
+                        s += _this.numberToString(i, precision, true);
                         return s;
                     }, "    ");
                     acc += i.length > max_rows ? "  ... +" + (i.length - max_rows) + " elements\n" : "\n";
@@ -105,6 +103,14 @@ var Matrix = /** @class */ (function () {
     Matrix.prototype.dim = function () {
         return { r: this.matrix.length, c: this.matrix[0] ? this.matrix[0].length : 0 };
     };
+    Matrix.prototype.numberToString = function (nr, precision, autoFill) {
+        if (precision === void 0) { precision = 5; }
+        if (autoFill === void 0) { autoFill = false; }
+        var expStr = nr.toExponential();
+        return (+expStr.substr(0, expStr.lastIndexOf("e"))).toPrecision(precision)
+            + expStr.substr(expStr.lastIndexOf("e")) +
+            (autoFill ? " ".repeat(4 - expStr.substr(expStr.lastIndexOf("e")).length) : "");
+    };
     Matrix.fromJsonObject = function (obj) {
         return new Matrix(obj.map(function (row) {
             return Object.keys(row).map(function (item, index) { return row[index.toString()]; });
@@ -113,13 +119,16 @@ var Matrix = /** @class */ (function () {
     Matrix.prototype.toNumberArray = function () {
         return this.matrix.map(function (floatArray) { return [].slice.call(floatArray); });
     };
-    Matrix.prototype.copy = function () {
+    Matrix.prototype.copy = function (full) {
         var _this = this;
+        if (full === void 0) { full = true; }
         var m = new Matrix();
         m.createEmptyArray(this.dim().r, this.dim().c);
-        m.iterate(function (i, j) {
-            m.set(i, j, _this.get(i, j));
-        });
+        if (full) {
+            m.iterate(function (i, j) {
+                m.set(i, j, _this.get(i, j));
+            });
+        }
         return m;
     };
     Matrix.prototype.iterate = function (func) {
@@ -366,6 +375,17 @@ var Matrix = /** @class */ (function () {
                 });
             }
             else if (axis == 0) {
+                for (var j = 0; j < this.dim().c; j++) {
+                    var sum = 0;
+                    for (var i = 0; i < this.dim().r; i++) {
+                        sum += this.get(i, j);
+                    }
+                    for (var i = 0; i < this.dim().r; i++) {
+                        m_2.set(i, j, sum);
+                    }
+                }
+            }
+            else if (axis == -1) {
                 var sum_1 = m_2.matrix.reduce(function (acc, val) {
                     acc += val.reduce(function (acc, val) { return acc + val; }, 0);
                     return acc;
@@ -373,7 +393,6 @@ var Matrix = /** @class */ (function () {
                 this.iterate(function (i, j) {
                     m_2.set(i, j, sum_1);
                 });
-                return m_2;
             }
             else if (axis == 2) {
                 return this.copy();
@@ -470,6 +489,9 @@ var Matrix = /** @class */ (function () {
                 [-this.get(1, 0), this.get(0, 0)]
             ]).mul(1 / ((this.get(0, 0) * this.get(1, 1)) - (this.get(0, 1) * this.get(1, 0))));
         }
+    };
+    Matrix.prototype.rowVectors = function () {
+        return this.matrix.map(function (row) { return new vector_1.default(row); });
     };
     return Matrix;
 }());

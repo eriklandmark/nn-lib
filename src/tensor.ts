@@ -1,4 +1,5 @@
 import Vector from "./vector";
+import Matrix from "./matrix";
 
 export default class Tensor {
 
@@ -61,14 +62,25 @@ export default class Tensor {
         return this.tensor.map((array) => array.map((floatArray) => [].slice.call(floatArray)))
     }
 
-    public iterate(func: Function): void {
-        for (let i: number = 0; i < this.dim().r; i++) {
-            for (let j: number = 0; j < this.dim().c; j++) {
-                for (let k: number = 0; k < this.dim().d; k++) {
-                    func(i, j, k);
+    public iterate(func: Function, channel_first = false): void {
+        if (channel_first) {
+            for (let k: number = 0; k < this.dim().d; k++) {
+                for (let i: number = 0; i < this.dim().r; i++) {
+                    for (let j: number = 0; j < this.dim().c; j++) {
+                        func(i, j, k);
+                    }
+                }
+            }
+        } else {
+            for (let i: number = 0; i < this.dim().r; i++) {
+                for (let j: number = 0; j < this.dim().c; j++) {
+                    for (let k: number = 0; k < this.dim().d; k++) {
+                        func(i, j, k);
+                    }
                 }
             }
         }
+
     }
 
     public toString = (max_rows: number = 10): string => {
@@ -119,13 +131,13 @@ export default class Tensor {
         return this.dim().c == 0 || this.dim().r == 0 || this.dim().d == 0
     }
 
-    public vectorize(): Vector {
+    public vectorize(channel_first = false): Vector {
         const v = new Vector(this.count())
         let index = 0;
         this.iterate((i: number, j: number, k: number) => {
             v.set(index, this.get(i, j, k))
             index += 1
-        })
+        }, channel_first)
         return v
     }
 
@@ -198,6 +210,49 @@ export default class Tensor {
                 t.set(i, j, k, this.get(i, j, k) + val)
             });
         }
+        return t
+    }
+
+    padding(padding_height, padding_width) {
+        const t = new Tensor()
+        t.createEmptyArray(
+            2 * padding_height + this.dim().r, 2 * padding_width + this.dim().c, this.dim().d
+        )
+
+        for (let i = 0; i < this.dim().r; i++) {
+            for (let j = 0; j < this.dim().c; j++) {
+                for (let c = 0; c < this.dim().d; c++) {
+                    t.set(i + padding_height, j + padding_width, c, this.get(i,j,c))
+                }
+            }
+        }
+        return t
+    }
+
+    im2patches(patch_height: number, patch_width: number, filter_height: number, filter_width: number): Matrix {
+        const cols = []
+        for (let r = 0; r < patch_height; r++) {
+            for (let c = 0; c < patch_width; c++) {
+                const v = []
+                for (let c_f_c = 0; c_f_c < this.dim().d; c_f_c++) {
+                    for (let c_f_h = 0; c_f_h < filter_height; c_f_h++) {
+                        for (let c_f_w = 0; c_f_w < filter_width; c_f_w++) {
+                            v.push(this.get(r + c_f_h, c + c_f_w, c_f_c))
+                        }
+                    }
+                }
+                cols.push(new Vector(v))
+            }
+        }
+
+        return new Matrix(cols)
+    }
+
+    rotate180() {
+        const t = this.copy(false)
+        this.iterate((i: number, j: number, k: number) => {
+            t.set(this.dim().r - 1 - i, this.dim().c - 1 - j , k, this.get(i,j,k))
+        })
         return t
     }
 }

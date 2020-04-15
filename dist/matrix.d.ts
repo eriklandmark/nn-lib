@@ -1,6 +1,5 @@
 import Vector from "./vector";
-import {KernelFunction} from "gpu.js";
-
+import { KernelFunction } from "gpu.js";
 export default class Matrix {
     matrix: Array<Float32Array>;
     get: Function;
@@ -12,10 +11,11 @@ export default class Matrix {
         r: number;
         c: number;
     };
-    toString: (max_rows?: number) => string;
+    toString: (max_rows?: number, precision?: number) => string;
+    private numberToString;
     static fromJsonObject(obj: any[]): Matrix;
     toNumberArray(): number[][];
-    copy(): Matrix;
+    copy(full?: boolean): Matrix;
     iterate(func: Function): void;
     where(scalar: number): number[];
     populateRandom(): void;
@@ -37,4 +37,5 @@ export default class Matrix {
     transpose(): Matrix;
     argmax(i?: number, row?: boolean): number;
     inv(): Matrix;
+    rowVectors(): Vector[];
 }

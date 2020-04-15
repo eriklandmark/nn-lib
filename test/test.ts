@@ -34,7 +34,7 @@ const gpu = new GPU({mode: "gpu"});
 
 const images = [new Tensor([[[9, 54, 113], [139, 86, 118], [8,5,1]]]),
     new Tensor([[[1], [7], [24], [1]], [[113], [1], [23], [88]], [[2], [25], [62], [7]]])]*/
-const channel_first = true
+const channel_first = false
 
 const channels = 3
 const f_size = 5
@@ -50,7 +50,6 @@ for (let i = 0; i < 3; i++) {
     t.populateRandom()
     filters.push(t)
 }
-filters.forEach((filter) => console.log(filter.toString()))
 
 function gen(size: number) {
     const images = new Array(100).fill(new Tensor())
@@ -66,39 +65,46 @@ function gen(size: number) {
     return images
 }
 
-function conv(image: Tensor, patch_height: number, patch_width: number, filts: Tensor[], channel_first = true) {
-    let patch = new Tensor();
-    if (channel_first) {
-        patch.createEmptyArray(filts.length, patch_height, patch_width)
-    } else {
-        patch.createEmptyArray(patch_height, patch_width, filts.length)
-    }
+function conv(image: Tensor, patch_height: number, patch_width: number, filts: Tensor[], channel_first= false, old) {
+    if (old) {
+        const filterMatrix = new Matrix(filts.map((t) => t.vectorize(true))).transpose()
 
-    const chs = channel_first? image.dim().r : image.dim().d
-    for (let f = 0; f < filts.length; f++) {
-        for (let r = 0; r < patch_height; r++) {
-            for (let c = 0; c < patch_width; c++) {
-                let val: number = 0
-                for (let c_f_c = 0; c_f_c < chs; c_f_c++) {
-                    for (let c_f_h = 0; c_f_h < filts[f].dim().r; c_f_h++) {
-                        for (let c_f_w = 0; c_f_w < filts[f].dim().c; c_f_w++) {
-                            if (channel_first) {
-                                val += image.get(c_f_c, r + c_f_h, c + c_f_w) * filts[f].get(c_f_h, c_f_w, c_f_c)
-                            } else {
-                                val += image.get(r + c_f_h, c + c_f_w, c_f_c) * filts[f].get(c_f_h, c_f_w, c_f_c)
+        return (<Matrix> filterMatrix.mm(image.im2patches(patch_height, patch_width, filts[0].dim().r, filts[0].dim().c)))
+            .rowVectors().map((v) => v.reshape([patch_height, patch_width, 1]))
+    } else {
+        let patch = new Tensor();
+        if (channel_first) {
+            patch.createEmptyArray(filts.length, patch_height, patch_width)
+        } else {
+            patch.createEmptyArray(patch_height, patch_width, filts.length)
+        }
+
+        const chs = channel_first? image.dim().r : image.dim().d
+        for (let f = 0; f < filts.length; f++) {
+            for (let r = 0; r < patch_height; r++) {
+                for (let c = 0; c < patch_width; c++) {
+                    let val: number = 0
+                    for (let c_f_c = 0; c_f_c < chs; c_f_c++) {
+                        for (let c_f_h = 0; c_f_h < filts[f].dim().r; c_f_h++) {
+                            for (let c_f_w = 0; c_f_w < filts[f].dim().c; c_f_w++) {
+                                if (channel_first) {
+                                    val += image.get(c_f_c, r + c_f_h, c + c_f_w) * filts[f].get(c_f_h, c_f_w, c_f_c)
+                                } else {
+                                    val += image.get(r + c_f_h, c + c_f_w, c_f_c) * filts[f].get(c_f_h, c_f_w, c_f_c)
+                                }
                             }
                         }
                     }
-                }
-                if(channel_first) {
-                    patch.set(f, r, c, val)
-                } else {
-                    patch.set(r, c, f, val)
+                    if(channel_first) {
+                        patch.set(f, r, c, val)
+                    } else {
+                        patch.set(r, c, f, val)
+                    }
                 }
             }
         }
+        return patch
     }
-    return patch
 }
 
 function buildKernel() {
@@ -143,18 +149,20 @@ async function test() {
         let gpu_images = []
         let cpu_images = []
 
-        res.g_y = await Helper.timeit(() => {
+        /*res.g_y = await Helper.timeit(() => {
             gpu_images = imageArray.map((image) => {
                 return filterArray.map((filter) => {return act(bp(image, filter, channel_first))})
             })
         }, false)
-
+         */
         res.c_y = await Helper.timeit(() => {
-            cpu_images = images.map((image) => conv(image, patch_height, patch_width, filters))}, false)
+            cpu_images = images.map((image) => conv(image, patch_height, patch_width, filters, false, true))}, false)
+        /*res.g_y = await Helper.timeit(() => {
+            cpu_images = images.map((image) => conv(image, patch_height, patch_width, filters, false, false))}, false)*/
 
-        if (Math.abs(gpu_images[0][1][2][0] - cpu_images[0].get(1,2,0)) > 1000) {
+        /*if (Math.abs(gpu_images[0][1][2][0] - cpu_images[0].get(1,2,0)) > 1000) {
             console.log("heheh")
-        }
+        }*/
         //console.log(cpu_images[0].tensor)
         //console.log(gpu_images[0])
         console.log(res)
@@ -224,28 +232,48 @@ async function msa() {
 }
 
 async function run() {
-    //await test()
+    await test()
     //await msa()
 }
 
+//run()
 
-const patch_width = (4 - 3 + 1)
-const patch_height = (4 - 3 + 1)
+
+const patch_width = (4 - 2 + 1)
+const patch_height = (4 - 2 + 1)
 
 const filtr = [
-    new Tensor([[[1], [2], [3]], [[4], [5], [6]], [[7], [8], [9]]]),
-    new Tensor([[[2], [3], [4]], [[5], [6], [7]], [[8], [9], [10]]]),
+    new Tensor([[[1, 5, 9], [2, 6, 10]], [[3, 7, 11], [4, 8, 12]]]),
+    new Tensor([[[13, 17, 21], [14, 18, 22]], [[15, 19, 23], [16, 20, 24]]]),
 ]
 
 const images = [new Tensor([[[9, 54, 113], [139, 86, 118], [8,5,1]]]),
     new Tensor([
-        [[1], [7], [24], [1]],
-        [[113], [1], [23], [88]],
-        [[2], [25], [62], [7]],
-        [[2], [25], [62], [7]]])]
-console.log(conv(images[1], patch_height, patch_width, filtr, false).toString())
+        [[1, 17, 33], [2, 18, 34], [3, 19, 35], [4, 20, 36]],
+        [[5, 21, 37], [6, 22, 38], [7, 23, 39], [8, 24, 40]],
+        [[9, 25, 41], [10, 26, 42], [11, 27, 43], [12, 28, 44]],
+        [[13, 29, 45], [14, 30, 46], [15, 31, 47], [16, 32, 48]]
+    ])]
 
 
+console.log(images[1].toString())
+
+const chs = 3
+
+
+const filterMatrix = new Matrix(filtr.map((t) => t.vectorize(true))).transpose()
+
+console.log(filterMatrix.toString())
+
+const patches = (<Matrix> filterMatrix.mm(images[1].im2patches(patch_height, patch_width, filtr[0].dim().r, filtr[0].dim().c)))
+    .rowVectors().map((v) => v.reshape([patch_height, patch_width, 1]))
+
+//console.log(conv(images[1], patch_height, patch_width, filtr, false).toString())
+
+patches.forEach((t) => console.log(t.toString()))
+
+console.log(filtr[0].toString())
+console.log(filtr[0].rotate180().mul(0.1).toString())
 
 
 

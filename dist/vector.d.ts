@@ -1,4 +1,5 @@
 /// <reference types="node" />
+import Tensor from "./tensor";
 export default class Vector {
     vector: Float32Array;
     size: Function;
@@ -21,4 +22,5 @@ export default class Vector {
     sum(): number;
     mean(): number;
     argmax(): number;
+    reshape(shape: number[]): Tensor;
 }

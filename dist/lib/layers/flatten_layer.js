@@ -32,12 +32,12 @@ var FlattenLayer = /** @class */ (function (_super) {
         this.shape = [prevLayerShape.reduce(function (acc, val) { return acc * val; })];
     };
     FlattenLayer.prototype.feedForward = function (input, isInTraining) {
-        var matrix = new matrix_1.default(input.activation.map(function (tensor) { return tensor.vectorize(); }));
+        var matrix = new matrix_1.default(input.activation.map(function (tensor) { return tensor.vectorize(true); }));
         this.activation = matrix.transpose();
     };
     FlattenLayer.prototype.backPropagation = function (prev_layer, next_layer) {
         var dout = prev_layer.output_error.mm(prev_layer.weights.transpose());
-        var t = new Array(dout.dim().r);
+        var t = new Array(prev_layer.output_error.dim().r);
         for (var i = 0; i < t.length; i++) {
             t[i] = new tensor_1.default();
             t[i].createEmptyArray(this.prevShape[0], this.prevShape[1], this.prevShape[2]);
