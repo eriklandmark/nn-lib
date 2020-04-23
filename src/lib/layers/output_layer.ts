@@ -11,6 +11,7 @@ import Gradients, {IGradient} from "../losses/gradients";
 export default class OutputLayer extends DenseLayer {
 
     loss: number = 0;
+    accuracy: number = 0;
     layerSize: number = 0;
     lossFunction: ILoss
     gradientFunction: IGradient
@@ -28,13 +29,18 @@ export default class OutputLayer extends DenseLayer {
 
     public backPropagationOutputLayer(labels: Matrix, next_layer: Layer) {
         this.loss = <number> labels.mul(-1).mul((<Matrix> this.activation).log()).sum()
-       //console.log(this.activation.toString(10, 6))
-        //console.log(labels.toString(10, 6))
         const gradient = this.gradientFunction((<Matrix> this.activation), labels)
-        //console.log(gradient.toString(10,6))
+        let total_acc = 0
+        let total_loss = 0
+        for (let i = 0; i < labels.dim().r; i++) {
+            total_acc += (<Matrix> this.activation).argmax(i) == labels.argmax(i)? 1:0
+            total_loss += Math.abs(gradient.get(i,0))
+        }
+        this.accuracy = total_acc / labels.dim().r
+        //this.loss = total_loss
+
         this.errorBias = gradient
         this.output_error = gradient
-
         this.errorWeights = <Matrix> (<Matrix> next_layer.activation).transpose().mm(gradient)
     }
 

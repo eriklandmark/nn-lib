@@ -6,6 +6,31 @@ import Vector from "../src/vector";
 import Helper from "../src/helpers/helper";
 import CrossEntropy from "../src/lib/losses/cross_entropy";
 import Softmax from "../src/lib/activations/softmax";
+import Layer from "../src/lib/layers/layer";
+
+
+const patch_width = (4 - 2 + 1)
+const patch_height = (4 - 2 + 1)
+
+const filtr = [
+    new Tensor([[[1, 5, 9], [2, 6, 10]], [[3, 7, 11], [4, 8, 12]]]),
+    new Tensor([[[13, 17, 21], [14, 18, 22]], [[15, 19, 23], [16, 20, 24]]]),
+]
+
+const images = [new Tensor([[[9, 54, 113], [139, 86, 118], [8,5,1]]]),
+    new Tensor([
+        [[1, 17, 33], [2, 18, 34], [3, 19, 35], [4, 20, 36]],
+        [[5, 21, 37], [6, 22, 38], [7, 23, 39], [8, 24, 40]],
+        [[9, 25, 41], [10, 26, 42], [11, 27, 43], [12, 28, 44]],
+        [[13, 29, 45], [14, 30, 46], [15, 31, 47], [16, 32, 48]]
+    ]),
+    new Tensor([
+        [[1],[1],[2],[4]],
+        [[5], [6], [7],[8]],
+        [[3],[2],[1],[0]],
+        [[1],[2],[3],[4]]
+    ])
+]
 
 let size = 300
 
@@ -37,7 +62,7 @@ const images = [new Tensor([[[9, 54, 113], [139, 86, 118], [8,5,1]]]),
 const channel_first = false
 
 const channels = 3
-const f_size = 5
+const f_size = 3
 const filters = []
 /*filters.forEach((filter: Tensor) => {
     filter.createEmptyArray(f_size, f_size, channels);
@@ -170,49 +195,6 @@ async function test() {
     }
 }
 
-let result = [
-    { x: 10, c_y: 0.028, g_y: 0.457 },
-    { x: 20, c_y: 0.043, g_y: 0.429 },
-    { x: 30, c_y: 0.442, g_y: 0.45 },
-    { x: 40, c_y: 0.803, g_y: 0.454 },
-    { x: 50, c_y: 1.312, g_y: 0.536 },
-    { x: 60, c_y: 1.912, g_y: 0.59 },
-    { x: 70, c_y: 2.67, g_y: 0.726 },
-    { x: 80, c_y: 3.52, g_y: 0.742 },
-    { x: 90, c_y: 4.497, g_y: 0.814 },
-    { x: 100, c_y: 5.628, g_y: 0.725 },
-    { x: 110, c_y: 6.852, g_y: 0.869 },
-    { x: 120, c_y: 8.227, g_y: 0.812 },
-    { x: 130, c_y: 9.66, g_y: 0.968 },
-    { x: 140, c_y: 11.361, g_y: 0.884 },
-    { x: 150, c_y: 12.968, g_y: 1.003 },
-    { x: 160, c_y: 14.787, g_y: 1.048 },
-    { x: 170, c_y: 16.813, g_y: 1.164 },
-    { x: 180, c_y: 18.904, g_y: 1.099 },
-    { x: 190, c_y: 21.146, g_y: 1.255 },
-    { x: 200, c_y: 23.355, g_y: 1.297 },
-    { x: 210, c_y: 25.885, g_y: 1.273 },
-    { x: 220, c_y: 28.632, g_y: 1.281 },
-    { x: 230, c_y: 31.259, g_y: 1.37 },
-    { x: 240, c_y: 34.154, g_y: 1.386 },
-    { x: 250, c_y: 37.138, g_y: 1.533 },
-    { x: 260, c_y: 40.44, g_y: 1.619 },
-    { x: 270, c_y: 43.626, g_y: 1.732 },
-    { x: 280, c_y: 47.167, g_y: 1.83 },
-    { x: 290, c_y: 50.617, g_y: 1.924 },
-    { x: 300, c_y: 54.558, g_y: 1.952 },
-    { x: 310, c_y: 58.32, g_y: 2.079 },
-    { x: 320, c_y: 62.461, g_y: 2.123 },
-    { x: 330, c_y: 66.31, g_y: 2.228 },
-    { x: 340, c_y: 70.925, g_y: 2.311 },
-    { x: 350, c_y: 75.062, g_y: 2.383 },
-    { x: 360, c_y: 80.01, g_y: 2.547 },
-    { x: 370, c_y: 84.019, g_y: 2.522 },
-    { x: 380, c_y: 89.729, g_y: 2.743 },
-    { x: 390, c_y: 94.558, g_y: 2.799 },
-    { x: 400, c_y: 99.558, g_y: 2.93 },
-]
-
 async function msa() {
     const a_f = (x: number) => x**2
     const b_f = (x: number) => x
@@ -232,49 +214,17 @@ async function msa() {
 }
 
 async function run() {
-    await test()
-    //await msa()
+    const bp = buildKernel()
+    bp.setOutput([patch_width, patch_height])
+    bp.immutable = true
+    const act = gpu.createKernel(actv.normal_gpu()).setOutput([patch_width, patch_height])
+    act.immutable = true;
+    console.log(conv(images[1], patch_height, patch_width, [filtr[0]], false, false).toString())
+    //@ts-ignore
+    console.log(new Matrix(bp(images[1].toNumberArray(), filtr[0].toNumberArray(), channel_first)).toString())
 }
 
-//run()
-
-
-const patch_width = (4 - 2 + 1)
-const patch_height = (4 - 2 + 1)
-
-const filtr = [
-    new Tensor([[[1, 5, 9], [2, 6, 10]], [[3, 7, 11], [4, 8, 12]]]),
-    new Tensor([[[13, 17, 21], [14, 18, 22]], [[15, 19, 23], [16, 20, 24]]]),
-]
-
-const images = [new Tensor([[[9, 54, 113], [139, 86, 118], [8,5,1]]]),
-    new Tensor([
-        [[1, 17, 33], [2, 18, 34], [3, 19, 35], [4, 20, 36]],
-        [[5, 21, 37], [6, 22, 38], [7, 23, 39], [8, 24, 40]],
-        [[9, 25, 41], [10, 26, 42], [11, 27, 43], [12, 28, 44]],
-        [[13, 29, 45], [14, 30, 46], [15, 31, 47], [16, 32, 48]]
-    ])]
-
-
-console.log(images[1].toString())
-
-const chs = 3
-
-
-const filterMatrix = new Matrix(filtr.map((t) => t.vectorize(true))).transpose()
-
-console.log(filterMatrix.toString())
-
-const patches = (<Matrix> filterMatrix.mm(images[1].im2patches(patch_height, patch_width, filtr[0].dim().r, filtr[0].dim().c)))
-    .rowVectors().map((v) => v.reshape([patch_height, patch_width, 1]))
-
-//console.log(conv(images[1], patch_height, patch_width, filtr, false).toString())
-
-patches.forEach((t) => console.log(t.toString()))
-
-console.log(filtr[0].toString())
-console.log(filtr[0].rotate180().mul(0.1).toString())
-
+run()
 
 
 /*

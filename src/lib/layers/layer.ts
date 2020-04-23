@@ -18,6 +18,8 @@ export default class Layer {
     shape: number[] = []
     prevLayerShape: number[] = []
     type: string = ""
+    hasGPUSupport = false;
+    isFirstLayer = false;
 
     ff_kernel: any
     act_kernel: any
@@ -37,10 +39,10 @@ export default class Layer {
     }
 
     buildLayer(prevLayerShape: number[]) {}
-    feedForward(input: Layer | Matrix | Tensor[], isInTraining: boolean, gpu: boolean = false) {}
+    feedForward(input: Layer | Matrix | Tensor[], isInTraining: boolean) {}
     buildFFKernels(batch_size: number) {}
     buildBPKernels(size: number) {}
-    backPropagation(prev_layer: Layer, next_layer: Layer | Matrix | Tensor[], gpu: boolean = false) {}
+    backPropagation(prev_layer: Layer, next_layer: Layer | Matrix | Tensor[]) {}
     calculate_errors(error: any, next_layer: Layer | Matrix) {}
     updateWeights(l_rate: number) {}
     toSavedModel(): SavedLayer {return}

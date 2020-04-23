@@ -8,9 +8,9 @@ export default class ReLu implements IActivation {
 
     normal(input: Matrix | number): Matrix | number {
         if (input instanceof Matrix) {
-            const m = input.copy()
+            const m = input.copy(false)
             m.iterate((i: number, j: number) => {
-                m.set(i, j, Math.max(m.get(i,j), 0))
+                m.set(i, j, Math.max(input.get(i,j), 0))
             });
             return m
         } else {
@@ -20,9 +20,9 @@ export default class ReLu implements IActivation {
 
     derivative(input: Matrix | number): Matrix | number {
         if (input instanceof Matrix) {
-            const m = input.copy()
+            const m = input.copy(false)
             m.iterate((i: number, j: number) => {
-                m.set(i, j, m.get(i,j) > 0 ? 1 : 0)
+                m.set(i, j, input.get(i,j) > 0 ? 1 : 0)
             });
             return m
         } else {
@@ -31,12 +31,14 @@ export default class ReLu implements IActivation {
     }
 
     normal_gpu(): KernelFunction {
-        return function actv(a) {}
+        return function actv(a) {
+            return Math.max(a[this.thread.y][this.thread.x], 0)
+        }
     }
 
     derivative_gpu(): GPUFunction<ThreadKernelVariable[]> {
         return function actv(a: any) {
-            return a
+            return a > 0 ? 1 : 0
         }
     }
 }

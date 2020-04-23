@@ -13,7 +13,7 @@ export default class Softmax implements IActivation{
 
     derivative(input: Matrix | number): Matrix | number {
         if (input instanceof Matrix) {
-            const m = input.copy()
+            const m = input.copy(false)
             m.iterate((i: number, j: number) => {
                 if (i == j) {
                     m.set(i, j, input.get(i, j) * (1 - input.get(i, j)))

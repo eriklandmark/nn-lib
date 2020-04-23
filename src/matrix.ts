@@ -229,55 +229,55 @@ export default class Matrix {
     }
 
     public add(b: number | Matrix): Matrix {
-        let m = this.copy();
+        let m = this.copy(false);
         if (b instanceof Matrix) {
             if (b.dim().r != this.dim().r || b.dim().c != this.dim().c) {
                 console.trace()
                 throw "Matrix Addition: Not the same dimension"
             }
             this.iterate((i: number, j: number) => {
-                m.set(i, j, m.get(i, j) + b.get(i, j))
+                m.set(i, j, this.get(i, j) + b.get(i, j))
             });
             return m;
         } else {
             let scalar: number = <number>b;
             this.iterate((i: number, j: number) => {
-                m.set(i, j, m.get(i, j) + scalar)
+                m.set(i, j, this.get(i, j) + scalar)
             });
             return m
         }
     }
 
     public sub(b: number | Matrix): Matrix {
-        let m = this.copy();
+        let m = this.copy(false);
         if (b instanceof Matrix) {
             if (b.dim().r != m.dim().r || b.dim().c != m.dim().c) {
                 console.trace();
                 throw "Matrix Subtraction: Not the same dimension";
             }
             this.iterate((i: number, j: number) => {
-                m.set(i, j, m.get(i, j) - b.get(i, j))
+                m.set(i, j, this.get(i, j) - b.get(i, j))
             });
             return m;
         } else {
             let scalar: number = <number>b;
             this.iterate((i: number, j: number) => {
-                m.set(i, j, m.get(i, j) - scalar)
+                m.set(i, j, this.get(i, j) - scalar)
             });
             return m
         }
     }
 
     public mul(b: number | Matrix): Matrix {
-        let m = this.copy();
+        let m = this.copy(false);
         if (b instanceof Matrix) {
             if (b.dim().r != m.dim().r || b.dim().c != m.dim().c) throw "Matrix mult: Not the same dimension";
             this.iterate((i: number, j: number) => {
-                m.set(i, j, m.get(i, j) * b.get(i, j))
+                m.set(i, j, this.get(i, j) * b.get(i, j))
             });
         } else {
             this.iterate((i: number, j: number) => {
-                m.set(i, j, m.get(i, j) * b)
+                m.set(i, j, this.get(i, j) * b)
             });
         }
 
@@ -285,17 +285,17 @@ export default class Matrix {
     }
 
     public pow(scalar: number): Matrix {
-        let m = this.copy();
+        let m = this.copy(false);
         this.iterate((i: number, j: number) => {
-            m.set(i, j, m.get(i, j) ** scalar)
+            m.set(i, j, this.get(i, j) ** scalar)
         });
         return m
     }
 
     public exp(): Matrix {
-        let m = this.copy();
+        let m = this.copy(false);
         this.iterate((i: number, j: number) => {
-            m.set(i, j, Math.exp(m.get(i, j)))
+            m.set(i, j, Math.exp(this.get(i, j)))
         });
         return m
     }
@@ -367,14 +367,14 @@ export default class Matrix {
     }
 
     public div(scalar: number | Matrix): Matrix {
-        let m = this.copy();
+        let m = this.copy(false);
         if (scalar instanceof Matrix) {
             this.iterate((i: number, j: number) => {
-                m.set(i, j, m.get(i, j) / scalar.get(i, j))
+                m.set(i, j, this.get(i, j) / scalar.get(i, j))
             });
         } else {
             this.iterate((i: number, j: number) => {
-                m.set(i, j, m.get(i, j) / scalar)
+                m.set(i, j, this.get(i, j) / scalar)
             });
         }
         return m

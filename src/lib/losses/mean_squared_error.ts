@@ -19,7 +19,9 @@ export default class MeanSquaredError implements ILoss {
     }
 
     normal_gpu(): KernelFunction {
-        return function actv() {}
+        return function actv() {
+            return
+        }
     }
 
     derivative_gpu(): KernelFunction {

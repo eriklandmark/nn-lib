@@ -12,7 +12,6 @@ export default class CrossEntropy implements ILoss {
         out.iterate((i: number, j: number) => {
             if (labels.get(i,j) != 0) {
                 out.set(i, j, (labels.get(i,j) * Math.log(input.get(i,j) + this.epsilon)))
-                //+((1 - labels.get(i,j))*Math.log10(1 - input.get(i,j) + this.epsilon)))
             }
         });
         return (<Matrix>(<Matrix> out).sum(1, true)).mul(-1)
@@ -23,10 +22,18 @@ export default class CrossEntropy implements ILoss {
     }
 
     normal_gpu(): KernelFunction {
-        return function actv() {}
+        return function actv(a, labels) {
+            let sum = 0;
+            for (let i = 0; i < this.constants.labels_length; i++) {
+                sum += labels[this.thread.y][i] * Math.log(a[this.thread.y][i] + 10**-14)
+            }
+             return sum * -1
+        }
     }
 
     derivative_gpu(): KernelFunction {
-        return function actv() {}
+        return function actv(a, labels) {
+            labels
+        }
     }
 }

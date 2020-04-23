@@ -19,6 +19,7 @@ export default class DenseLayer extends Layer {
         this.activationFunction = activation
         this.layerSize = layerSize;
 
+        this.hasGPUSupport = true
         this.type = "dense"
     }
 
@@ -92,8 +93,8 @@ export default class DenseLayer extends Layer {
         this.bp_error_weight_kernel.immutable = true
     }
 
-    feedForward(input: Layer | Matrix, isInTraining: boolean, gpu: boolean = false) {
-        if (gpu) {
+    feedForward(input: Layer | Matrix, isInTraining: boolean) {
+        if (this.useGpu) {
             const result = this.act_kernel(this.ff_kernel(input, this.weights.toNumberArray(), this.bias.toNumberArray()))
             this.activation = new Matrix(result.toArray())
             return result
@@ -118,8 +119,8 @@ export default class DenseLayer extends Layer {
 
     }
 
-    backPropagation(prev_layer: Layer, next_layer: Layer | Matrix, gpu: boolean) {
-        if (gpu) {
+    backPropagation(prev_layer: Layer, next_layer: Layer | Matrix) {
+        if (this.useGpu) {
             let input: Matrix
             if (next_layer instanceof Layer) {
                 input = <Matrix>next_layer.activation

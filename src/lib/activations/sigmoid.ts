@@ -20,7 +20,7 @@ export default class Sigmoid implements IActivation {
 
     normal(input: Matrix | number): Matrix | number {
         if (input instanceof Matrix) {
-            const m = input.copy()
+            const m = input.copy(false)
             m.iterate((i: number, j: number) => {
                 m.set(i, j, 1 / (1 + Math.exp(-input.get(i, j))))
             });
@@ -32,7 +32,7 @@ export default class Sigmoid implements IActivation {
 
     derivative(input: Matrix | number): Matrix | number {
         if (input instanceof Matrix) {
-            const m = input.copy()
+            const m = input.copy(false)
             m.iterate((i: number, j: number) => {
                 m.set(i, j, input.get(i, j) * (1 - input.get(i, j)))
             });

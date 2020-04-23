@@ -4,6 +4,7 @@ import DropoutLayer from "./dropout_layer";
 import FlattenLayer from "./flatten_layer";
 import OutputLayer from "./output_layer";
 import Sigmoid from "../activations/sigmoid";
+import PoolingLayer from "./pooling_layer";
 
 export class LayerHelper {
     public static fromType(type: string) {
@@ -13,6 +14,7 @@ export class LayerHelper {
             case "dropout": return new DropoutLayer()
             case "flatten": return new FlattenLayer()
             case "output": return new OutputLayer()
+            case "pooling": return new PoolingLayer()
         }
     }
 }

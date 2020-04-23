@@ -19,8 +19,15 @@ export default class FlattenLayer extends Layer {
     }
 
     backPropagation(prev_layer: Layer, next_layer: Layer | Matrix) {
-        const dout = <Matrix> (<Matrix>prev_layer.output_error).mm(prev_layer.weights.transpose())
-        let t: Tensor[] = new Array(prev_layer.output_error.dim().r);
+        let error
+        if(prev_layer.output_error instanceof Matrix) {
+            error = <Matrix> (<Matrix>prev_layer.output_error)
+        } else {
+            error = new Matrix(prev_layer.output_error.toArray())
+
+        }
+        const dout = error.mm(prev_layer.weights.transpose())
+        let t: Tensor[] = new Array(error.dim().r);
 
         for(let i = 0; i < t.length; i++) {
             t[i] = new Tensor();

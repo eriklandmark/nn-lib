@@ -6,9 +6,17 @@ export default class Tensor {
     tensor: Float32Array[][] = [];
 
     public get: Function = (i: number, j: number, k: number) => {
+        if(isNaN(this.tensor[i][j][k])) {
+            console.trace()
+            throw "Getting an NaN..."
+        }
         return this.tensor[i][j][k]
     };
     public set: Function = (i: number, j: number, k: number, n: number) => {
+        if (isNaN(n)) {
+            console.trace()
+            throw "Number is NaN..."
+        }
         this.tensor[i][j][k] = n;
     };
     public count: Function = () => {
@@ -213,7 +221,7 @@ export default class Tensor {
         return t
     }
 
-    padding(padding_height, padding_width) {
+    padding(padding_height: number, padding_width: number) {
         const t = new Tensor()
         t.createEmptyArray(
             2 * padding_height + this.dim().r, 2 * padding_width + this.dim().c, this.dim().d

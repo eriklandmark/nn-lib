@@ -10,6 +10,7 @@ import Tensor from "./tensor";
 import {LayerHelper} from "./lib/layers/layer_helper";
 import Helper from "./helpers/helper";
 import OutputLayer from "./lib/layers/output_layer";
+import Path from "path";
 
 export interface SavedLayer {
     weights?: Float32Array[]
@@ -22,15 +23,54 @@ export interface SavedLayer {
     loss?: string
     rate?: number
     prevLayerShape?: number[]
+    stride?: number[] | number
+    padding?: number
+    poolingFunc?: string
+}
+
+interface ModelSettings {
+    USE_GPU: boolean,
+    BACKLOG: boolean,
+    SAVE_CHECKPOINTS: boolean,
+    MODEL_SAVE_PATH: string
+}
+
+export interface BacklogData {
+    actual_duration: number,
+    calculated_duration: number
+    epochs: {
+        [propName: string]: {
+            total_loss: number,
+            total_accuracy: number,
+            batches: {accuracy: number, loss: number, time: number}[],
+            calculated_duration: number,
+            actual_duration: number
+        };
+    }
 }
 
 export default class Model {
     layers: Layer[]
-    learning_rate = 0;
     gpuInstance: GPU
-    USE_GPU: boolean = false;
-    input_shape: number[] = []
     private isBuilt = false;
+    backlog: BacklogData = {
+        actual_duration: 0, calculated_duration: 0, epochs:{}
+    }
+    settings: ModelSettings = {
+        USE_GPU: false,
+        BACKLOG: true,
+        SAVE_CHECKPOINTS: false,
+        MODEL_SAVE_PATH: ""
+    }
+    model_data: {
+        input_shape: number[],
+        learning_rate: number,
+        last_epoch: number
+    } = {
+        input_shape: [0],
+        learning_rate: 0,
+        last_epoch: 0
+    }
 
     constructor(layers: Layer[]) {
         this.layers = layers
@@ -48,21 +88,35 @@ export default class Model {
 
         if(!this.isGpuAvailable()) {
             console.error("GPU is not supported.. falling back on CPU.")
-            this.USE_GPU = false
+            this.settings.USE_GPU = false
         }
 
-        this.input_shape = inputShape
-        this.layers[0].setGpuInstance(this.gpuInstance)
-        this.layers[0].useGpu = this.USE_GPU
-        this.layers[0].buildLayer(inputShape)
+        if(this.settings.SAVE_CHECKPOINTS && !this.settings.MODEL_SAVE_PATH) {
+            console.error("No model path specified.. Turning of saving checkpoints.")
+            this.settings.SAVE_CHECKPOINTS = false
+        }
 
-        for (let i = 1; i < this.layers.length; i++) {
+        if(this.settings.BACKLOG && !this.settings.MODEL_SAVE_PATH) {
+            console.error("No model path specified.. Turning of saving backlog.")
+            this.settings.SAVE_CHECKPOINTS = false
+        }
+
+        if(this.settings.MODEL_SAVE_PATH) {
+            if (!fs.existsSync(this.settings.MODEL_SAVE_PATH)) {
+                fs.mkdirSync(this.settings.MODEL_SAVE_PATH)
+            }
+        }
+
+        this.model_data.input_shape = inputShape
+        this.layers[0].isFirstLayer = true
+
+        for (let i = 0; i < this.layers.length; i++) {
             this.layers[i].setGpuInstance(this.gpuInstance)
-            this.layers[i].useGpu = this.USE_GPU
+            this.layers[i].useGpu = this.settings.USE_GPU
             if (i == this.layers.length - 1) {
                 (<OutputLayer>this.layers[i]).lossFunction = lossFunction
             }
-            this.layers[i].buildLayer(this.layers[i - 1].shape)
+            this.layers[i].buildLayer(i == 0? inputShape: this.layers[i - 1].shape)
         }
 
         if (verbose) {
@@ -74,11 +128,10 @@ export default class Model {
 
     public summary() {
         if (this.isBuilt) {
-            let input = {type: "input", shape: this.input_shape, activation: "NO ACTIVATION"}
+            let input = {type: "input", shape: this.model_data.input_shape, activation: "NO ACTIVATION"}
             let layer_info = this.layers.map((layer) => layer.getLayerInfo())
-            const sum = (acc: number, val: any) => acc + val
             let total_neurons = layer_info.map((info) => info.shape).reduce((acc, val) => {
-                return acc + val.reduce(sum, 0)
+                return acc + val.reduce((a, s) => a*s, 1)
             }, 0)
             console.table([input, ...layer_info])
             console.log("Total: neurons: ", total_neurons)
@@ -87,33 +140,42 @@ export default class Model {
         }
     }
 
-    train_on_batch(examples: Matrix | Tensor[], labels: Matrix): number {
-        if (this.USE_GPU) {
-            let result: any = (<Matrix>examples).toNumberArray()
-            let batch_size: number = (<Matrix>examples).dim().r
+    train_on_batch(examples: Matrix | Tensor[], labels: Matrix): any {
+        if (this.settings.USE_GPU) {
+            let result: any = examples instanceof Matrix?(<Matrix>examples).toNumberArray():
+                examples.map((t) => t.toNumberArray())
+            let batch_size: number = examples instanceof Matrix? (<Matrix>examples).dim().r:
+                examples.length
             for (let i = 0; i < this.layers.length; i++) {
-                this.layers[i].buildFFKernels(batch_size)
-                result = this.layers[i].feedForward(result, true, true)
+                if (this.layers[i].hasGPUSupport) {
+                    this.layers[i].buildFFKernels(batch_size)
+                    result = this.layers[i].feedForward(result, true)
+                } else {
+                    this.layers[i].feedForward(i == 0? examples : this.layers[i - 1], true)
+                }
             }
 
             //@ts-ignore
             this.layers[this.layers.length - 1].backPropagationOutputLayer(labels, this.layers[this.layers.length - 2])
             this.layers[this.layers.length - 1].output_error = (<Matrix>(<OutputLayer>this.layers[this.layers.length - 1]).output_error).toNumberArray()
             for (let i = this.layers.length - 2; i >= 0; i--) {
-                this.layers[i].buildBPKernels(this.layers[i + 1].weights.dim().c)
+                if (this.layers[i].hasGPUSupport) {
+                    this.layers[i].buildBPKernels(this.layers[i + 1].weights.dim().c)
+                }
                 let input: Matrix | Layer = i == 0 ? <Matrix>examples : this.layers[i - 1]
-                this.layers[i].backPropagation(this.layers[i + 1], input, true)
+                this.layers[i].backPropagation(this.layers[i + 1], input)
             }
 
             for (let layer of this.layers) {
-                layer.updateWeights(this.learning_rate)
+                layer.updateWeights(this.model_data.learning_rate)
             }
 
-            return (<OutputLayer>this.layers[this.layers.length - 1]).loss
+            return {loss:(<OutputLayer>this.layers[this.layers.length - 1]).loss,
+                    accuracy: (<OutputLayer>this.layers[this.layers.length - 1]).accuracy}
         } else {
             this.layers[0].feedForward(examples, true)
             for (let i = 1; i < this.layers.length; i++) {
-                this.layers[i].feedForward(this.layers[i - 1], true, false)
+                this.layers[i].feedForward(this.layers[i - 1], true)
             }
 
             (<OutputLayer>this.layers[this.layers.length - 1]).backPropagationOutputLayer(labels, this.layers[this.layers.length - 2])
@@ -123,10 +185,11 @@ export default class Model {
             this.layers[0].backPropagation(this.layers[1], examples)
 
             for (let layer of this.layers) {
-                layer.updateWeights(this.learning_rate)
+                layer.updateWeights(this.model_data.learning_rate)
             }
 
-            return (<OutputLayer>this.layers[this.layers.length - 1]).loss
+            return {loss:(<OutputLayer>this.layers[this.layers.length - 1]).loss,
+                accuracy: (<OutputLayer>this.layers[this.layers.length - 1]).accuracy}
         }
     }
 
@@ -135,7 +198,7 @@ export default class Model {
             throw "Model hasn't been build yet!.."
         }
 
-        this.learning_rate = learning_rate
+        this.model_data.learning_rate = learning_rate
 
         if (data instanceof Dataset) {
             console.log("Starting training...")
@@ -162,18 +225,26 @@ export default class Model {
             } else {
                 const batch_count = Math.floor(data.size() / data.BATCH_SIZE)
 
-                for (let epoch = 0; epoch < epochs; epoch++) {
-                    console.log("Starting Epoch:", epoch + 1, "/", epochs)
+                for (let epoch = 1; epoch <= epochs; epoch++) {
+                    console.log("Starting Epoch:", epoch, "/", epochs)
+                    if (shuffle) {
+                        data.shuffle()
+                    }
+                    const epoch_data = {
+                        total_loss: 0,
+                        total_accuracy: 0,
+                        batches: [],
+                        calculated_duration: 0,
+                        actual_duration: 0
+                    }
+                    const epoch_startTime =  Date.now()
+
                     for (let batch_id = 0; batch_id < batch_count; batch_id++) {
-                        let batch: Example[]
-                        if (shuffle) {
-                            batch = ArrayHelper.shuffle(data.getBatch(batch_id))
-                        } else {
-                            batch = data.getBatch(batch_id)
-                        }
+                        let batch: Example[] = data.getBatch(batch_id)
 
                         let examples: Matrix | Tensor[]
-                        let error: number = 0
+                        let b_loss: number = 0
+                        let b_acc: number = 0
                         let exampleData = <Vector[] | Tensor[]>batch.map((ex) => ex.data)
                         const labels = new Matrix(batch.map((ex) => ex.label)).transpose()
                         if (data.DATA_STRUCTURE == Vector) {
@@ -183,18 +254,40 @@ export default class Model {
                         }
 
                         const seconds = await Helper.timeit(() => {
-                            error = this.train_on_batch(examples, labels);
+                            let {loss, accuracy} = this.train_on_batch(examples, labels);
+                            b_loss = loss
+                            b_acc = accuracy
                         }, false)
+                        epoch_data.batches.push({accuracy: b_acc, loss: b_loss, time: seconds})
+                        epoch_data.total_loss += b_loss
+                        epoch_data.total_accuracy += b_acc
+                        epoch_data.calculated_duration += seconds
+                        this.backlog.calculated_duration += seconds
+                        this.backlog["epoch_" + epoch] = epoch_data
+                        this.saveBacklog()
 
-                        console.log("Error for batch:", (batch_id + 1), "/", batch_count,
-                            "=", error, "| Time:", seconds, "seconds")
+                        console.log("Batch:", (batch_id + 1), "/", batch_count,
+                            "Loss =", b_loss,", Acc = ", b_acc , "| Time:", seconds, "seconds")
+                    }
+
+                    epoch_data.actual_duration = (Date.now() - epoch_startTime) / 1000
+                    this.backlog.epochs["epoch_" + epoch] = epoch_data
+                    console.log("Loss: TOT", epoch_data.total_loss,"AVG",epoch_data.total_loss / batch_count,
+                        "| Accuracy:", epoch_data.total_accuracy / batch_count,
+                        "| Total time:", epoch_data.actual_duration, "/", epoch_data.calculated_duration)
+                    this.saveBacklog()
+                    this.model_data.last_epoch = epoch
+                    if (this.settings.SAVE_CHECKPOINTS) {
+                        this.save("model_checkpoint_" + epoch + ".json")
                     }
                 }
             }
 
             console.log("Done..")
-            const duration = Math.floor((Date.now() - startTime) / 1000)
+            const duration = (Date.now() - startTime) / 1000
+            this.backlog.actual_duration = duration
             console.log("Duration: " + duration + " seconds")
+            this.saveBacklog()
         } else {
             let exampleData = <Vector[] | Tensor[]>data.map((ex) => ex.data)
             let examples = exampleData[0] instanceof Vector ? new Matrix(<Vector[]>exampleData) : <Tensor[]>exampleData
@@ -203,6 +296,13 @@ export default class Model {
             for (let epoch = 0; epoch < epochs; epoch++) {
                 console.log(this.train_on_batch(examples, labels))
             }
+        }
+    }
+
+    saveBacklog() {
+        if (this.settings.BACKLOG) {
+            const path = Path.join(this.settings.MODEL_SAVE_PATH, "backlog.json")
+            fs.writeFileSync(path, JSON.stringify(this.backlog))
         }
     }
 
@@ -223,8 +323,12 @@ export default class Model {
         return <Matrix>this.layers[this.layers.length - 1].activation
     }
 
-    save(path: string) {
-        const modelObj = {layers: {}}
+    save(model_path: string = "model.json") {
+        const modelObj = {
+            model_data: this.model_data,
+            settings: this.settings,
+            layers: {}
+        }
 
         for (let i = 0; i < this.layers.length; i++) {
             modelObj.layers[`layer_${i}`] = {
@@ -233,50 +337,34 @@ export default class Model {
             }
         }
 
+        const path = Path.join(this.settings.MODEL_SAVE_PATH, model_path)
         fs.writeFileSync(path, JSON.stringify(modelObj))
     }
 
-    load(path: string) {
-
+    load(path: string, verbose:boolean = true) {
         const modelObj = JSON.parse(fs.readFileSync(path, {encoding: "UTF-8"}))
-
+        this.model_data = modelObj.model_data
+        this.settings = modelObj.settings
         const layer_keys: string[] = Object.keys(modelObj.layers).sort()
         this.layers = []
+
+        if(!this.isGpuAvailable()) {
+            console.error("GPU is not supported.. falling back on CPU.")
+            this.settings.USE_GPU = false
+        }
+
         for (let layer_key of layer_keys) {
             let layer = LayerHelper.fromType(modelObj.layers[layer_key].type)
             layer.fromSavedModel(modelObj.layers[layer_key].info)
+            layer.setGpuInstance(this.gpuInstance)
+            layer.useGpu = this.settings.USE_GPU
             this.layers.push(layer)
         }
-
+        this.layers[0].isFirstLayer = true
         this.isBuilt = true
 
-
-        /*
-        for (let i = 0; i < modelObj.layer_keys.length; i++) {
-            const layer = modelObj.layer_keys[i]
-            this.layers[i].weights = new Matrix(modelObj.layers[layer].weights.map((row: any) => {
-                return Object.keys(row).map((item, index) => row[index.toString()])
-            }))
-
-            this.layers[i].bias = new Vector(Object.keys(modelObj.layers[layer].bias).map(
-                (item, index) => {
-                    return modelObj.layers[layer].bias[index.toString()]
-                }
-                ))
+        if (verbose) {
+            console.log("Successfully build model!")
         }
-
-        this.layers[this.layers.length - 1].weights = new Matrix(modelObj.output_layer.weights.map((row: any) => {
-            return Object.keys(row).map((item, index) => row[index.toString()])
-        }))
-
-        this.layers[this.layers.length - 1].bias = new Vector(Object.keys(modelObj.output_layer.bias).map(
-            (item, index) => {
-                return modelObj.output_layer.bias[index.toString()]
-            }
-        ))
-
-        if (!this.isBuilt) {
-            throw "Model hasn't been build yet!.."
-        }*/
     }
 }

@@ -4,32 +4,37 @@ import Helper from "../src/helpers/helper";
 
 const model = new Model([])
 
-model.load("./nn.json")
+model.load("./model/model.json")
+model.summary()
 
 const dataset = new Dataset();
 
-dataset.loadMnistTest("dataset/mnist-fashion", 10000, true);
-dataset.BATCH_SIZE = 10000
+const MAX_EXAMPLE = 1000
+const VERBOSE = false
+
+dataset.loadMnistTest("dataset/mnist-fashion", MAX_EXAMPLE, false);
+dataset.BATCH_SIZE = MAX_EXAMPLE
 
 let examples = dataset.getBatch(0)
 
-//const pred = model.predict(examples.data)
-//console.log(pred.toString())
 let numRights = 0;
 
 
 Helper.timeit(() => {
-    for (let i = 0; i < examples.length; i++ ) {
+    for (let i = 0; i < MAX_EXAMPLE; i++ ) {
         const pred = model.predict(examples[i].data)
-        //console.log(pred.toString())
         const predArg = pred.argmax(0)
         const labelArg = examples[i].label.argmax();
+        if (VERBOSE) {
+            console.log(pred.toString())
+            console.log(predArg, labelArg)
+        }
         if (predArg == labelArg) {
             numRights += 1
         }
     }
 }, false).then((seconds) => {
-    console.log("Num rights: " + numRights + " of " + examples.length + " (" + Math.round((numRights / examples.length) * 100) + " %)")
+    console.log("Num rights: " + numRights + " of " + MAX_EXAMPLE + " (" + Math.round((numRights / MAX_EXAMPLE) * 100) + " %)")
     console.log("It took " + seconds + " seconds.")
 })
 

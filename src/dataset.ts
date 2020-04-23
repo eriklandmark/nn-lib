@@ -4,6 +4,7 @@ import * as path from 'path';
 import Jimp from 'jimp';
 import Tensor from "./tensor";
 import Matrix from "./matrix";
+import ArrayHelper from "./helpers/array_helper";
 
 export interface Example {
     data: Vector | Matrix | Tensor,
@@ -61,6 +62,10 @@ export default class Dataset {
         this.loadMnist(folderPath, "t10k-images-idx3-ubyte", "t10k-labels-idx1-ubyte", maxExamples, vectorize)
     }
 
+    public shuffle() {
+        this.data = ArrayHelper.shuffle(this.data)
+    }
+
     private loadMnist(folderPath: string, imageFileName: string, labelFileName: string, maxExamples: number, vectorize: boolean) {
         const trainFileBuffer = fs.readFileSync(path.join(folderPath + "/" + imageFileName));
         const labelFileBuffer = fs.readFileSync(path.join(folderPath + "/" + labelFileName));
@@ -68,7 +73,7 @@ export default class Dataset {
         for (let imageIndex = 0; imageIndex < maxExamples; imageIndex++) {
             const image: Tensor = new Tensor()
             const size = 28
-            image.createEmptyArray(size, size, vectorize? 1: 3)
+            image.createEmptyArray(size, size, 1/*vectorize? 1: 3*/)
 
             for (let x = 0; x < size; x++) {
                 for (let y = 0; y < size; y++) {
@@ -77,10 +82,10 @@ export default class Dataset {
                         console.log("Failes", val)
                     }
                     image.set(y, x, 0, val)
-                    if (!vectorize) {
+                    /*if (!vectorize) {
                         image.set(y, x, 1, val)
                         image.set(y, x, 2, val)
-                    }
+                    }*/
                 }
             }
 
@@ -116,7 +121,7 @@ export default class Dataset {
         }
     }
 
-    public getBatch(batch: number): Array<Example> {
+    public getBatch(batch: number): Example[] {
         return this.data.slice(batch * this.BATCH_SIZE, batch * this.BATCH_SIZE + this.BATCH_SIZE)
     }
 }
