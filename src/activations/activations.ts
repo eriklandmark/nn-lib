@@ -1,4 +1,4 @@
-import Matrix from "../../matrix";
+import Matrix from "../matrix";
 import {GPUFunction, KernelFunction, KernelVariable, ThreadKernelVariable} from "gpu.js";
 import Sigmoid from "./sigmoid";
 import ReLu from "./relu";

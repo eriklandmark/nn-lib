@@ -1,7 +1,7 @@
 import Layer from "./layer";
-import Tensor from "../../tensor";
-import Matrix from "../../matrix";
-import {SavedLayer} from "../../model";
+import Tensor from "../tensor";
+import Matrix from "../matrix";
+import {SavedLayer} from "../model";
 
 export default class FlattenLayer extends Layer {
 

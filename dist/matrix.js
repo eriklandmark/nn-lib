@@ -78,7 +78,7 @@ var Matrix = /** @class */ (function () {
                     "    ... +" + (_this.matrix.length - max_rows) + " rows \n]" : " ]");
             }
         };
-        if (defaultValue.length > 0 && defaultValue[0] instanceof Float32Array) {
+        if (defaultValue.length > 0 && defaultValue[0] instanceof Float64Array) {
             this.matrix = defaultValue;
         }
         else if (defaultValue.length > 0 && defaultValue[0] instanceof vector_1.default) {
@@ -91,13 +91,13 @@ var Matrix = /** @class */ (function () {
         }
         else {
             for (var i = 0; i < defaultValue.length; i++) {
-                this.matrix.push(Float32Array.from(defaultValue[i]));
+                this.matrix.push(Float64Array.from(defaultValue[i]));
             }
         }
     }
     Matrix.prototype.createEmptyArray = function (rows, columns) {
         for (var i = 0; i < rows; i++) {
-            this.matrix.push(new Float32Array(columns).fill(0));
+            this.matrix.push(new Float64Array(columns).fill(0));
         }
     };
     Matrix.prototype.dim = function () {
@@ -244,7 +244,7 @@ var Matrix = /** @class */ (function () {
                                         size: Math.min(c_2.dim().r, 5),
                                         task: function (row) {
                                             var _a = this.workerData, matrix = _a.matrix, bMatrix = _a.bMatrix;
-                                            var result = (new Float32Array(bMatrix[0].length)).map(function (_, col) {
+                                            var result = (new Float64Array(bMatrix[0].length)).map(function (_, col) {
                                                 return matrix[row].reduce(function (acc, val, k) { return acc + (val * bMatrix[k][col]); }, 0);
                                             });
                                             return { i: row, v: result };

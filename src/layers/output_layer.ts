@@ -1,10 +1,10 @@
 import Layer from "./layer";
-import Matrix from "../../matrix";
+import Matrix from "../matrix";
 import DenseLayer from "./dense_layer";
 import Activation, {IActivation} from "../activations/activations";
 import Losses, {ILoss} from "../losses/losses";
-import {SavedLayer} from "../../model";
-import Vector from "../../vector";
+import {SavedLayer} from "../model";
+import Vector from "../vector";
 import Sigmoid from "../activations/sigmoid";
 import Gradients, {IGradient} from "../losses/gradients";
 

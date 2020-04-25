@@ -1,7 +1,7 @@
 import Vector from "./vector";
 import Matrix from "./matrix";
 export default class Tensor {
-    tensor: Float32Array[][];
+    tensor: Float64Array[][];
     get: Function;
     set: Function;
     count: Function;
@@ -11,7 +11,7 @@ export default class Tensor {
         d: number;
     };
     shape(): number[];
-    constructor(v?: number[][][] | Float32Array[][]);
+    constructor(v?: number[][][] | Float64Array[][]);
     createEmptyArray(rows: number, columns: number, depth: number): void;
     static fromJsonObject(obj: any[][]): Tensor;
     toNumberArray(): number[][];

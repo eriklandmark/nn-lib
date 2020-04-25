@@ -1,9 +1,9 @@
 import Layer from "./layer";
-import Tensor from "../../tensor";
+import Tensor from "../tensor";
 import Activation, {IActivation} from "../activations/activations";
-import Vector from "../../vector";
-import {SavedLayer} from "../../model";
-import Matrix from "../../matrix";
+import Vector from "../vector";
+import {SavedLayer} from "../model";
+import Matrix from "../matrix";
 
 export default class ConvolutionLayer extends Layer {
 

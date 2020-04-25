@@ -1,11 +1,11 @@
 /// <reference types="node" />
 import Tensor from "./tensor";
 export default class Vector {
-    vector: Float32Array;
+    vector: Float64Array;
     size: Function;
     get: Function;
     set: Function;
-    constructor(defaultValue?: Float32Array | number[] | number);
+    constructor(defaultValue?: Float64Array | number[] | number);
     static fromJsonObj(obj: any): Vector;
     static fromBuffer(buff: Buffer): Vector;
     static toCategorical(index: number, size: number): Vector;

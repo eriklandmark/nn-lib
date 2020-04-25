@@ -1,6 +1,6 @@
 import Layer from "./layer";
-import Tensor from "../../tensor";
-import {SavedLayer} from "../../model";
+import Tensor from "../tensor";
+import {SavedLayer} from "../model";
 
 export default class PoolingLayer extends Layer {
 

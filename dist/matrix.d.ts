@@ -1,11 +1,11 @@
 import Vector from "./vector";
 import { KernelFunction } from "gpu.js";
 export default class Matrix {
-    matrix: Array<Float32Array>;
+    matrix: Array<Float64Array>;
     get: Function;
     set: Function;
     count: Function;
-    constructor(defaultValue?: Array<Array<number>> | Array<Float32Array> | Array<Vector>);
+    constructor(defaultValue?: Array<Array<number>> | Array<Float64Array> | Array<Vector>);
     createEmptyArray(rows: number, columns: number): void;
     dim(): {
         r: number;

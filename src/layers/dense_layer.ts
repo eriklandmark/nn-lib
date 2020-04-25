@@ -1,8 +1,8 @@
 import Layer from "./layer";
-import Matrix from "../../matrix";
+import Matrix from "../matrix";
 import Activation, {IActivation} from "../activations/activations";
-import Vector from "../../vector";
-import {SavedLayer} from "../../model";
+import Vector from "../vector";
+import {SavedLayer} from "../model";
 import Sigmoid from "../activations/sigmoid";
 
 export default class DenseLayer extends Layer {
@@ -164,7 +164,7 @@ export default class DenseLayer extends Layer {
     toSavedModel(): SavedLayer {
         return {
             weights: this.weights.matrix,
-            bias: this.bias.vector,
+            bias: (<Vector>this.bias).vector,
             shape: this.shape,
             activation: this.activationFunction.name
         }

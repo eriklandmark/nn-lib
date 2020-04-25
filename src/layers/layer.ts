@@ -1,13 +1,13 @@
-import Matrix from "../../matrix";
-import Vector from "../../vector";
+import Matrix from "../matrix";
+import Vector from "../vector";
 import {GPU} from "gpu.js";
 import {IActivation} from "../activations/activations";
-import Tensor from "../../tensor";
-import {SavedLayer} from "../../model";
+import Tensor from "../tensor";
+import {SavedLayer} from "../model";
 
 export default class Layer {
     weights: Matrix = new Matrix()
-    bias: Vector = new Vector()
+    bias: Vector | Matrix = new Vector()
     errorWeights: Matrix = new Matrix()
     errorBias: Matrix | Vector = new Matrix()
     output_error: any

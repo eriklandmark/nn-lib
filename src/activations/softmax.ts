@@ -1,4 +1,4 @@
-import Matrix from "../../matrix";
+import Matrix from "../matrix";
 import IActivation from "./activations";
 import {GPUFunction, KernelFunction, ThreadKernelVariable} from "gpu.js";
 

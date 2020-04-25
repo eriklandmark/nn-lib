@@ -1,12 +1,12 @@
 import Tensor from "../src/tensor";
 import {GPU} from "gpu.js"
-import Sigmoid from "../src/lib/activations/sigmoid";
+import Sigmoid from "../src/activations/sigmoid";
 import Matrix from "../src/matrix";
 import Vector from "../src/vector";
 import Helper from "../src/helpers/helper";
-import CrossEntropy from "../src/lib/losses/cross_entropy";
-import Softmax from "../src/lib/activations/softmax";
-import Layer from "../src/lib/layers/layer";
+import CrossEntropy from "../src/losses/cross_entropy";
+import Softmax from "../src/activations/softmax";
+import Layer from "../src/layers/layer";
 
 
 const patch_width = (4 - 2 + 1)
@@ -225,6 +225,12 @@ async function run() {
 }
 
 run()
+
+const m = new Matrix([[1,2,3], [3,4,5]])
+
+console.log((<Matrix>m.mean(0, false)).toString())
+console.log((<Matrix>m.mean(1, false)).toString())
+console.log(m.repeat(0, 2).fill(4).toString())
 
 
 /*

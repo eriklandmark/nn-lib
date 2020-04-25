@@ -6,10 +6,10 @@ import { GPU } from 'gpu.js';
 import { ILoss } from "./lib/losses/losses";
 import Tensor from "./tensor";
 export interface SavedLayer {
-    weights?: Float32Array[];
-    bias?: Float32Array;
+    weights?: Float64Array[];
+    bias?: Float64Array;
     shape?: number[];
-    filters?: Float32Array[][][];
+    filters?: Float64Array[][][];
     nr_filters?: number;
     filterSize?: number[];
     activation?: string;

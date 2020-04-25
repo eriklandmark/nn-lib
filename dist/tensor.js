@@ -51,14 +51,14 @@ var Tensor = /** @class */ (function () {
                 return string + "]";
             }
         };
-        if (v.length > 0 && v[0][0] instanceof Float32Array) {
+        if (v.length > 0 && v[0][0] instanceof Float64Array) {
             this.tensor = v;
         }
         else {
             for (var i = 0; i < v.length; i++) {
                 this.tensor.push([]);
                 for (var j = 0; j < v[i].length; j++) {
-                    this.tensor[i].push(Float32Array.from(v[i][j]));
+                    this.tensor[i].push(Float64Array.from(v[i][j]));
                 }
             }
         }
@@ -78,7 +78,7 @@ var Tensor = /** @class */ (function () {
         for (var i = 0; i < rows; i++) {
             this.tensor.push([]);
             for (var j = 0; j < columns; j++) {
-                this.tensor[i].push(new Float32Array(depth).fill(0));
+                this.tensor[i].push(new Float64Array(depth).fill(0));
             }
         }
     };

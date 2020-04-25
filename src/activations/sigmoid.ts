@@ -1,6 +1,6 @@
 import IActivation from "./activations";
 import {GPUFunction, KernelFunction, ThreadKernelVariable} from "gpu.js";
-import Matrix from "../../matrix";
+import Matrix from "../matrix";
 
 export default class Sigmoid implements IActivation {
 

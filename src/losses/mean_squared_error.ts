@@ -1,5 +1,5 @@
 import ILoss from "./losses";
-import Matrix from "../../matrix";
+import Matrix from "../matrix";
 import {KernelFunction} from "gpu.js";
 
 export default class MeanSquaredError implements ILoss {

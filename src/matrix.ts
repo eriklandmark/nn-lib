@@ -6,12 +6,17 @@ export default class Matrix {
     matrix: Array<Float32Array> = [];
 
     public get: Function = (i: number, j: number) => {
+        if (!isFinite(this.matrix[i][j])) {
+            console.trace()
+            throw "Getting Number " + this.matrix[i][j] + " is not finite... \n" +
+            " Info: [" + i + "][" + j + "]"
+        }
         return this.matrix[i][j]
     };
     public set: Function = (i: number, j: number, n: number) => {
-        if (isNaN(n)) {
+        if (!isFinite(n)) {
             console.trace()
-            throw "Number is NaN..."
+            throw "Number "+ n + " is not Finite..."
         }
         this.matrix[i][j] = n;
     };
@@ -91,6 +96,14 @@ export default class Matrix {
         return m
     }
 
+    public fill(scalar: number): Matrix {
+        const m = this.copy(false)
+        for (let i = 0; i < this.dim().r; i++) {
+            m.matrix[i] = new Float32Array(this.dim().c).fill(scalar)
+        }
+        return m
+    }
+
     public iterate(func: Function): void {
         for (let i: number = 0; i < this.dim().r; i++) {
             for (let j: number = 0; j < this.dim().c; j++) {
@@ -108,7 +121,6 @@ export default class Matrix {
         return [-1, -1]
     }
 
-
     public populateRandom() {
         this.iterate((i: number, j: number) => {
             this.set(i, j, Math.random() * 2 - 1)
@@ -117,6 +129,27 @@ export default class Matrix {
 
     public empty(): boolean {
         return this.dim().c == 0 || this.dim().r == 0
+    }
+
+    public isNaN(): boolean {
+        for (let i: number = 0; i < this.dim().r; i++) {
+            for (let j: number = 0; j < this.dim().c; j++) {
+                if (isNaN(this.matrix[i][j]) || this.matrix[i][j] != this.matrix[i][j] ||
+                    !isFinite(this.matrix[i][j])) {
+                    return true
+                }
+            }
+        }
+        return false
+    }
+
+    public repeat(axis = 0, times = 1) {
+        if(axis == 0) {
+            const m = new Matrix()
+            m.createEmptyArray(times, this.dim().c)
+            m.matrix.fill(this.matrix[0])
+            return m
+        }
     }
 
     public static addGpu(): KernelFunction {
@@ -271,7 +304,10 @@ export default class Matrix {
     public mul(b: number | Matrix): Matrix {
         let m = this.copy(false);
         if (b instanceof Matrix) {
-            if (b.dim().r != m.dim().r || b.dim().c != m.dim().c) throw "Matrix mult: Not the same dimension";
+            if (b.dim().r != m.dim().r || b.dim().c != m.dim().c) {
+                console.trace()
+                throw "Matrix mult: Not the same dimension";
+            }
             this.iterate((i: number, j: number) => {
                 m.set(i, j, this.get(i, j) * b.get(i, j))
             });
@@ -288,6 +324,22 @@ export default class Matrix {
         let m = this.copy(false);
         this.iterate((i: number, j: number) => {
             m.set(i, j, this.get(i, j) ** scalar)
+        });
+        return m
+    }
+
+    public sqrt(): Matrix {
+        let m = this.copy(false);
+        this.iterate((i: number, j: number) => {
+            m.set(i, j, Math.sqrt(this.get(i, j)))
+        });
+        return m
+    }
+
+    public inv_el(eps = 10**-7): Matrix {
+        let m = this.copy(false);
+        this.iterate((i: number, j: number) => {
+            m.set(i, j, this.get(i,j) == 0? 1/(this.get(i,j) + eps) : 1/this.get(i, j))
         });
         return m
     }
@@ -424,5 +476,13 @@ export default class Matrix {
 
     public rowVectors() {
         return this.matrix.map((row) => new Vector(row))
+    }
+
+    public mean(axis = -1, keep_dims = false): number | Matrix {
+        if (axis == -1) {
+            return <number> this.sum(-1, false) / this.count()
+        } else if (axis == 0 || axis == 1) {
+            return (<Matrix> this.sum(axis, keep_dims)).div(axis == 0? this.dim().r: this.dim().c)
+        }
     }
 }

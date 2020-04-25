@@ -7,7 +7,7 @@ var tensor_1 = __importDefault(require("./tensor"));
 var Vector = /** @class */ (function () {
     function Vector(defaultValue) {
         var _this = this;
-        if (defaultValue === void 0) { defaultValue = new Float32Array(0); }
+        if (defaultValue === void 0) { defaultValue = new Float64Array(0); }
         this.size = function () {
             return _this.vector.length;
         };
@@ -37,14 +37,14 @@ var Vector = /** @class */ (function () {
                 }
             }
         };
-        if (defaultValue instanceof Float32Array) {
+        if (defaultValue instanceof Float64Array) {
             this.vector = defaultValue;
         }
         else if (typeof defaultValue == "number") {
-            this.vector = new Float32Array(defaultValue);
+            this.vector = new Float64Array(defaultValue);
         }
         else {
-            this.vector = Float32Array.from(defaultValue);
+            this.vector = Float64Array.from(defaultValue);
         }
     }
     Vector.fromJsonObj = function (obj) {
@@ -60,7 +60,7 @@ var Vector = /** @class */ (function () {
         return v;
     };
     Vector.toCategorical = function (index, size) {
-        var v = new Vector(new Float32Array(size).fill(0));
+        var v = new Vector(new Float64Array(size).fill(0));
         v.set(index, 1);
         return v;
     };

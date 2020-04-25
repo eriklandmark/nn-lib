@@ -1,20 +1,20 @@
 import Dataset, {Example} from "./dataset";
-import Layer from "./lib/layers/layer";
+import Layer from "./layers/layer";
 import * as fs from "fs";
 import Matrix from "./matrix";
 import Vector from "./vector";
 import {GPU} from 'gpu.js';
 import ArrayHelper from "./helpers/array_helper";
-import {ILoss} from "./lib/losses/losses";
+import {ILoss} from "./losses/losses";
 import Tensor from "./tensor";
-import {LayerHelper} from "./lib/layers/layer_helper";
+import {LayerHelper} from "./layers/layer_helper";
 import Helper from "./helpers/helper";
-import OutputLayer from "./lib/layers/output_layer";
+import OutputLayer from "./layers/output_layer";
 import Path from "path";
 
 export interface SavedLayer {
     weights?: Float32Array[]
-    bias?: Float32Array
+    bias?: Float32Array | Float32Array[]
     shape?: number[]
     filters?: Float32Array[][][]
     nr_filters?: number
