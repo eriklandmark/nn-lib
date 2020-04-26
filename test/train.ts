@@ -9,6 +9,7 @@ import FlattenLayer from "../src/layers/flatten_layer";
 import ReLu from "../src/activations/relu";
 import CrossEntropy from "../src/losses/cross_entropy";
 import PoolingLayer from "../src/layers/pooling_layer";
+import HyperbolicTangent from "../src/activations/hyperbolic_tangent";
 
 let dataset = new Dataset();
 
@@ -20,7 +21,7 @@ let layers = [
     new PoolingLayer([2,2], [2,2]),
     new ConvolutionLayer(16, [5,5], false, new ReLu()),
     new FlattenLayer(),
-    new DenseLayer(300, new Sigmoid()),
+    new DenseLayer(300, new HyperbolicTangent()),
     new OutputLayer(10, new Softmax())
 ]
 

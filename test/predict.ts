@@ -12,7 +12,7 @@ const dataset = new Dataset();
 const MAX_EXAMPLE = 1000
 const VERBOSE = false
 
-dataset.loadMnistTest("dataset/mnist-fashion", MAX_EXAMPLE, false);
+dataset.loadMnistTrain("dataset/mnist-fashion", MAX_EXAMPLE, false);
 dataset.BATCH_SIZE = MAX_EXAMPLE
 
 let examples = dataset.getBatch(0)

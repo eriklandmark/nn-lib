@@ -183,4 +183,8 @@ export default class Vector {
         })
         return t
     }
+
+    public normalize() {
+        return this.div(this.size())
+    }
 }
