@@ -1,11 +1,11 @@
 import Vector from "./vector";
 import { KernelFunction } from "gpu.js";
 export default class Matrix {
-    matrix: Array<Float64Array>;
+    matrix: Array<Float32Array>;
     get: Function;
     set: Function;
     count: Function;
-    constructor(defaultValue?: Array<Array<number>> | Array<Float64Array> | Array<Vector>);
+    constructor(defaultValue?: Array<Array<number>> | Array<Float32Array> | Array<Vector>);
     createEmptyArray(rows: number, columns: number): void;
     dim(): {
         r: number;
@@ -16,10 +16,13 @@ export default class Matrix {
     static fromJsonObject(obj: any[]): Matrix;
     toNumberArray(): number[][];
     copy(full?: boolean): Matrix;
+    fill(scalar: number): Matrix;
     iterate(func: Function): void;
     where(scalar: number): number[];
     populateRandom(): void;
     empty(): boolean;
+    isNaN(): boolean;
+    repeat(axis?: number, times?: number): Matrix;
     static addGpu(): KernelFunction;
     static subGpu(): KernelFunction;
     static multiplyGpu(): KernelFunction;
@@ -30,6 +33,8 @@ export default class Matrix {
     sub(b: number | Matrix): Matrix;
     mul(b: number | Matrix): Matrix;
     pow(scalar: number): Matrix;
+    sqrt(): Matrix;
+    inv_el(eps?: number): Matrix;
     exp(): Matrix;
     log(): Matrix;
     sum(axis?: number, keepDims?: boolean): number | Matrix;
@@ -38,4 +43,5 @@ export default class Matrix {
     argmax(i?: number, row?: boolean): number;
     inv(): Matrix;
     rowVectors(): Vector[];
+    mean(axis?: number, keep_dims?: boolean): number | Matrix;
 }

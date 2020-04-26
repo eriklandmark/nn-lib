@@ -356,7 +356,7 @@ export default class ConvolutionLayer extends Layer {
         for(let i = 0; i < this.filters.length; i++) {
             this.filters[i] = this.filters[i].sub(this.errorFilters[i].rotate180().mul(l_rate))
         }
-        this.bias = this.bias.sub((<Vector> this.errorBias).mul(l_rate))
+        this.bias = (<Vector> this.bias).sub((<Vector> this.errorBias).mul(l_rate))
     }
 
     toSavedModel(): SavedLayer {
@@ -364,7 +364,7 @@ export default class ConvolutionLayer extends Layer {
             filters: this.filters.map((t) => t.tensor),
             nr_filters: this.nr_filters,
             filterSize: this.filterSize,
-            bias: this.bias.vector,
+            bias: (<Vector> this.bias).vector,
             shape: this.shape,
             activation: this.activationFunction.name,
             prevLayerShape: this.prevLayerShape

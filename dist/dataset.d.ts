@@ -18,7 +18,8 @@ export default class Dataset {
     vectorize_image(image: Tensor): Vector;
     loadMnistTrain(folderPath: string, maxExamples?: number, vectorize?: boolean): void;
     loadMnistTest(folderPath: string, maxExamples?: number, vectorize?: boolean): void;
+    shuffle(): void;
     private loadMnist;
     loadTestData(path: string, maxExamples?: number): void;
-    getBatch(batch: number): Array<Example>;
+    getBatch(batch: number): Example[];
 }

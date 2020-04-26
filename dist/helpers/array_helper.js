@@ -1,22 +1,38 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-var ArrayHelper = /** @class */ (function () {
-    function ArrayHelper() {
-    }
-    ArrayHelper.shuffle = function (array) {
-        var currentIndex = array.length, temporaryValue, randomIndex;
-        // While there remain elements to shuffle...
+class ArrayHelper {
+    static shuffle(array) {
+        let currentIndex = array.length, temporaryValue, randomIndex;
         while (0 !== currentIndex) {
-            // Pick a remaining element...
             randomIndex = Math.floor(Math.random() * currentIndex);
             currentIndex -= 1;
-            // And swap it with the current element.
             temporaryValue = array[currentIndex];
             array[currentIndex] = array[randomIndex];
             array[randomIndex] = temporaryValue;
         }
         return array;
-    };
-    return ArrayHelper;
-}());
+    }
+    static flatten(array) {
+        const new_array = [];
+        const flatten_rec = (a) => {
+            for (let item of a) {
+                if (Array.isArray(item)) {
+                    flatten_rec(item);
+                }
+                else {
+                    new_array.push(item);
+                }
+            }
+        };
+        flatten_rec(array);
+        return new_array;
+    }
+    static delete_doublets(array) {
+        return array.reduce((acc, el) => {
+            if (!acc.includes(el))
+                acc.push(el);
+            return acc;
+        }, []);
+    }
+}
 exports.default = ArrayHelper;

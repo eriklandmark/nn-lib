@@ -14,7 +14,7 @@ import HyperbolicTangent from "../src/activations/hyperbolic_tangent";
 let dataset = new Dataset();
 
 dataset.BATCH_SIZE = 50
-dataset.loadMnistTrain("./dataset/mnist-fashion", 1000, false)
+dataset.loadMnistTrain("./dataset/mnist-fashion", 10000, false)
 let layers = [
     new ConvolutionLayer(4, [5,5], false, new ReLu()),
     new ConvolutionLayer(8, [5,5], false, new ReLu()),
@@ -35,7 +35,7 @@ model.build([28,28,1], new CrossEntropy())
 model.summary()
 
 async function run() {
-    await model.train(dataset, 300, 0.001, true)
+    await model.train(dataset, 100, 0.001, true)
     console.log("Done")
     model.save()
     let ex = dataset.getBatch(0)[0]

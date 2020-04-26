@@ -1,7 +1,7 @@
 import Vector from "./vector";
 import Matrix from "./matrix";
 export default class Tensor {
-    tensor: Float64Array[][];
+    tensor: Float32Array[][];
     get: Function;
     set: Function;
     count: Function;
@@ -11,7 +11,7 @@ export default class Tensor {
         d: number;
     };
     shape(): number[];
-    constructor(v?: number[][][] | Float64Array[][]);
+    constructor(v?: number[][][] | Float32Array[][]);
     createEmptyArray(rows: number, columns: number, depth: number): void;
     static fromJsonObject(obj: any[][]): Tensor;
     toNumberArray(): number[][];
@@ -25,7 +25,7 @@ export default class Tensor {
     mul(val: number | Tensor): Tensor;
     sub(val: number | Tensor): Tensor;
     add(val: number | Tensor): Tensor;
-    padding(padding_height: any, padding_width: any): Tensor;
+    padding(padding_height: number, padding_width: number): Tensor;
     im2patches(patch_height: number, patch_width: number, filter_height: number, filter_width: number): Matrix;
     rotate180(): Tensor;
 }

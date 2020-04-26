@@ -1,11 +1,11 @@
 /// <reference types="node" />
 import Tensor from "./tensor";
 export default class Vector {
-    vector: Float64Array;
+    vector: Float32Array;
     size: Function;
     get: Function;
     set: Function;
-    constructor(defaultValue?: Float64Array | number[] | number);
+    constructor(defaultValue?: Float32Array | number[] | number);
     static fromJsonObj(obj: any): Vector;
     static fromBuffer(buff: Buffer): Vector;
     static toCategorical(index: number, size: number): Vector;
@@ -23,4 +23,5 @@ export default class Vector {
     mean(): number;
     argmax(): number;
     reshape(shape: number[]): Tensor;
+    normalize(): Vector;
 }

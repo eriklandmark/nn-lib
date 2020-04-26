@@ -47,7 +47,7 @@ export default class OutputLayer extends DenseLayer {
     toSavedModel(): SavedLayer {
         return {
             weights: this.weights.matrix,
-            bias: this.bias.vector,
+            bias: (<Vector>this.bias).vector,
             loss: this.lossFunction.name,
             shape: this.shape,
             activation: this.activationFunction.name

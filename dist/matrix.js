@@ -8,195 +8,187 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
         step((generator = generator.apply(thisArg, _arguments || [])).next());
     });
 };
-var __generator = (this && this.__generator) || function (thisArg, body) {
-    var _ = { label: 0, sent: function() { if (t[0] & 1) throw t[1]; return t[1]; }, trys: [], ops: [] }, f, y, t, g;
-    return g = { next: verb(0), "throw": verb(1), "return": verb(2) }, typeof Symbol === "function" && (g[Symbol.iterator] = function() { return this; }), g;
-    function verb(n) { return function (v) { return step([n, v]); }; }
-    function step(op) {
-        if (f) throw new TypeError("Generator is already executing.");
-        while (_) try {
-            if (f = 1, y && (t = op[0] & 2 ? y["return"] : op[0] ? y["throw"] || ((t = y["return"]) && t.call(y), 0) : y.next) && !(t = t.call(y, op[1])).done) return t;
-            if (y = 0, t) op = [op[0] & 2, t.value];
-            switch (op[0]) {
-                case 0: case 1: t = op; break;
-                case 4: _.label++; return { value: op[1], done: false };
-                case 5: _.label++; y = op[1]; op = [0]; continue;
-                case 7: op = _.ops.pop(); _.trys.pop(); continue;
-                default:
-                    if (!(t = _.trys, t = t.length > 0 && t[t.length - 1]) && (op[0] === 6 || op[0] === 2)) { _ = 0; continue; }
-                    if (op[0] === 3 && (!t || (op[1] > t[0] && op[1] < t[3]))) { _.label = op[1]; break; }
-                    if (op[0] === 6 && _.label < t[1]) { _.label = t[1]; t = op; break; }
-                    if (t && _.label < t[2]) { _.label = t[2]; _.ops.push(op); break; }
-                    if (t[2]) _.ops.pop();
-                    _.trys.pop(); continue;
-            }
-            op = body.call(thisArg, _);
-        } catch (e) { op = [6, e]; y = 0; } finally { f = t = 0; }
-        if (op[0] & 5) throw op[1]; return { value: op[0] ? op[1] : void 0, done: true };
-    }
-};
 var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-var vector_1 = __importDefault(require("./vector"));
-var node_worker_threads_pool_1 = require("node-worker-threads-pool");
-var Matrix = /** @class */ (function () {
-    function Matrix(defaultValue) {
-        var _this = this;
-        if (defaultValue === void 0) { defaultValue = []; }
+const vector_1 = __importDefault(require("./vector"));
+const node_worker_threads_pool_1 = require("node-worker-threads-pool");
+class Matrix {
+    constructor(defaultValue = []) {
         this.matrix = [];
-        this.get = function (i, j) {
-            return _this.matrix[i][j];
-        };
-        this.set = function (i, j, n) {
-            if (isNaN(n)) {
+        this.get = (i, j) => {
+            if (!isFinite(this.matrix[i][j])) {
                 console.trace();
-                throw "Number is NaN...";
+                throw "Getting Number " + this.matrix[i][j] + " is not finite... \n" +
+                    " Info: [" + i + "][" + j + "]";
             }
-            _this.matrix[i][j] = n;
+            return this.matrix[i][j];
         };
-        this.count = function () {
-            return _this.dim().c * _this.dim().r;
+        this.set = (i, j, n) => {
+            if (!isFinite(n)) {
+                console.trace();
+                throw "Number " + n + " is not Finite...";
+            }
+            this.matrix[i][j] = n;
         };
-        this.toString = function (max_rows, precision) {
-            if (max_rows === void 0) { max_rows = 10; }
-            if (precision === void 0) { precision = 3; }
-            if (_this.matrix.length == 0) {
+        this.count = () => {
+            return this.dim().c * this.dim().r;
+        };
+        this.toString = (max_rows = 10, precision = 3) => {
+            if (this.matrix.length == 0) {
                 return "Matrix: 0x0 []";
             }
             else {
-                return _this.matrix.slice(0, Math.min(max_rows, _this.matrix.length)).reduce(function (acc, i) {
-                    acc += i.slice(0, Math.min(max_rows, i.length)).reduce(function (s, i) {
+                return this.matrix.slice(0, Math.min(max_rows, this.matrix.length)).reduce((acc, i) => {
+                    acc += i.slice(0, Math.min(max_rows, i.length)).reduce((s, i) => {
                         s += " "; //.repeat(Math.max(maxCharCount - i.toPrecision(precision).length, 1))
-                        s += _this.numberToString(i, precision, true);
+                        s += this.numberToString(i, precision, true);
                         return s;
                     }, "    ");
                     acc += i.length > max_rows ? "  ... +" + (i.length - max_rows) + " elements\n" : "\n";
                     return acc;
-                }, "Matrix: " + _this.dim().r + "x" + _this.dim().c + " [\n") + (_this.matrix.length > max_rows ?
-                    "    ... +" + (_this.matrix.length - max_rows) + " rows \n]" : " ]");
+                }, `Matrix: ${this.dim().r}x${this.dim().c} [\n`) + (this.matrix.length > max_rows ?
+                    "    ... +" + (this.matrix.length - max_rows) + " rows \n]" : " ]");
             }
         };
-        if (defaultValue.length > 0 && defaultValue[0] instanceof Float64Array) {
+        if (defaultValue.length > 0 && defaultValue[0] instanceof Float32Array) {
             this.matrix = defaultValue;
         }
         else if (defaultValue.length > 0 && defaultValue[0] instanceof vector_1.default) {
-            var rows = defaultValue[0].size();
-            var cols = defaultValue.length;
+            const rows = defaultValue[0].size();
+            const cols = defaultValue.length;
             this.createEmptyArray(rows, cols);
-            this.iterate(function (i, j) {
-                _this.set(i, j, defaultValue[j].get(i));
+            this.iterate((i, j) => {
+                this.set(i, j, defaultValue[j].get(i));
             });
         }
         else {
-            for (var i = 0; i < defaultValue.length; i++) {
-                this.matrix.push(Float64Array.from(defaultValue[i]));
+            for (let i = 0; i < defaultValue.length; i++) {
+                this.matrix.push(Float32Array.from(defaultValue[i]));
             }
         }
     }
-    Matrix.prototype.createEmptyArray = function (rows, columns) {
-        for (var i = 0; i < rows; i++) {
-            this.matrix.push(new Float64Array(columns).fill(0));
+    createEmptyArray(rows, columns) {
+        for (let i = 0; i < rows; i++) {
+            this.matrix.push(new Float32Array(columns).fill(0));
         }
-    };
-    Matrix.prototype.dim = function () {
+    }
+    dim() {
         return { r: this.matrix.length, c: this.matrix[0] ? this.matrix[0].length : 0 };
-    };
-    Matrix.prototype.numberToString = function (nr, precision, autoFill) {
-        if (precision === void 0) { precision = 5; }
-        if (autoFill === void 0) { autoFill = false; }
-        var expStr = nr.toExponential();
+    }
+    numberToString(nr, precision = 5, autoFill = false) {
+        const expStr = nr.toExponential();
         return (+expStr.substr(0, expStr.lastIndexOf("e"))).toPrecision(precision)
             + expStr.substr(expStr.lastIndexOf("e")) +
             (autoFill ? " ".repeat(4 - expStr.substr(expStr.lastIndexOf("e")).length) : "");
-    };
-    Matrix.fromJsonObject = function (obj) {
-        return new Matrix(obj.map(function (row) {
-            return Object.keys(row).map(function (item, index) { return row[index.toString()]; });
+    }
+    static fromJsonObject(obj) {
+        return new Matrix(obj.map((row) => {
+            return Object.keys(row).map((item, index) => row[index.toString()]);
         }));
-    };
-    Matrix.prototype.toNumberArray = function () {
-        return this.matrix.map(function (floatArray) { return [].slice.call(floatArray); });
-    };
-    Matrix.prototype.copy = function (full) {
-        var _this = this;
-        if (full === void 0) { full = true; }
-        var m = new Matrix();
+    }
+    toNumberArray() {
+        return this.matrix.map((floatArray) => [].slice.call(floatArray));
+    }
+    copy(full = true) {
+        let m = new Matrix();
         m.createEmptyArray(this.dim().r, this.dim().c);
         if (full) {
-            m.iterate(function (i, j) {
-                m.set(i, j, _this.get(i, j));
+            m.iterate((i, j) => {
+                m.set(i, j, this.get(i, j));
             });
         }
         return m;
-    };
-    Matrix.prototype.iterate = function (func) {
-        for (var i = 0; i < this.dim().r; i++) {
-            for (var j = 0; j < this.dim().c; j++) {
+    }
+    fill(scalar) {
+        const m = this.copy(false);
+        for (let i = 0; i < this.dim().r; i++) {
+            m.matrix[i] = new Float32Array(this.dim().c).fill(scalar);
+        }
+        return m;
+    }
+    iterate(func) {
+        for (let i = 0; i < this.dim().r; i++) {
+            for (let j = 0; j < this.dim().c; j++) {
                 func(i, j);
             }
         }
-    };
-    Matrix.prototype.where = function (scalar) {
-        var _this = this;
-        this.iterate(function (i, j) {
-            if (_this.get(i, j) == scalar) {
+    }
+    where(scalar) {
+        this.iterate((i, j) => {
+            if (this.get(i, j) == scalar) {
                 return [i, j];
             }
         });
         return [-1, -1];
-    };
-    Matrix.prototype.populateRandom = function () {
-        var _this = this;
-        this.iterate(function (i, j) {
-            _this.set(i, j, Math.random() * 2 - 1);
+    }
+    populateRandom() {
+        this.iterate((i, j) => {
+            this.set(i, j, Math.random() * 2 - 1);
         });
-    };
-    Matrix.prototype.empty = function () {
+    }
+    empty() {
         return this.dim().c == 0 || this.dim().r == 0;
-    };
-    Matrix.addGpu = function () {
+    }
+    isNaN() {
+        for (let i = 0; i < this.dim().r; i++) {
+            for (let j = 0; j < this.dim().c; j++) {
+                if (isNaN(this.matrix[i][j]) || this.matrix[i][j] != this.matrix[i][j] ||
+                    !isFinite(this.matrix[i][j])) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+    repeat(axis = 0, times = 1) {
+        if (axis == 0) {
+            const m = new Matrix();
+            m.createEmptyArray(times, this.dim().c);
+            m.matrix.fill(this.matrix[0]);
+            return m;
+        }
+    }
+    static addGpu() {
         return function add(a, b) {
             //@ts-ignore
             return a + b;
         };
-    };
-    Matrix.subGpu = function () {
+    }
+    static subGpu() {
         return function sub(a, b) {
             //@ts-ignore
             return a - b;
         };
-    };
-    Matrix.multiplyGpu = function () {
+    }
+    static multiplyGpu() {
         return function multiply(a, b) {
             //@ts-ignore
             return a * b;
         };
-    };
-    Matrix.mmGpu = function () {
+    }
+    static mmGpu() {
         return function mm(a, b) {
-            var sum = 0;
+            let sum = 0;
             //@ts-ignore
-            for (var i = 0; i < a[0].length; i++) {
+            for (let i = 0; i < a[0].length; i++) {
                 //@ts-ignore
                 sum += a[this.thread.y][i] * b[i][this.thread.x];
             }
             return sum;
         };
-    };
-    Matrix.prototype.mm = function (b, gpu) {
-        var _this = this;
-        if (gpu === void 0) { gpu = false; }
+    }
+    mm(b, gpu = false) {
         if (b instanceof vector_1.default) {
-            var v_1 = b;
-            if (v_1.size() != this.dim().c) {
+            const v = b;
+            if (v.size() != this.dim().c) {
                 console.trace();
                 throw "Matrix Multiplication (Vector): Wrong dimension..";
             }
-            var c = new vector_1.default(this.dim().r);
-            for (var i = 0; i < this.dim().r; i++) {
-                c.set(i, this.matrix[i].reduce(function (acc, val, k) { return acc + (val * v_1.get(k)); }, 0));
+            const c = new vector_1.default(this.dim().r);
+            for (let i = 0; i < this.dim().r; i++) {
+                c.set(i, this.matrix[i].reduce((acc, val, k) => acc + (val * v.get(k)), 0));
             }
             return c;
         }
@@ -205,263 +197,243 @@ var Matrix = /** @class */ (function () {
                 console.trace();
                 throw "Matrix Multiplication (Matrix): Wrong dimension..";
             }
-            var m_1 = b;
-            var c_1 = new Matrix();
-            c_1.createEmptyArray(this.dim().r, m_1.dim().c);
-            c_1.iterate(function (i, j) {
-                c_1.set(i, j, _this.matrix[i].reduce(function (acc, val, k) { return acc + (val * m_1.get(k, j)); }, 0));
+            const m = b;
+            let c = new Matrix();
+            c.createEmptyArray(this.dim().r, m.dim().c);
+            c.iterate((i, j) => {
+                c.set(i, j, this.matrix[i].reduce((acc, val, k) => acc + (val * m.get(k, j)), 0));
             });
-            return c_1;
+            return c;
         }
-    };
-    Matrix.prototype.mmAsync = function (b) {
-        return __awaiter(this, void 0, void 0, function () {
-            var _this = this;
-            return __generator(this, function (_a) {
-                return [2 /*return*/, new Promise(function (resolve, reject) { return __awaiter(_this, void 0, void 0, function () {
-                        var c, i, c_2, pool_1;
-                        var _this = this;
-                        return __generator(this, function (_a) {
-                            switch (_a.label) {
-                                case 0:
-                                    if (!(b instanceof vector_1.default)) return [3 /*break*/, 1];
-                                    if (b.size() != this.dim().c) {
-                                        reject("Matrix Multiplication (Vector): Wrong dimension..");
-                                    }
-                                    c = new vector_1.default(this.dim().r);
-                                    for (i = 0; i < this.dim().r; i++) {
-                                        c.set(i, this.matrix[i].reduce(function (acc, val, k) { return acc + (val * b.get(k)); }, 0));
-                                    }
-                                    resolve(c);
-                                    return [3 /*break*/, 3];
-                                case 1:
-                                    if (!(b instanceof Matrix)) return [3 /*break*/, 3];
-                                    if (b.dim().r != this.dim().c)
-                                        reject("Matrix Multiplication (Matrix): Wrong dimension..");
-                                    c_2 = new Matrix();
-                                    c_2.createEmptyArray(this.dim().r, b.dim().c);
-                                    pool_1 = new node_worker_threads_pool_1.StaticPool({
-                                        size: Math.min(c_2.dim().r, 5),
-                                        task: function (row) {
-                                            var _a = this.workerData, matrix = _a.matrix, bMatrix = _a.bMatrix;
-                                            var result = (new Float64Array(bMatrix[0].length)).map(function (_, col) {
-                                                return matrix[row].reduce(function (acc, val, k) { return acc + (val * bMatrix[k][col]); }, 0);
-                                            });
-                                            return { i: row, v: result };
-                                        },
-                                        workerData: { matrix: this.matrix, bMatrix: b.matrix }
-                                    });
-                                    return [4 /*yield*/, (function () { return __awaiter(_this, void 0, void 0, function () {
-                                            var row, _a, i, v, col;
-                                            return __generator(this, function (_b) {
-                                                switch (_b.label) {
-                                                    case 0:
-                                                        row = 0;
-                                                        _b.label = 1;
-                                                    case 1:
-                                                        if (!(row < c_2.dim().r)) return [3 /*break*/, 4];
-                                                        return [4 /*yield*/, pool_1.exec(row)];
-                                                    case 2:
-                                                        _a = _b.sent(), i = _a.i, v = _a.v;
-                                                        for (col = 0; col < v.length; col++) {
-                                                            c_2.set(i, col, v[col]);
-                                                        }
-                                                        _b.label = 3;
-                                                    case 3:
-                                                        row++;
-                                                        return [3 /*break*/, 1];
-                                                    case 4: return [2 /*return*/];
-                                                }
-                                            });
-                                        }); })()];
-                                case 2:
-                                    _a.sent();
-                                    resolve(c_2);
-                                    _a.label = 3;
-                                case 3: return [2 /*return*/];
+    }
+    mmAsync(b) {
+        return __awaiter(this, void 0, void 0, function* () {
+            return new Promise((resolve, reject) => __awaiter(this, void 0, void 0, function* () {
+                if (b instanceof vector_1.default) {
+                    if (b.size() != this.dim().c) {
+                        reject("Matrix Multiplication (Vector): Wrong dimension..");
+                    }
+                    const c = new vector_1.default(this.dim().r);
+                    for (let i = 0; i < this.dim().r; i++) {
+                        c.set(i, this.matrix[i].reduce((acc, val, k) => acc + (val * b.get(k)), 0));
+                    }
+                    resolve(c);
+                }
+                else if (b instanceof Matrix) {
+                    if (b.dim().r != this.dim().c)
+                        reject("Matrix Multiplication (Matrix): Wrong dimension..");
+                    let c = new Matrix();
+                    c.createEmptyArray(this.dim().r, b.dim().c);
+                    const pool = new node_worker_threads_pool_1.StaticPool({
+                        size: Math.min(c.dim().r, 5),
+                        task: function (row) {
+                            const { matrix, bMatrix } = this.workerData;
+                            let result = (new Float32Array(bMatrix[0].length)).map((_, col) => {
+                                return matrix[row].reduce((acc, val, k) => acc + (val * bMatrix[k][col]), 0);
+                            });
+                            return { i: row, v: result };
+                        },
+                        workerData: { matrix: this.matrix, bMatrix: b.matrix }
+                    });
+                    yield (() => __awaiter(this, void 0, void 0, function* () {
+                        for (let row = 0; row < c.dim().r; row++) {
+                            const { i, v } = yield pool.exec(row);
+                            for (let col = 0; col < v.length; col++) {
+                                c.set(i, col, v[col]);
                             }
-                        });
-                    }); })];
-            });
+                        }
+                    }))();
+                    resolve(c);
+                }
+            }));
         });
-    };
-    Matrix.prototype.add = function (b) {
-        var m = this.copy();
+    }
+    add(b) {
+        let m = this.copy(false);
         if (b instanceof Matrix) {
             if (b.dim().r != this.dim().r || b.dim().c != this.dim().c) {
                 console.trace();
                 throw "Matrix Addition: Not the same dimension";
             }
-            this.iterate(function (i, j) {
-                m.set(i, j, m.get(i, j) + b.get(i, j));
+            this.iterate((i, j) => {
+                m.set(i, j, this.get(i, j) + b.get(i, j));
             });
             return m;
         }
         else {
-            var scalar_1 = b;
-            this.iterate(function (i, j) {
-                m.set(i, j, m.get(i, j) + scalar_1);
+            let scalar = b;
+            this.iterate((i, j) => {
+                m.set(i, j, this.get(i, j) + scalar);
             });
             return m;
         }
-    };
-    Matrix.prototype.sub = function (b) {
-        var m = this.copy();
+    }
+    sub(b) {
+        let m = this.copy(false);
         if (b instanceof Matrix) {
             if (b.dim().r != m.dim().r || b.dim().c != m.dim().c) {
                 console.trace();
                 throw "Matrix Subtraction: Not the same dimension";
             }
-            this.iterate(function (i, j) {
-                m.set(i, j, m.get(i, j) - b.get(i, j));
+            this.iterate((i, j) => {
+                m.set(i, j, this.get(i, j) - b.get(i, j));
             });
             return m;
         }
         else {
-            var scalar_2 = b;
-            this.iterate(function (i, j) {
-                m.set(i, j, m.get(i, j) - scalar_2);
+            let scalar = b;
+            this.iterate((i, j) => {
+                m.set(i, j, this.get(i, j) - scalar);
             });
             return m;
         }
-    };
-    Matrix.prototype.mul = function (b) {
-        var m = this.copy();
+    }
+    mul(b) {
+        let m = this.copy(false);
         if (b instanceof Matrix) {
-            if (b.dim().r != m.dim().r || b.dim().c != m.dim().c)
+            if (b.dim().r != m.dim().r || b.dim().c != m.dim().c) {
+                console.trace();
                 throw "Matrix mult: Not the same dimension";
-            this.iterate(function (i, j) {
-                m.set(i, j, m.get(i, j) * b.get(i, j));
+            }
+            this.iterate((i, j) => {
+                m.set(i, j, this.get(i, j) * b.get(i, j));
             });
         }
         else {
-            this.iterate(function (i, j) {
-                m.set(i, j, m.get(i, j) * b);
+            this.iterate((i, j) => {
+                m.set(i, j, this.get(i, j) * b);
             });
         }
         return m;
-    };
-    Matrix.prototype.pow = function (scalar) {
-        var m = this.copy();
-        this.iterate(function (i, j) {
-            m.set(i, j, Math.pow(m.get(i, j), scalar));
+    }
+    pow(scalar) {
+        let m = this.copy(false);
+        this.iterate((i, j) => {
+            m.set(i, j, Math.pow(this.get(i, j), scalar));
         });
         return m;
-    };
-    Matrix.prototype.exp = function () {
-        var m = this.copy();
-        this.iterate(function (i, j) {
-            m.set(i, j, Math.exp(m.get(i, j)));
+    }
+    sqrt() {
+        let m = this.copy(false);
+        this.iterate((i, j) => {
+            m.set(i, j, Math.sqrt(this.get(i, j)));
         });
         return m;
-    };
-    Matrix.prototype.log = function () {
-        var m = this.copy();
-        this.iterate(function (i, j) {
+    }
+    inv_el(eps = Math.pow(10, -7)) {
+        let m = this.copy(false);
+        this.iterate((i, j) => {
+            m.set(i, j, this.get(i, j) == 0 ? 1 / (this.get(i, j) + eps) : 1 / this.get(i, j));
+        });
+        return m;
+    }
+    exp() {
+        let m = this.copy(false);
+        this.iterate((i, j) => {
+            m.set(i, j, Math.exp(this.get(i, j)));
+        });
+        return m;
+    }
+    log() {
+        let m = this.copy();
+        this.iterate((i, j) => {
             m.set(i, j, Math.log(m.get(i, j)));
         });
         return m;
-    };
-    Matrix.prototype.sum = function (axis, keepDims) {
-        var _this = this;
-        if (axis === void 0) { axis = -1; }
-        if (keepDims === void 0) { keepDims = false; }
+    }
+    sum(axis = -1, keepDims = false) {
         if (keepDims) {
-            var m_2 = this.copy();
+            let m = this.copy();
             if (axis == 1) {
-                m_2.matrix.forEach(function (arr, i) {
-                    var sum = arr.reduce(function (acc, val) { return acc + val; }, 0);
-                    arr.forEach(function (val, j) { return m_2.set(i, j, sum); });
+                m.matrix.forEach((arr, i) => {
+                    const sum = arr.reduce((acc, val) => acc + val, 0);
+                    arr.forEach((val, j) => m.set(i, j, sum));
                 });
             }
             else if (axis == 0) {
-                for (var j = 0; j < this.dim().c; j++) {
-                    var sum = 0;
-                    for (var i = 0; i < this.dim().r; i++) {
+                for (let j = 0; j < this.dim().c; j++) {
+                    let sum = 0;
+                    for (let i = 0; i < this.dim().r; i++) {
                         sum += this.get(i, j);
                     }
-                    for (var i = 0; i < this.dim().r; i++) {
-                        m_2.set(i, j, sum);
+                    for (let i = 0; i < this.dim().r; i++) {
+                        m.set(i, j, sum);
                     }
                 }
             }
             else if (axis == -1) {
-                var sum_1 = m_2.matrix.reduce(function (acc, val) {
-                    acc += val.reduce(function (acc, val) { return acc + val; }, 0);
+                const sum = m.matrix.reduce((acc, val) => {
+                    acc += val.reduce((acc, val) => acc + val, 0);
                     return acc;
                 }, 0);
-                this.iterate(function (i, j) {
-                    m_2.set(i, j, sum_1);
+                this.iterate((i, j) => {
+                    m.set(i, j, sum);
                 });
             }
             else if (axis == 2) {
                 return this.copy();
             }
-            return m_2;
+            return m;
         }
         else {
             if (axis == -1) {
-                return this.matrix.reduce(function (acc, val) {
-                    acc += val.reduce(function (acc, val) { return acc + val; }, 0);
+                return this.matrix.reduce((acc, val) => {
+                    acc += val.reduce((acc, val) => acc + val, 0);
                     return acc;
                 }, 0);
             }
             else if (axis == 0) {
-                var m_3 = new Matrix();
-                m_3.createEmptyArray(1, this.dim().c);
-                this.iterate(function (i, j) {
-                    m_3.set(0, j, _this.get(i, j) + m_3.get(0, j));
+                let m = new Matrix();
+                m.createEmptyArray(1, this.dim().c);
+                this.iterate((i, j) => {
+                    m.set(0, j, this.get(i, j) + m.get(0, j));
                 });
-                return m_3;
+                return m;
             }
             else if (axis == 1) {
-                var m_4 = new Matrix();
-                m_4.createEmptyArray(this.dim().r, 1);
-                this.matrix.forEach(function (arr, i) {
-                    var sum = arr.reduce(function (acc, val) { return acc + val; }, 0);
-                    m_4.set(i, 0, sum);
+                let m = new Matrix();
+                m.createEmptyArray(this.dim().r, 1);
+                this.matrix.forEach((arr, i) => {
+                    const sum = arr.reduce((acc, val) => acc + val, 0);
+                    m.set(i, 0, sum);
                 });
-                return m_4;
+                return m;
             }
             else if (axis == 2) {
                 return this.copy();
             }
             return 0;
         }
-    };
-    Matrix.prototype.div = function (scalar) {
-        var m = this.copy();
+    }
+    div(scalar) {
+        let m = this.copy(false);
         if (scalar instanceof Matrix) {
-            this.iterate(function (i, j) {
-                m.set(i, j, m.get(i, j) / scalar.get(i, j));
+            this.iterate((i, j) => {
+                m.set(i, j, this.get(i, j) / scalar.get(i, j));
             });
         }
         else {
-            this.iterate(function (i, j) {
-                m.set(i, j, m.get(i, j) / scalar);
+            this.iterate((i, j) => {
+                m.set(i, j, this.get(i, j) / scalar);
             });
         }
         return m;
-    };
-    Matrix.prototype.transpose = function () {
-        var _this = this;
-        var m = new Matrix();
+    }
+    transpose() {
+        let m = new Matrix();
         m.createEmptyArray(this.dim().c, this.dim().r);
-        this.iterate(function (i, j) {
-            m.set(j, i, _this.get(i, j));
+        this.iterate((i, j) => {
+            m.set(j, i, this.get(i, j));
         });
         return m;
-    };
-    Matrix.prototype.argmax = function (i, row) {
-        var _this = this;
-        if (i === void 0) { i = -1; }
-        if (row === void 0) { row = true; }
+    }
+    argmax(i = -1, row = true) {
         if (row) {
             if (i < 0) {
                 return 0;
             }
             else {
-                return this.matrix[i].reduce(function (acc, va, ind) { return va > _this.get(i, acc) ? ind : acc; }, 0);
+                return this.matrix[i].reduce((acc, va, ind) => va > this.get(i, acc) ? ind : acc, 0);
             }
         }
         else {
@@ -469,8 +441,8 @@ var Matrix = /** @class */ (function () {
                 return 0;
             }
             else {
-                var maxIndex = 0;
-                for (var j = 0; j < this.dim().r; j++) {
+                let maxIndex = 0;
+                for (let j = 0; j < this.dim().r; j++) {
                     if (Math.abs(this.get(j, i)) > Math.abs(this.get(maxIndex, i))) {
                         maxIndex = j;
                     }
@@ -478,8 +450,8 @@ var Matrix = /** @class */ (function () {
                 return maxIndex;
             }
         }
-    };
-    Matrix.prototype.inv = function () {
+    }
+    inv() {
         if (this.dim().c == 1 && this.dim().c == 1) {
             return new Matrix([[1 / this.get(0, 0)]]);
         }
@@ -489,10 +461,17 @@ var Matrix = /** @class */ (function () {
                 [-this.get(1, 0), this.get(0, 0)]
             ]).mul(1 / ((this.get(0, 0) * this.get(1, 1)) - (this.get(0, 1) * this.get(1, 0))));
         }
-    };
-    Matrix.prototype.rowVectors = function () {
-        return this.matrix.map(function (row) { return new vector_1.default(row); });
-    };
-    return Matrix;
-}());
+    }
+    rowVectors() {
+        return this.matrix.map((row) => new vector_1.default(row));
+    }
+    mean(axis = -1, keep_dims = false) {
+        if (axis == -1) {
+            return this.sum(-1, false) / this.count();
+        }
+        else if (axis == 0 || axis == 1) {
+            return this.sum(axis, keep_dims).div(axis == 0 ? this.dim().r : this.dim().c);
+        }
+    }
+}
 exports.default = Matrix;

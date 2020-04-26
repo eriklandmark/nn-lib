@@ -3,181 +3,178 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-var tensor_1 = __importDefault(require("./tensor"));
-var Vector = /** @class */ (function () {
-    function Vector(defaultValue) {
-        var _this = this;
-        if (defaultValue === void 0) { defaultValue = new Float64Array(0); }
-        this.size = function () {
-            return _this.vector.length;
+const tensor_1 = __importDefault(require("./tensor"));
+class Vector {
+    constructor(defaultValue = new Float32Array(0)) {
+        this.size = () => {
+            return this.vector.length;
         };
-        this.get = function (i) {
-            return _this.vector[i];
+        this.get = (i) => {
+            return this.vector[i];
         };
-        this.set = function (i, n) {
-            _this.vector[i] = n;
+        this.set = (i, n) => {
+            this.vector[i] = n;
         };
-        this.toString = function (vertical) {
-            if (vertical === void 0) { vertical = true; }
-            if (_this.vector.length == 0) {
+        this.toString = (vertical = true) => {
+            if (this.vector.length == 0) {
                 return "Vector: []";
             }
             else {
                 if (vertical) {
-                    return _this.vector.reduce(function (acc, i) {
-                        acc += "    " + i + "\n";
+                    return this.vector.reduce((acc, i) => {
+                        acc += `    ${i}\n`;
                         return acc;
-                    }, "Vector: [\n") + " ]";
+                    }, `Vector: [\n`) + " ]";
                 }
                 else {
-                    return _this.vector.reduce(function (acc, v) {
+                    return this.vector.reduce((acc, v) => {
                         acc += v.toString() + " ";
                         return acc;
                     }, "Vector: [ ") + "]";
                 }
             }
         };
-        if (defaultValue instanceof Float64Array) {
+        if (defaultValue instanceof Float32Array) {
             this.vector = defaultValue;
         }
         else if (typeof defaultValue == "number") {
-            this.vector = new Float64Array(defaultValue);
+            this.vector = new Float32Array(defaultValue);
         }
         else {
-            this.vector = Float64Array.from(defaultValue);
+            this.vector = Float32Array.from(defaultValue);
         }
     }
-    Vector.fromJsonObj = function (obj) {
-        return new Vector(Object.keys(obj).map(function (item, index) {
+    static fromJsonObj(obj) {
+        return new Vector(Object.keys(obj).map((item, index) => {
             return obj[index.toString()];
         }));
-    };
-    Vector.fromBuffer = function (buff) {
-        var v = new Vector(buff.length);
-        for (var i = 0; i < v.size(); i++) {
+    }
+    static fromBuffer(buff) {
+        let v = new Vector(buff.length);
+        for (let i = 0; i < v.size(); i++) {
             v.set(i, buff[i]);
         }
         return v;
-    };
-    Vector.toCategorical = function (index, size) {
-        var v = new Vector(new Float64Array(size).fill(0));
+    }
+    static toCategorical(index, size) {
+        const v = new Vector(new Float32Array(size).fill(0));
         v.set(index, 1);
         return v;
-    };
-    Vector.prototype.toNumberArray = function () {
+    }
+    toNumberArray() {
         return [].slice.call(this.vector);
-    };
-    Vector.prototype.populateRandom = function () {
-        var _this = this;
-        this.iterate(function (_, index) {
-            _this.set(index, Math.random() * 2 - 1);
+    }
+    populateRandom() {
+        this.iterate((_, index) => {
+            this.set(index, Math.random() * 2 - 1);
         });
-    };
-    Vector.prototype.iterate = function (func) {
-        this.vector.forEach(function (value, index) {
+    }
+    iterate(func) {
+        this.vector.forEach((value, index) => {
             func(value, index);
         });
-    };
-    Vector.prototype.add = function (b) {
-        var v = new Vector(this.size());
+    }
+    add(b) {
+        let v = new Vector(this.size());
         if (b instanceof Vector) {
             if (b.size() != this.size())
                 throw "Vectors to add aren't the same size..";
-            this.iterate(function (val, i) {
+            this.iterate((val, i) => {
                 v.set(i, val + b.get(i));
             });
             return v;
         }
         else {
-            var scalar_1 = b;
-            this.iterate(function (val, i) {
-                v.set(i, val + scalar_1);
+            let scalar = b;
+            this.iterate((val, i) => {
+                v.set(i, val + scalar);
             });
             return v;
         }
-    };
-    Vector.prototype.sub = function (b) {
-        var v = new Vector(this.size());
+    }
+    sub(b) {
+        let v = new Vector(this.size());
         if (b instanceof Vector) {
             if (b.size() != this.size())
                 throw "Vectors to subtract aren't the same size..";
-            this.iterate(function (val, i) {
+            this.iterate((val, i) => {
                 v.set(i, val - b.get(i));
             });
             return v;
         }
         else {
-            var scalar_2 = b;
-            this.iterate(function (val, i) {
-                v.set(i, val - scalar_2);
+            let scalar = b;
+            this.iterate((val, i) => {
+                v.set(i, val - scalar);
             });
             return v;
         }
-    };
-    Vector.prototype.mul = function (input) {
-        var v = new Vector(this.size());
+    }
+    mul(input) {
+        let v = new Vector(this.size());
         if (input instanceof Vector) {
             if (input.size() != this.size()) {
                 console.trace();
                 throw "Vectors to multiply aren't the same size..";
             }
-            this.iterate(function (val, i) {
+            this.iterate((val, i) => {
                 v.set(i, val * input.get(i));
             });
         }
         else {
-            this.iterate(function (val, i) {
+            this.iterate((val, i) => {
                 v.set(i, val * input);
             });
         }
         return v;
-    };
-    Vector.prototype.div = function (scalar) {
-        var v = new Vector(this.size());
-        this.iterate(function (val, i) {
+    }
+    div(scalar) {
+        let v = new Vector(this.size());
+        this.iterate((val, i) => {
             v.set(i, val / scalar);
         });
         return v;
-    };
-    Vector.prototype.pow = function (scalar) {
-        var v = new Vector(this.size());
-        this.iterate(function (val, i) {
+    }
+    pow(scalar) {
+        let v = new Vector(this.size());
+        this.iterate((val, i) => {
             v.set(i, Math.pow(val, scalar));
         });
         return v;
-    };
-    Vector.prototype.exp = function () {
-        var v = new Vector(this.size());
-        this.iterate(function (val, i) {
+    }
+    exp() {
+        let v = new Vector(this.size());
+        this.iterate((val, i) => {
             v.set(i, Math.exp(val));
         });
         return v;
-    };
-    Vector.prototype.sum = function () {
-        return this.vector.reduce(function (acc, val) { return acc + val; });
-    };
-    Vector.prototype.mean = function () {
+    }
+    sum() {
+        return this.vector.reduce((acc, val) => acc + val);
+    }
+    mean() {
         return this.sum() / this.size();
-    };
-    Vector.prototype.argmax = function () {
-        var _this = this;
-        return this.vector.reduce(function (acc, va, ind) { return va > _this.get(acc) ? ind : acc; }, 0);
-    };
-    Vector.prototype.reshape = function (shape) {
-        if (this.size() != shape.reduce(function (acc, n) { return acc * n; }, 1)) {
+    }
+    argmax() {
+        return this.vector.reduce((acc, va, ind) => va > this.get(acc) ? ind : acc, 0);
+    }
+    reshape(shape) {
+        if (this.size() != shape.reduce((acc, n) => acc * n, 1)) {
             throw "Product of shape must be the same as size of vector!";
         }
-        var t = new tensor_1.default();
+        const t = new tensor_1.default();
         t.createEmptyArray(shape[0], shape[1], shape[2]);
-        var h = shape[0], w = shape[1], d = shape[2];
-        this.iterate(function (val, i) {
-            var r = Math.floor(i / (w * d));
-            var c = Math.floor(i / (d) - (r * w));
-            var g = Math.floor(i - (c * d) - (r * w * d));
+        let [h, w, d] = shape;
+        this.iterate((val, i) => {
+            const r = Math.floor(i / (w * d));
+            const c = Math.floor(i / (d) - (r * w));
+            const g = Math.floor(i - (c * d) - (r * w * d));
             t.set(r, c, g, val);
         });
         return t;
-    };
-    return Vector;
-}());
+    }
+    normalize() {
+        return this.div(this.size());
+    }
+}
 exports.default = Vector;
