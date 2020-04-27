@@ -5,6 +5,7 @@ import Jimp from 'jimp';
 import Tensor from "./tensor";
 import Matrix from "./matrix";
 import ArrayHelper from "./helpers/array_helper";
+import cliProgress from "cli-progress"
 
 export interface Example {
     data: Vector | Matrix | Tensor,
@@ -14,6 +15,7 @@ export interface Example {
 export default class Dataset {
     private data: Array<Example> = []
 
+    public VERBOSE = true
     public BATCH_SIZE = 1;
     public IS_GENERATOR = false;
     public TOTAL_EXAMPLES = 0;
@@ -69,6 +71,19 @@ export default class Dataset {
     private loadMnist(folderPath: string, imageFileName: string, labelFileName: string, maxExamples: number, vectorize: boolean) {
         const trainFileBuffer = fs.readFileSync(path.join(folderPath + "/" + imageFileName));
         const labelFileBuffer = fs.readFileSync(path.join(folderPath + "/" + labelFileName));
+        if(this.VERBOSE) {
+
+        }
+        const bar = new cliProgress.Bar({
+            barCompleteChar: '#',
+            barIncompleteChar: '_',
+            format:'Loading.. |' + '{bar}' + '| {percentage}% | {value}/{total}',
+            fps: 10,
+            stream: process.stdout,
+            barsize: 30
+        });
+
+        bar.start(maxExamples, 0)
 
         for (let imageIndex = 0; imageIndex < maxExamples; imageIndex++) {
             const image: Tensor = new Tensor()
@@ -105,7 +120,9 @@ export default class Dataset {
             };
 
             this.data.push(example);
+            bar.increment();
         }
+        bar.stop()
     }
 
     public loadTestData(path: string, maxExamples: number = 2100) {

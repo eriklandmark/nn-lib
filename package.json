@@ -1,12 +1,12 @@
 {
   "name": "nn-lib",
-  "version": "1.2.0",
+  "version": "1.2.1",
   "description": "A minimal and very lightweight neural network library.",
   "main": "dist/main.js",
   "scripts": {
     "system-check": "ts-node-dev test/system_check.ts",
     "test": "ts-node-dev test/test.ts",
-    "train": "ts-node-dev src/train.ts",
+    "train": "ts-node-dev test/train.ts",
     "predict": "ts-node-dev test/predict.ts",
     "build": "tsc -p tsconfig.json",
     "build-native": "node-gyp rebuild",
@@ -30,6 +30,7 @@
   "dependencies": {
     "@types/node": "^13.7.1",
     "apollo-server": "^2.12.0",
+    "cli-progress": "^3.8.0",
     "express": "^4.17.1",
     "gpu.js": "^2.6.9",
     "graphql": "^15.0.0",

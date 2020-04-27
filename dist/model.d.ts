@@ -25,6 +25,7 @@ interface ModelSettings {
     BACKLOG: boolean;
     SAVE_CHECKPOINTS: boolean;
     MODEL_SAVE_PATH: string;
+    VERBOSE_COMPACT: boolean;
 }
 export interface BacklogData {
     actual_duration: number;

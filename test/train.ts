@@ -14,7 +14,7 @@ import HyperbolicTangent from "../src/activations/hyperbolic_tangent";
 let dataset = new Dataset();
 
 dataset.BATCH_SIZE = 50
-dataset.loadMnistTrain("./dataset/mnist-fashion", 10000, false)
+dataset.loadMnistTrain("./dataset/mnist-fashion", 100, false)
 let layers = [
     new ConvolutionLayer(4, [5,5], false, new ReLu()),
     new ConvolutionLayer(8, [5,5], false, new ReLu()),

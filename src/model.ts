@@ -11,6 +11,7 @@ import {LayerHelper} from "./layers/layer_helper";
 import Helper from "./helpers/helper";
 import OutputLayer from "./layers/output_layer";
 import Path from "path";
+import cliProgress from "cli-progress";
 
 export interface SavedLayer {
     weights?: Float32Array[]
@@ -32,7 +33,8 @@ interface ModelSettings {
     USE_GPU: boolean,
     BACKLOG: boolean,
     SAVE_CHECKPOINTS: boolean,
-    MODEL_SAVE_PATH: string
+    MODEL_SAVE_PATH: string,
+    VERBOSE_COMPACT: boolean
 }
 
 export interface BacklogData {
@@ -60,7 +62,8 @@ export default class Model {
         USE_GPU: false,
         BACKLOG: true,
         SAVE_CHECKPOINTS: false,
-        MODEL_SAVE_PATH: ""
+        MODEL_SAVE_PATH: "",
+        VERBOSE_COMPACT: true
     }
     model_data: {
         input_shape: number[],
@@ -226,6 +229,7 @@ export default class Model {
                 const batch_count = Math.floor(data.size() / data.BATCH_SIZE)
 
                 for (let epoch = 1; epoch <= epochs; epoch++) {
+                    console.log("----------------")
                     console.log("Starting Epoch:", epoch, "/", epochs)
                     if (shuffle) {
                         data.shuffle()
@@ -238,6 +242,24 @@ export default class Model {
                         actual_duration: 0
                     }
                     const epoch_startTime =  Date.now()
+
+                    const bar = new cliProgress.Bar({
+                        barCompleteChar: '#',
+                        barIncompleteChar: '-',
+                        format:'Batch: {value}/{total} [' + '{bar}' + '] {percentage}% | loss: {loss} | acc: {acc} | Time (TOT/AVG): {time_tot} / {time_avg}',
+                        fps: 10,
+                        stream: process.stdout,
+                        barsize: 15
+                    });
+
+                    if(this.settings.VERBOSE_COMPACT) {
+                        bar.start(batch_count, 0, {
+                            acc: (0).toPrecision(3),
+                            time_tot: (0).toPrecision(5),
+                            time_avg: (0).toPrecision(5),
+                            loss: (0).toPrecision(5)
+                        })
+                    }
 
                     for (let batch_id = 0; batch_id < batch_count; batch_id++) {
                         let batch: Example[] = data.getBatch(batch_id)
@@ -266,15 +288,27 @@ export default class Model {
                         this.backlog["epoch_" + epoch] = epoch_data
                         this.saveBacklog()
 
-                        console.log("Batch:", (batch_id + 1), "/", batch_count,
-                            "Loss =", b_loss,", Acc = ", b_acc , "| Time:", seconds, "seconds")
+                        if (this.settings.VERBOSE_COMPACT) {
+                            bar.increment(1, {
+                                acc: (epoch_data.total_accuracy/(batch_id + 1)).toPrecision(3),
+                                time_tot: epoch_data.calculated_duration.toPrecision(5),
+                                time_avg: (epoch_data.calculated_duration/(batch_id + 1)).toPrecision(4),
+                                loss: (epoch_data.total_loss/(batch_id + 1)).toPrecision(5)
+                            })
+                        } else {
+                            console.log("Batch:", (batch_id + 1), "/", batch_count,
+                                "Loss =", b_loss,", Acc = ", b_acc , "| Time:", seconds, "seconds")
+                        }
                     }
+                    bar.stop()
 
                     epoch_data.actual_duration = (Date.now() - epoch_startTime) / 1000
                     this.backlog.epochs["epoch_" + epoch] = epoch_data
-                    console.log("Loss: TOT", epoch_data.total_loss,"AVG",epoch_data.total_loss / batch_count,
-                        "| Accuracy:", epoch_data.total_accuracy / batch_count,
-                        "| Total time:", epoch_data.actual_duration, "/", epoch_data.calculated_duration)
+                    console.log("Loss: TOT", epoch_data.total_loss.toPrecision(5),
+                        "AVG",(epoch_data.total_loss / batch_count).toPrecision(5),
+                        "| Accuracy:", (epoch_data.total_accuracy / batch_count).toPrecision(3),
+                        "| Total time:", epoch_data.actual_duration.toPrecision(5), "/",
+                        epoch_data.calculated_duration.toPrecision(4))
                     this.saveBacklog()
                     this.model_data.last_epoch = epoch
                     if (this.settings.SAVE_CHECKPOINTS) {

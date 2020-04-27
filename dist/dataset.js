@@ -25,9 +25,11 @@ const path = __importStar(require("path"));
 const jimp_1 = __importDefault(require("jimp"));
 const tensor_1 = __importDefault(require("./tensor"));
 const array_helper_1 = __importDefault(require("./helpers/array_helper"));
+const cli_progress_1 = __importDefault(require("cli-progress"));
 class Dataset {
     constructor() {
         this.data = [];
+        this.VERBOSE = true;
         this.BATCH_SIZE = 1;
         this.IS_GENERATOR = false;
         this.TOTAL_EXAMPLES = 0;
@@ -77,6 +79,17 @@ class Dataset {
     loadMnist(folderPath, imageFileName, labelFileName, maxExamples, vectorize) {
         const trainFileBuffer = fs.readFileSync(path.join(folderPath + "/" + imageFileName));
         const labelFileBuffer = fs.readFileSync(path.join(folderPath + "/" + labelFileName));
+        if (this.VERBOSE) {
+        }
+        const bar = new cli_progress_1.default.Bar({
+            barCompleteChar: '#',
+            barIncompleteChar: '_',
+            format: 'Loading.. |' + '{bar}' + '| {percentage}% | {value}/{total}',
+            fps: 10,
+            stream: process.stdout,
+            barsize: 30
+        });
+        bar.start(maxExamples, 0);
         for (let imageIndex = 0; imageIndex < maxExamples; imageIndex++) {
             const image = new tensor_1.default();
             const size = 28;
@@ -108,7 +121,9 @@ class Dataset {
                 label: vector_1.default.toCategorical(labelFileBuffer[imageIndex + 8], 10)
             };
             this.data.push(example);
+            bar.increment();
         }
+        bar.stop();
     }
     loadTestData(path, maxExamples = 2100) {
         const data = JSON.parse(fs.readFileSync(path, { encoding: "UTF-8" }));

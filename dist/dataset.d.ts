@@ -7,6 +7,7 @@ export interface Example {
 }
 export default class Dataset {
     private data;
+    VERBOSE: boolean;
     BATCH_SIZE: number;
     IS_GENERATOR: boolean;
     TOTAL_EXAMPLES: number;
