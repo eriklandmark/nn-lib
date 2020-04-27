@@ -1,6 +1,6 @@
 {
   "name": "nn-lib",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "description": "A minimal and very lightweight neural network library.",
   "main": "dist/main.js",
   "scripts": {
@@ -13,7 +13,8 @@
     "visualize": "ts-node-dev tools/visualize.ts"
   },
   "files": [
-    "dist"
+    "dist",
+    "tools"
   ],
   "keywords": [
     "nn",
