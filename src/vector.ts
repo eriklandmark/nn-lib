@@ -63,6 +63,14 @@ export default class Vector {
         }
     }
 
+    public copy(full = true): Vector {
+        const v = new Vector(this.size())
+        if(full) {
+            v.vector = this.vector.copyWithin(0, this.size())
+        }
+        return v
+    }
+
     public toNumberArray() {
         return [].slice.call(this.vector)
     }

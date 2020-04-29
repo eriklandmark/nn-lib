@@ -28,4 +28,6 @@ export default class Tensor {
     padding(padding_height: number, padding_width: number): Tensor;
     im2patches(patch_height: number, patch_width: number, filter_height: number, filter_width: number): Matrix;
     rotate180(): Tensor;
+    pow(number: number): Tensor;
+    sqrt(): Tensor;
 }

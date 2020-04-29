@@ -20,6 +20,9 @@ class DataHandler {
         fs_1.default.watchFile(this.watchPath, {}, (stats) => {
             console.log("Backlog updated.");
             this.loadData();
+            const latest_epoch = Object.keys(this.data.epochs)[Object.keys(this.data.epochs).length - 1];
+            const data = this.getEpoch(parseInt(latest_epoch.substr(latest_epoch.lastIndexOf("_") + 1)));
+            this.pubSub.publish("update", { update: data });
         });
         console.log("Started backlog watcher!");
     }

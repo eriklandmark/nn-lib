@@ -3,22 +3,25 @@ import Layer from "./layers/layer";
 import Matrix from "./matrix";
 import Vector from "./vector";
 import { GPU } from 'gpu.js';
-import { ILoss } from "./losses/losses";
 import Tensor from "./tensor";
+import StochasticGradientDescent from "./optimizers/StochasticGradientDescent";
 export interface SavedLayer {
-    weights?: Float32Array[];
-    bias?: Float32Array | Float32Array[];
-    shape?: number[];
-    filters?: Float32Array[][][];
-    nr_filters?: number;
-    filterSize?: number[];
-    activation?: string;
-    loss?: string;
-    rate?: number;
-    prevLayerShape?: number[];
-    stride?: number[] | number;
-    padding?: number;
-    poolingFunc?: string;
+    weights: Float32Array[] | Float32Array[][][];
+    bias: Float32Array | Float32Array[];
+    shape: number[];
+    activation: string;
+    prevLayerShape: number[];
+    optimizer: string;
+    layer_specific: {
+        nr_filters?: number;
+        filterSize?: number[];
+        stride?: number[] | number;
+        padding?: number;
+        poolingFunc?: string;
+        loss?: string;
+        rate?: number;
+        [propName: string]: any;
+    };
 }
 interface ModelSettings {
     USE_GPU: boolean;
@@ -57,10 +60,10 @@ export default class Model {
     };
     constructor(layers: Layer[]);
     isGpuAvailable(): boolean;
-    build(inputShape: number[], lossFunction: ILoss, verbose?: boolean): void;
+    build(inputShape: number[], learning_rate: number, lossFunction: any, optimizer?: typeof StochasticGradientDescent, verbose?: boolean): void;
     summary(): void;
     train_on_batch(examples: Matrix | Tensor[], labels: Matrix): any;
-    train(data: Example[] | Dataset, epochs: number, learning_rate: number, shuffle?: boolean, verbose?: boolean): Promise<void>;
+    train(data: Example[] | Dataset, epochs: number, shuffle?: boolean): Promise<void>;
     saveBacklog(): void;
     predict(data: Vector | Matrix | Tensor): Matrix;
     save(model_path?: string): void;

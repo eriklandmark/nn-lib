@@ -4,29 +4,31 @@ import * as fs from "fs";
 import Matrix from "./matrix";
 import Vector from "./vector";
 import {GPU} from 'gpu.js';
-import ArrayHelper from "./helpers/array_helper";
-import {ILoss} from "./losses/losses";
 import Tensor from "./tensor";
 import {LayerHelper} from "./layers/layer_helper";
 import Helper from "./helpers/helper";
 import OutputLayer from "./layers/output_layer";
 import Path from "path";
 import cliProgress from "cli-progress";
+import StochasticGradientDescent from "./optimizers/StochasticGradientDescent";
 
 export interface SavedLayer {
-    weights?: Float32Array[]
-    bias?: Float32Array | Float32Array[]
-    shape?: number[]
-    filters?: Float32Array[][][]
-    nr_filters?: number
-    filterSize?: number[]
-    activation?: string
-    loss?: string
-    rate?: number
-    prevLayerShape?: number[]
-    stride?: number[] | number
-    padding?: number
-    poolingFunc?: string
+    weights: Float32Array[] | Float32Array[][][]
+    bias: Float32Array | Float32Array[]
+    shape: number[]
+    activation: string
+    prevLayerShape: number[]
+    optimizer: string
+    layer_specific: {
+        nr_filters?: number
+        filterSize?: number[]
+        stride?: number[] | number
+        padding?: number
+        poolingFunc?: string
+        loss?: string
+        rate?: number
+        [propName: string]: any
+    }
 }
 
 interface ModelSettings {
@@ -66,8 +68,8 @@ export default class Model {
         VERBOSE_COMPACT: true
     }
     model_data: {
-        input_shape: number[],
-        learning_rate: number,
+        input_shape: number[]
+        learning_rate: number
         last_epoch: number
     } = {
         input_shape: [0],
@@ -84,12 +86,13 @@ export default class Model {
         return GPU.isGPUSupported
     }
 
-    public build(inputShape: number[], lossFunction: ILoss, verbose = true) {
+    public build(inputShape: number[], learning_rate: number, lossFunction,
+                 optimizer = StochasticGradientDescent, verbose: boolean = true) {
         if (!(this.layers[this.layers.length - 1] instanceof OutputLayer)) {
             throw "Last layer must be an OutputLayer!..."
         }
 
-        if(!this.isGpuAvailable()) {
+        if(!this.isGpuAvailable() && this.settings.USE_GPU) {
             console.error("GPU is not supported.. falling back on CPU.")
             this.settings.USE_GPU = false
         }
@@ -110,16 +113,19 @@ export default class Model {
             }
         }
 
+        this.model_data.learning_rate = learning_rate
         this.model_data.input_shape = inputShape
         this.layers[0].isFirstLayer = true
 
         for (let i = 0; i < this.layers.length; i++) {
-            this.layers[i].setGpuInstance(this.gpuInstance)
+            this.layers[i].gpuInstance = this.gpuInstance
             this.layers[i].useGpu = this.settings.USE_GPU
+            this.layers[i].learning_rate = learning_rate
             if (i == this.layers.length - 1) {
-                (<OutputLayer>this.layers[i]).lossFunction = lossFunction
+                (<OutputLayer>this.layers[i]).lossFunction = new lossFunction()
             }
             this.layers[i].buildLayer(i == 0? inputShape: this.layers[i - 1].shape)
+            this.layers[i].optimizer = new optimizer(this.layers[i])
         }
 
         if (verbose) {
@@ -131,7 +137,7 @@ export default class Model {
 
     public summary() {
         if (this.isBuilt) {
-            let input = {type: "input", shape: this.model_data.input_shape, activation: "NO ACTIVATION"}
+            let input = {type: "input", shape: this.model_data.input_shape, activation: "NONE"}
             let layer_info = this.layers.map((layer) => layer.getLayerInfo())
             let total_neurons = layer_info.map((info) => info.shape).reduce((acc, val) => {
                 return acc + val.reduce((a, s) => a*s, 1)
@@ -163,14 +169,14 @@ export default class Model {
             this.layers[this.layers.length - 1].output_error = (<Matrix>(<OutputLayer>this.layers[this.layers.length - 1]).output_error).toNumberArray()
             for (let i = this.layers.length - 2; i >= 0; i--) {
                 if (this.layers[i].hasGPUSupport) {
-                    this.layers[i].buildBPKernels(this.layers[i + 1].weights.dim().c)
+                    //this.layers[i].buildBPKernels(this.layers[i + 1].weights.dim().c)
                 }
                 let input: Matrix | Layer = i == 0 ? <Matrix>examples : this.layers[i - 1]
                 this.layers[i].backPropagation(this.layers[i + 1], input)
             }
 
             for (let layer of this.layers) {
-                layer.updateWeights(this.model_data.learning_rate)
+                layer.updateLayer()
             }
 
             return {loss:(<OutputLayer>this.layers[this.layers.length - 1]).loss,
@@ -188,7 +194,7 @@ export default class Model {
             this.layers[0].backPropagation(this.layers[1], examples)
 
             for (let layer of this.layers) {
-                layer.updateWeights(this.model_data.learning_rate)
+                layer.updateLayer()
             }
 
             return {loss:(<OutputLayer>this.layers[this.layers.length - 1]).loss,
@@ -196,12 +202,10 @@ export default class Model {
         }
     }
 
-    public async train(data: Example[] | Dataset, epochs: number, learning_rate: number, shuffle: boolean = false, verbose: boolean = true) {
+    public async train(data: Example[] | Dataset, epochs: number, shuffle: boolean = false) {
         if (!this.isBuilt) {
             throw "Model hasn't been build yet!.."
         }
-
-        this.model_data.learning_rate = learning_rate
 
         if (data instanceof Dataset) {
             console.log("Starting training...")
@@ -285,7 +289,7 @@ export default class Model {
                         epoch_data.total_accuracy += b_acc
                         epoch_data.calculated_duration += seconds
                         this.backlog.calculated_duration += seconds
-                        this.backlog["epoch_" + epoch] = epoch_data
+                        this.backlog.epochs["epoch_" + epoch] = epoch_data
                         this.saveBacklog()
 
                         if (this.settings.VERBOSE_COMPACT) {
@@ -376,13 +380,16 @@ export default class Model {
     }
 
     load(path: string, verbose:boolean = true) {
+        if(!fs.existsSync(path)) {
+            throw "Model file not found!!"
+        }
         const modelObj = JSON.parse(fs.readFileSync(path, {encoding: "UTF-8"}))
         this.model_data = modelObj.model_data
         this.settings = modelObj.settings
         const layer_keys: string[] = Object.keys(modelObj.layers).sort()
         this.layers = []
 
-        if(!this.isGpuAvailable()) {
+        if(!this.isGpuAvailable() && this.settings.USE_GPU) {
             console.error("GPU is not supported.. falling back on CPU.")
             this.settings.USE_GPU = false
         }
@@ -390,8 +397,9 @@ export default class Model {
         for (let layer_key of layer_keys) {
             let layer = LayerHelper.fromType(modelObj.layers[layer_key].type)
             layer.fromSavedModel(modelObj.layers[layer_key].info)
-            layer.setGpuInstance(this.gpuInstance)
+            layer.gpuInstance = this.gpuInstance
             layer.useGpu = this.settings.USE_GPU
+            layer.learning_rate = this.model_data.learning_rate
             this.layers.push(layer)
         }
         this.layers[0].isFirstLayer = true

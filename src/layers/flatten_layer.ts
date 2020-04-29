@@ -26,7 +26,7 @@ export default class FlattenLayer extends Layer {
             error = new Matrix(prev_layer.output_error.toArray())
 
         }
-        const dout = error.mm(prev_layer.weights.transpose())
+        const dout = error.mm((<Matrix>prev_layer.weights).transpose())
         let t: Tensor[] = new Array(error.dim().r);
 
         for(let i = 0; i < t.length; i++) {
@@ -44,15 +44,4 @@ export default class FlattenLayer extends Layer {
 
         this.output_error = t
     }
-
-    toSavedModel(): SavedLayer {
-        return {
-            shape: this.prevShape
-        }
-    }
-
-    fromSavedModel(data: SavedLayer) {
-        this.buildLayer(data.shape)
-    }
-
 }

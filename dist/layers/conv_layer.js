@@ -5,26 +5,22 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 const layer_1 = __importDefault(require("./layer"));
 const tensor_1 = __importDefault(require("../tensor"));
-const activations_1 = __importDefault(require("../activations/activations"));
-const vector_1 = __importDefault(require("../vector"));
 const matrix_1 = __importDefault(require("../matrix"));
 class ConvolutionLayer extends layer_1.default {
     constructor(nr_filters = 3, filterSize = [3, 3], ch_first = false, activation) {
         super();
+        this.weights = [];
         this.filterSize = [];
-        this.filters = [];
         this.padding = 0;
         this.stride = 1;
         this.nr_filters = 0;
-        this.errorFilters = [];
-        this.errorInput = [];
+        this.errorWeights = [];
         this.channel_first = true;
         this.useMM = false;
         this.channel_first = ch_first;
         this.activationFunction = activation;
         this.filterSize = filterSize;
         this.nr_filters = nr_filters;
-        this.errorBias = new vector_1.default(nr_filters);
         this.type = "conv";
     }
     buildLayer(prevLayerShape) {
@@ -53,10 +49,13 @@ class ConvolutionLayer extends layer_1.default {
                 filter.createEmptyArray(this.filterSize[0], this.filterSize[1], prevLayerShape[2]);
             }
             filter.populateRandom();
-            this.filters.push(filter);
+            this.weights.push(filter);
         }
-        this.bias = new vector_1.default(this.nr_filters);
+        this.bias = new matrix_1.default();
+        this.bias.createEmptyArray(1, this.nr_filters);
         this.bias.populateRandom();
+        this.errorBias = new matrix_1.default();
+        this.errorBias.createEmptyArray(1, this.nr_filters);
     }
     feedForward(input, isInTraining) {
         if (false) {
@@ -75,7 +74,7 @@ class ConvolutionLayer extends layer_1.default {
             const patch_height = this.shape[0];
             let new_images = [];
             if (this.useMM) {
-                const filterMatrix = new matrix_1.default(this.filters.map((t) => t.vectorize(true))).transpose();
+                const filterMatrix = new matrix_1.default(this.weights.map((t) => t.vectorize(true))).transpose();
                 for (let t = 0; t < input_images.length; t++) {
                     const convolutionMatrix = filterMatrix.mm(input_images[t].im2patches(patch_height, patch_width, f_h, f_w));
                     const activationMatrix = this.activationFunction.normal(convolutionMatrix);
@@ -108,20 +107,20 @@ class ConvolutionLayer extends layer_1.default {
                                         for (let c_f_w = 0; c_f_w < f_w; c_f_w++) {
                                             if (this.channel_first) {
                                                 val += input_images[t].get(c_f_c, r + c_f_h, c + c_f_w) *
-                                                    this.filters[f].get(c_f_h, c_f_w, c_f_c);
+                                                    this.weights[f].get(c_f_h, c_f_w, c_f_c);
                                             }
                                             else {
                                                 val += input_images[t].get(r + c_f_h, c + c_f_w, c_f_c) *
-                                                    this.filters[f].get(c_f_h, c_f_w, c_f_c);
+                                                    this.weights[f].get(c_f_h, c_f_w, c_f_c);
                                             }
                                         }
                                     }
                                 }
                                 if (this.channel_first) {
-                                    patch.set(f, r, c, this.activationFunction.normal(val) + this.bias.get(f));
+                                    patch.set(f, r, c, this.activationFunction.normal(val) + this.bias.get(0, f));
                                 }
                                 else {
-                                    patch.set(r, c, f, this.activationFunction.normal(val) + this.bias.get(f));
+                                    patch.set(r, c, f, this.activationFunction.normal(val) + this.bias.get(0, f));
                                 }
                             }
                         }
@@ -132,39 +131,39 @@ class ConvolutionLayer extends layer_1.default {
             this.activation = new_images;
         }
     }
-    buildFFKernels(batch_size) {
-        const output_shape = [this.weights.dim().c, batch_size];
+    /*buildFFKernels(batch_size: number) {
+        const output_shape = [this.weights.dim().c, batch_size]
         this.ff_kernel = this.gpuInstance.createKernel(function (image, filter) {
-            let val = 0;
+            let val: number = 0
             for (let c_f_c = 0; c_f_c < this.constants.channels; c_f_c++) {
                 for (let c_f_h = 0; c_f_h < this.constants.filter_height; c_f_h++) {
                     for (let c_f_w = 0; c_f_w < this.constants.filter_width; c_f_w++) {
                         if (this.constants.channel_first) {
-                            val += image[c_f_c][this.thread.y + c_f_h][this.thread.x + c_f_w] * filter[c_f_h][c_f_w][c_f_c];
-                        }
-                        else {
-                            val += image[this.thread.y + c_f_h][this.thread.x + c_f_w][c_f_c] * filter[c_f_h][c_f_w][c_f_c];
+                            val += image[c_f_c][this.thread.y + c_f_h][this.thread.x + c_f_w] * filter[c_f_h][c_f_w][c_f_c]
+                        } else {
+                            val += image[this.thread.y + c_f_h][this.thread.x + c_f_w][c_f_c] * filter[c_f_h][c_f_w][c_f_c]
                         }
                     }
                 }
             }
             return val;
         }).setConstants({
-            channels: this.channel_first ? this.prevLayerShape[0] : this.prevLayerShape[2],
+            channels: this.channel_first? this.prevLayerShape[0]: this.prevLayerShape[2],
             filter_height: this.filterSize[0],
             filter_width: this.filterSize[1],
             channel_first: this.channel_first
         }).setPrecision("single")
-            .setOutput(this.shape);
-        this.ff_kernel.immutable = true;
+            .setOutput(this.shape)
+        this.ff_kernel.immutable = true
+
         this.act_kernel = this.gpuInstance.createKernel(this.activationFunction.normal_gpu())
             .setPipeline(true)
-            .setConstants({ softmax: this.weights.dim().c })
+            .setConstants({softmax: this.weights.dim().c})
             .setPrecision("single")
             .setDynamicOutput(false)
-            .setOutput(output_shape);
-        this.act_kernel.immutable = true;
-    }
+            .setOutput(output_shape)
+        this.act_kernel.immutable = true
+    }*/
     backPropagation(prev_layer, next_layer) {
         let input;
         let prev_layer_output = prev_layer.output_error;
@@ -193,7 +192,7 @@ class ConvolutionLayer extends layer_1.default {
         const padding_height = f_h - 1;
         if (this.useMM) {
             const filterMatrix = new matrix_1.default(dout.map((t) => t.vectorize(true))).transpose();
-            this.errorFilters = [];
+            this.errorWeights = [];
             for (let t = 0; t < input.length; t++) {
                 const inputMatrix = input[t].im2patches(patch_height, patch_width, f_h, f_w);
                 console.log(filterMatrix.dim(), inputMatrix.dim());
@@ -206,13 +205,12 @@ class ConvolutionLayer extends layer_1.default {
                         patch.set(x, y, i, convTensors[i].get(x, y, 0));
                     });
                 }
-                this.errorFilters.push(patch);
+                this.errorWeights.push(patch);
             }
-            console.log(this.errorFilters);
         }
         else {
-            this.errorFilters = this.filters.map((filter) => filter.copy(false));
-            this.errorInput = input.map((inp) => inp.copy(false));
+            this.errorWeights = this.weights.map((filter) => filter.copy(false));
+            this.output_error = input.map((inp) => inp.copy(false));
             for (let n = 0; n < N; n++) {
                 for (let f = 0; f < this.nr_filters; f++) {
                     for (let i = 0; i < f_h; i++) {
@@ -220,7 +218,7 @@ class ConvolutionLayer extends layer_1.default {
                             for (let k = 0; k < patch_height; k++) {
                                 for (let l = 0; l < patch_width; l++) {
                                     for (let c = 0; c < ch; c++) {
-                                        this.errorFilters[f].set(i, j, c, this.errorFilters[f].get(i, j, c) + (input[n].get(this.stride * i + k, this.stride * j + l, c) *
+                                        this.errorWeights[f].set(i, j, c, this.errorWeights[f].get(i, j, c) + (input[n].get(this.stride * i + k, this.stride * j + l, c) *
                                             dout[n].get(k, l, f)));
                                     }
                                 }
@@ -229,15 +227,17 @@ class ConvolutionLayer extends layer_1.default {
                     }
                 }
             }
+            this.errorWeights = this.errorWeights.map((eW) => eW.rotate180());
             const sum = [];
             for (let n = 0; n < dout.length; n++) {
-                const sumVector = new vector_1.default(dout[n].dim().d);
+                const sumMatrix = new matrix_1.default();
+                sumMatrix.createEmptyArray(1, dout[n].dim().d);
                 dout[n].iterate((i, j, k) => {
-                    sumVector.set(k, sumVector.get(k) + dout[n].get(i, j, k));
+                    sumMatrix.set(0, k, sumMatrix.get(0, k) + dout[n].get(i, j, k));
                 });
-                sum.push(sumVector);
+                sum.push(sumMatrix);
             }
-            this.errorBias = sum.reduce((acc, v) => acc.add(v), new vector_1.default(sum[0].size())).div(sum.length);
+            this.errorBias = sum.reduce((acc, v) => acc.add(v), sum[0].copy(false)).div(sum.length);
             if (!this.isFirstLayer) {
                 const doutp = new Array(dout.length).fill(new tensor_1.default());
                 doutp.forEach((tensor) => {
@@ -252,10 +252,10 @@ class ConvolutionLayer extends layer_1.default {
                         }
                     }
                 }
-                const filterInv = this.filters.map((f) => f.copy(false));
+                const filterInv = this.weights.map((f) => f.copy(false));
                 for (let n = 0; n < filterInv.length; n++) {
                     filterInv[n].iterate((i, j, k) => {
-                        filterInv[n].set(filterInv[n].dim().r - 1 - i, filterInv[n].dim().c - 1 - j, k, this.filters[n].get(i, j, k));
+                        filterInv[n].set(filterInv[n].dim().r - 1 - i, filterInv[n].dim().c - 1 - j, k, this.weights[n].get(i, j, k));
                     });
                 }
                 for (let n = 0; n < N; n++) {
@@ -265,7 +265,7 @@ class ConvolutionLayer extends layer_1.default {
                                 for (let k = 0; k < f_h; k++) {
                                     for (let l = 0; l < f_w; l++) {
                                         for (let c = 0; c < ch; c++) {
-                                            this.errorInput[n].set(i, j, c, this.errorInput[n].get(i, j, c) + (doutp[n].get(i + k, j + l, f) * filterInv[f].get(k, l, c)));
+                                            this.output_error[n].set(i, j, c, this.output_error[n].get(i, j, c) + (doutp[n].get(i + k, j + l, f) * filterInv[f].get(k, l, c)));
                                         }
                                     }
                                 }
@@ -273,7 +273,6 @@ class ConvolutionLayer extends layer_1.default {
                         }
                     }
                 }
-                this.output_error = this.errorInput;
             }
         }
     }
@@ -324,31 +323,18 @@ class ConvolutionLayer extends layer_1.default {
             return patch;
         }
     }
-    updateWeights(l_rate) {
-        for (let i = 0; i < this.filters.length; i++) {
-            this.filters[i] = this.filters[i].sub(this.errorFilters[i].rotate180().mul(l_rate));
-        }
-        this.bias = this.bias.sub(this.errorBias.mul(l_rate));
-    }
     toSavedModel() {
-        return {
-            filters: this.filters.map((t) => t.tensor),
+        const data = super.toSavedModel();
+        data.layer_specific = {
             nr_filters: this.nr_filters,
             filterSize: this.filterSize,
-            bias: this.bias.vector,
-            shape: this.shape,
-            activation: this.activationFunction.name,
-            prevLayerShape: this.prevLayerShape
         };
+        return data;
     }
     fromSavedModel(data) {
-        this.filters = data.filters.map((t) => tensor_1.default.fromJsonObject(t));
-        this.nr_filters = data.nr_filters;
-        this.filterSize = data.filterSize;
-        this.bias = vector_1.default.fromJsonObj(data.bias);
-        this.shape = data.shape;
-        this.activationFunction = activations_1.default.fromName(data.activation);
-        this.prevLayerShape = data.prevLayerShape;
+        super.fromSavedModel(data);
+        this.nr_filters = data.layer_specific.nr_filters;
+        this.filterSize = data.layer_specific.filterSize;
     }
 }
 exports.default = ConvolutionLayer;

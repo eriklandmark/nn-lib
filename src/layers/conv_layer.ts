@@ -1,19 +1,18 @@
 import Layer from "./layer";
 import Tensor from "../tensor";
-import Activation, {IActivation} from "../activations/activations";
+import {IActivation} from "../activations/activations";
 import Vector from "../vector";
 import {SavedLayer} from "../model";
 import Matrix from "../matrix";
 
 export default class ConvolutionLayer extends Layer {
 
+    weights: Tensor[] = []
     filterSize: number[] = []
-    filters: Tensor[] = []
     padding: number = 0;
     stride: number = 1;
     nr_filters: number = 0
-    errorFilters: Tensor[] = []
-    errorInput: Tensor[] = []
+    errorWeights: Tensor[] = []
     channel_first:boolean = true
 
     ff_kernel: any
@@ -30,7 +29,6 @@ export default class ConvolutionLayer extends Layer {
         this.activationFunction = activation
         this.filterSize = filterSize
         this.nr_filters = nr_filters
-        this.errorBias = new Vector(nr_filters)
 
         this.type = "conv"
     }
@@ -62,10 +60,13 @@ export default class ConvolutionLayer extends Layer {
             }
 
             filter.populateRandom()
-            this.filters.push(filter)
+            this.weights.push(filter)
         }
-        this.bias = new Vector(this.nr_filters)
+        this.bias = new Matrix()
+        this.bias.createEmptyArray(1, this.nr_filters)
         this.bias.populateRandom()
+        this.errorBias = new Matrix()
+        this.errorBias.createEmptyArray(1, this.nr_filters)
     }
 
     feedForward(input: Layer | Tensor[], isInTraining: boolean) {
@@ -84,7 +85,7 @@ export default class ConvolutionLayer extends Layer {
             const patch_height = this.shape[0]
             let new_images: Tensor[] = []
             if (this.useMM) {
-                const filterMatrix = new Matrix(this.filters.map((t) => t.vectorize(true))).transpose()
+                const filterMatrix = new Matrix(this.weights.map((t) => t.vectorize(true))).transpose()
                 for (let t = 0; t < input_images.length; t++) {
                     const convolutionMatrix = <Matrix> filterMatrix.mm(input_images[t].im2patches(patch_height, patch_width, f_h, f_w))
                     const activationMatrix = <Matrix> this.activationFunction.normal(convolutionMatrix)
@@ -116,18 +117,18 @@ export default class ConvolutionLayer extends Layer {
                                         for (let c_f_w = 0; c_f_w < f_w; c_f_w++) {
                                             if (this.channel_first) {
                                                 val += input_images[t].get(c_f_c, r + c_f_h, c + c_f_w) *
-                                                    this.filters[f].get(c_f_h, c_f_w, c_f_c)
+                                                    this.weights[f].get(c_f_h, c_f_w, c_f_c)
                                             } else {
                                                 val += input_images[t].get(r + c_f_h, c + c_f_w, c_f_c) *
-                                                    this.filters[f].get(c_f_h, c_f_w, c_f_c)
+                                                    this.weights[f].get(c_f_h, c_f_w, c_f_c)
                                             }
                                         }
                                     }
                                 }
                                 if(this.channel_first) {
-                                    patch.set(f, r, c, this.activationFunction.normal(val) + this.bias.get(f))
+                                    patch.set(f, r, c, this.activationFunction.normal(val) + this.bias.get(0,f))
                                 } else {
-                                    patch.set(r, c, f, this.activationFunction.normal(val) + this.bias.get(f))
+                                    patch.set(r, c, f, this.activationFunction.normal(val) + this.bias.get(0,f))
                                 }
                             }
                         }
@@ -139,7 +140,7 @@ export default class ConvolutionLayer extends Layer {
         }
     }
 
-    buildFFKernels(batch_size: number) {
+    /*buildFFKernels(batch_size: number) {
         const output_shape = [this.weights.dim().c, batch_size]
         this.ff_kernel = this.gpuInstance.createKernel(function (image, filter) {
             let val: number = 0
@@ -171,7 +172,7 @@ export default class ConvolutionLayer extends Layer {
             .setDynamicOutput(false)
             .setOutput(output_shape)
         this.act_kernel.immutable = true
-    }
+    }*/
 
     backPropagation(prev_layer: Layer, next_layer: Layer | Tensor[]) {
         let input: Tensor[]
@@ -203,7 +204,7 @@ export default class ConvolutionLayer extends Layer {
 
         if (this.useMM) {
             const filterMatrix = new Matrix(dout.map((t) => t.vectorize(true))).transpose()
-            this.errorFilters = []
+            this.errorWeights = []
 
             for (let t = 0; t < input.length; t++) {
                 const inputMatrix = <Matrix> input[t].im2patches(patch_height, patch_width, f_h, f_w)
@@ -217,14 +218,12 @@ export default class ConvolutionLayer extends Layer {
                         patch.set(x, y, i, convTensors[i].get(x,y,0))
                     })
                 }
-                this.errorFilters.push(patch)
+                this.errorWeights.push(patch)
             }
 
-            console.log(this.errorFilters)
-
         } else {
-            this.errorFilters = this.filters.map((filter) => filter.copy(false))
-            this.errorInput = input.map((inp) => inp.copy(false))
+            this.errorWeights = this.weights.map((filter) => filter.copy(false))
+            this.output_error = input.map((inp) => inp.copy(false))
 
             for (let n = 0; n < N; n++) {
                 for (let f = 0; f < this.nr_filters; f++) {
@@ -233,8 +232,8 @@ export default class ConvolutionLayer extends Layer {
                             for (let k = 0; k < patch_height; k++) {
                                 for (let l = 0; l < patch_width; l++) {
                                     for (let c = 0; c < ch; c++) {
-                                        this.errorFilters[f].set(i, j, c,
-                                            this.errorFilters[f].get(i, j, c) + (
+                                        this.errorWeights[f].set(i, j, c,
+                                            this.errorWeights[f].get(i, j, c) + (
                                                 input[n].get(this.stride * i + k, this.stride * j + l, c) *
                                                 dout[n].get(k, l, f)
                                             ))
@@ -246,17 +245,22 @@ export default class ConvolutionLayer extends Layer {
                 }
             }
 
-            const sum: Vector[] = []
+            this.errorWeights = this.errorWeights.map((eW) => eW.rotate180())
+
+            const sum: Matrix[] = []
 
             for(let n = 0; n < dout.length; n++) {
-                const sumVector = new Vector(dout[n].dim().d)
+                const sumMatrix = new Matrix()
+                sumMatrix.createEmptyArray(1, dout[n].dim().d)
                 dout[n].iterate((i,j,k) => {
-                    sumVector.set(k, sumVector.get(k) + dout[n].get(i,j,k))
+                    sumMatrix.set(0,k, sumMatrix.get(0, k) + dout[n].get(i,j,k))
                 })
-                sum.push(sumVector)
+                sum.push(sumMatrix)
             }
 
-            this.errorBias = sum.reduce((acc, v) => acc.add(v), new Vector(sum[0].size())).div(sum.length)
+
+            this.errorBias = sum.reduce((acc, v) => acc.add(v),
+                sum[0].copy(false)).div(sum.length)
 
             if (!this.isFirstLayer) {
                 const doutp: Tensor[] = new Array(dout.length).fill(new Tensor())
@@ -274,10 +278,10 @@ export default class ConvolutionLayer extends Layer {
                     }
                 }
 
-                const filterInv = this.filters.map((f) => f.copy(false))
+                const filterInv = this.weights.map((f) => f.copy(false))
                 for (let n = 0; n < filterInv.length; n++) {
                     filterInv[n].iterate((i: number, j: number, k: number) => {
-                        filterInv[n].set(filterInv[n].dim().r - 1 - i, filterInv[n].dim().c - 1 - j, k, this.filters[n].get(i, j, k))
+                        filterInv[n].set(filterInv[n].dim().r - 1 - i, filterInv[n].dim().c - 1 - j, k, this.weights[n].get(i, j, k))
                     })
                 }
 
@@ -288,8 +292,8 @@ export default class ConvolutionLayer extends Layer {
                                 for (let k = 0; k < f_h; k++) {
                                     for (let l = 0; l < f_w; l++) {
                                         for (let c = 0; c < ch; c++) {
-                                            this.errorInput[n].set(i, j, c,
-                                                this.errorInput[n].get(i, j, c) + (
+                                            this.output_error[n].set(i, j, c,
+                                                this.output_error[n].get(i, j, c) + (
                                                     doutp[n].get(i + k, j + l, f) * filterInv[f].get(k, l, c)
                                                 ))
                                         }
@@ -299,9 +303,6 @@ export default class ConvolutionLayer extends Layer {
                         }
                     }
                 }
-
-
-                this.output_error = this.errorInput;
             }
         }
     }
@@ -352,32 +353,19 @@ export default class ConvolutionLayer extends Layer {
         }
     }
 
-    updateWeights(l_rate: number) {
-        for(let i = 0; i < this.filters.length; i++) {
-            this.filters[i] = this.filters[i].sub(this.errorFilters[i].rotate180().mul(l_rate))
-        }
-        this.bias = (<Vector> this.bias).sub((<Vector> this.errorBias).mul(l_rate))
-    }
-
     toSavedModel(): SavedLayer {
-        return {
-            filters: this.filters.map((t) => t.tensor),
+        const data = super.toSavedModel()
+        data.layer_specific = {
             nr_filters: this.nr_filters,
             filterSize: this.filterSize,
-            bias: (<Vector> this.bias).vector,
-            shape: this.shape,
-            activation: this.activationFunction.name,
-            prevLayerShape: this.prevLayerShape
         }
+
+        return data
     }
 
     fromSavedModel(data: SavedLayer) {
-        this.filters = data.filters.map((t) => Tensor.fromJsonObject(t))
-        this.nr_filters = data.nr_filters
-        this.filterSize = data.filterSize
-        this.bias = Vector.fromJsonObj(data.bias)
-        this.shape = data.shape
-        this.activationFunction = Activation.fromName(data.activation)
-        this.prevLayerShape = data.prevLayerShape
+        super.fromSavedModel(data)
+        this.nr_filters = data.layer_specific.nr_filters
+        this.filterSize = data.layer_specific.filterSize
     }
 }

@@ -179,12 +179,13 @@ class Matrix {
             return sum;
         };
     }
-    mm(b, gpu = false) {
+    mm(b) {
         if (b instanceof vector_1.default) {
             const v = b;
             if (v.size() != this.dim().c) {
                 console.trace();
-                throw "Matrix Multiplication (Vector): Wrong dimension..";
+                throw "Matrix Multiplication (Vector): Wrong dimension..\n" +
+                    "This: [ " + this.dim().r + " , " + this.dim().c + " ] | Other: [ " + b.size() + " ]";
             }
             const c = new vector_1.default(this.dim().r);
             for (let i = 0; i < this.dim().r; i++) {
@@ -195,7 +196,8 @@ class Matrix {
         else {
             if (b.dim().r != this.dim().c) {
                 console.trace();
-                throw "Matrix Multiplication (Matrix): Wrong dimension..";
+                throw "Matrix Multiplication (Matrix): Wrong dimension..\n" +
+                    "This: [ " + this.dim().r + " , " + this.dim().c + " ] | Other: [ " + b.dim().r + " , " + b.dim().c + " ]";
             }
             const m = b;
             let c = new Matrix();

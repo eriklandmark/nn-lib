@@ -263,4 +263,20 @@ export default class Tensor {
         })
         return t
     }
+
+    pow(number: number): Tensor {
+        let t = this.copy(false);
+        this.iterate((i: number, j: number, k: number) => {
+            t.set(i, j, k, this.get(i, j, k) ** number)
+        });
+        return t
+    }
+
+    sqrt(): Tensor {
+        let t = this.copy(false);
+        this.iterate((i: number, j: number, k: number) => {
+            t.set(i, j, k, Math.sqrt(this.get(i, j, k)))
+        });
+        return t
+    }
 }

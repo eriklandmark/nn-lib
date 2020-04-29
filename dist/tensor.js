@@ -249,5 +249,19 @@ class Tensor {
         });
         return t;
     }
+    pow(number) {
+        let t = this.copy(false);
+        this.iterate((i, j, k) => {
+            t.set(i, j, k, Math.pow(this.get(i, j, k), number));
+        });
+        return t;
+    }
+    sqrt() {
+        let t = this.copy(false);
+        this.iterate((i, j, k) => {
+            t.set(i, j, k, Math.sqrt(this.get(i, j, k)));
+        });
+        return t;
+    }
 }
 exports.default = Tensor;

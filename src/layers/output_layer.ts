@@ -28,7 +28,7 @@ export default class OutputLayer extends DenseLayer {
     }
 
     public backPropagationOutputLayer(labels: Matrix, next_layer: Layer) {
-        this.loss = <number> labels.mul(-1).mul((<Matrix> this.activation).log()).sum()
+        this.loss = <number> labels.mul(-1).mul((<Matrix> this.activation).add(10**-8).log()).sum()
         const gradient = this.gradientFunction((<Matrix> this.activation), labels)
         let total_acc = 0
         let total_loss = 0
@@ -39,26 +39,22 @@ export default class OutputLayer extends DenseLayer {
         this.accuracy = total_acc / labels.dim().r
         //this.loss = total_loss
 
-        this.errorBias = gradient
+        this.errorBias = <Matrix> gradient.sum(0, false)
         this.output_error = gradient
         this.errorWeights = <Matrix> (<Matrix> next_layer.activation).transpose().mm(gradient)
     }
 
     toSavedModel(): SavedLayer {
-        return {
-            weights: this.weights.matrix,
-            bias: (<Vector>this.bias).vector,
-            loss: this.lossFunction.name,
-            shape: this.shape,
-            activation: this.activationFunction.name
+        const data = super.toSavedModel()
+        data.layer_specific = {
+            loss: this.lossFunction.name
         }
+
+        return data
     }
 
     fromSavedModel(data: SavedLayer) {
-        this.weights = Matrix.fromJsonObject(data.weights)
-        this.bias = Vector.fromJsonObj(data.bias)
-        this.shape = data.shape
-        this.activationFunction = Activation.fromName(data.activation)
-        this.lossFunction = Losses.fromName(data.loss)
+        super.fromSavedModel(data)
+        this.lossFunction = Losses.fromName(data.layer_specific.loss)
     }
 }

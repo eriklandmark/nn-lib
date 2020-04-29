@@ -43,6 +43,9 @@ class Dataset {
     setGenerator(gen) {
         this.GENERATOR = gen;
     }
+    addExample(ex) {
+        this.data.push(ex);
+    }
     static read_image(path) {
         return __awaiter(this, void 0, void 0, function* () {
             const image = yield jimp_1.default.read(path);
@@ -83,8 +86,8 @@ class Dataset {
         }
         const bar = new cli_progress_1.default.Bar({
             barCompleteChar: '#',
-            barIncompleteChar: '_',
-            format: 'Loading.. |' + '{bar}' + '| {percentage}% | {value}/{total}',
+            barIncompleteChar: '-',
+            format: 'Loading mnist.. [' + '{bar}' + '] {percentage}% | {value}/{total}',
             fps: 10,
             stream: process.stdout,
             barsize: 30

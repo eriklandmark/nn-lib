@@ -39,7 +39,7 @@ class Visualizer {
               }
               
               type Subscription {
-                new_batch: Batch
+                update: Epoch
               }
             `);
         const schema = graphql_tools_1.makeExecutableSchema({
@@ -59,8 +59,8 @@ class Visualizer {
                     }
                 },
                 Subscription: {
-                    new_batch: {
-                        subscribe: () => this.pubsub.asyncIterator("new_batch"),
+                    update: {
+                        subscribe: () => this.pubsub.asyncIterator("update"),
                     },
                 }
             }

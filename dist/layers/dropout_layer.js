@@ -28,16 +28,16 @@ class DropoutLayer extends layer_1.default {
         this.weights = prev_layer.weights;
         this.output_error = prev_layer.output_error;
     }
-    updateWeights(l_rate) { }
     toSavedModel() {
-        return {
-            rate: this.rate,
-            shape: this.shape
+        const data = super.toSavedModel();
+        data.layer_specific = {
+            rate: this.rate
         };
+        return data;
     }
     fromSavedModel(data) {
-        this.shape = data.shape;
-        this.rate = data.rate;
+        super.fromSavedModel(data);
+        this.rate = data.layer_specific.rate;
     }
 }
 exports.default = DropoutLayer;

@@ -13,6 +13,9 @@ export default class DenseLayer extends Layer {
     act_kernel: any
     bp_error_kernel: any
     bp_error_weight_kernel: any
+    weights: Matrix = new Matrix()
+    errorWeights: Matrix = new Matrix()
+    bias: Matrix = new Matrix()
 
     constructor(layerSize: number = 1, activation: IActivation = new Sigmoid()) {
         super();
@@ -28,7 +31,8 @@ export default class DenseLayer extends Layer {
         this.prevLayerShape = prevLayerShape
         this.weights = new Matrix()
         this.weights.createEmptyArray(prevLayerShape[0], this.layerSize)
-        this.bias = new Vector(this.layerSize)
+        this.bias = new Matrix()
+        this.bias.createEmptyArray(1, this.layerSize)
         this.weights.populateRandom();
         this.bias.populateRandom();
         this.errorWeights = new Matrix()
@@ -106,17 +110,11 @@ export default class DenseLayer extends Layer {
                 act = <Matrix>(<Layer>input).activation
             }
             const z = <Matrix>act.mm(this.weights)
-            //console.log(z.toString(10, 6))
             z.iterate((i: number, j: number) => {
-                z.set(i, j, z.get(i, j) + this.bias.get(j))
+                z.set(i, j, z.get(i, j) + this.bias.get(0, j))
             })
             this.activation = <Matrix>this.activationFunction.normal(z)
-            //console.log(this.activation.toString())
         }
-    }
-
-    calculate_errors(error: any, input: Matrix) {
-
     }
 
     backPropagation(prev_layer: Layer, next_layer: Layer | Matrix) {
@@ -129,7 +127,7 @@ export default class DenseLayer extends Layer {
             }
             const error = this.bp_error_kernel(
                 (<Matrix> this.activation).toNumberArray(),
-                prev_layer.weights.toNumberArray(),
+                (<Matrix>prev_layer.weights).toNumberArray(),
                 prev_layer.output_error)
             this.output_error = error
             this.bp_error_weight_kernel.setOutput([(<Matrix>this.activation).dim().c, input.dim().c])
@@ -149,31 +147,8 @@ export default class DenseLayer extends Layer {
             // @ts-ignore
             const error = ((<Matrix>prev_layer.output_error).mm(prev_layer.weights.transpose())).mul(deltaActv)
             this.errorWeights = <Matrix>dzh_dwh.transpose().mm(error);
-            this.errorBias = <Matrix>error.sum(0)
+            this.errorBias = <Matrix> (<Matrix>error).sum(0)
             this.output_error = error;
         }
-    }
-
-    updateWeights(l_rate: number) {
-        this.weights = this.weights.sub(this.errorWeights.mul(l_rate))
-        this.bias.iterate((val: number, i: number) => {
-            this.bias.set(i, val - (this.errorBias.get(0, i) * l_rate))
-        })
-    }
-
-    toSavedModel(): SavedLayer {
-        return {
-            weights: this.weights.matrix,
-            bias: (<Vector>this.bias).vector,
-            shape: this.shape,
-            activation: this.activationFunction.name
-        }
-    }
-
-    fromSavedModel(data: SavedLayer) {
-        this.weights = Matrix.fromJsonObject(data.weights)
-        this.bias = Vector.fromJsonObj(data.bias)
-        this.shape = data.shape
-        this.activationFunction = Activation.fromName(data.activation)
     }
 }

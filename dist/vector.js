@@ -61,6 +61,13 @@ class Vector {
         v.set(index, 1);
         return v;
     }
+    copy(full = true) {
+        const v = new Vector(this.size());
+        if (full) {
+            v.vector = this.vector.copyWithin(0, this.size());
+        }
+        return v;
+    }
     toNumberArray() {
         return [].slice.call(this.vector);
     }

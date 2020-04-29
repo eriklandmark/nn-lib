@@ -43,13 +43,5 @@ class FlattenLayer extends layer_1.default {
         });
         this.output_error = t;
     }
-    toSavedModel() {
-        return {
-            shape: this.prevShape
-        };
-    }
-    fromSavedModel(data) {
-        this.buildLayer(data.shape);
-    }
 }
 exports.default = FlattenLayer;

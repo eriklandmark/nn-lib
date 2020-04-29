@@ -27,7 +27,7 @@ export default class Matrix {
     static subGpu(): KernelFunction;
     static multiplyGpu(): KernelFunction;
     static mmGpu(): KernelFunction;
-    mm(b: Matrix | Vector, gpu?: boolean): Matrix | Vector;
+    mm(b: Matrix | Vector): Matrix | Vector;
     mmAsync(b: Matrix | Vector): Promise<Matrix | Vector>;
     add(b: number | Matrix): Matrix;
     sub(b: number | Matrix): Matrix;

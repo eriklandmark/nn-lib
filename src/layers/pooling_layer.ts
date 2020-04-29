@@ -5,7 +5,6 @@ import {SavedLayer} from "../model";
 export default class PoolingLayer extends Layer {
 
     type: string = "pooling"
-    prevShape: number[] = []
     filterSize: number[] = []
     padding: number = 0;
     stride: number[] = [];
@@ -20,7 +19,7 @@ export default class PoolingLayer extends Layer {
     }
 
     buildLayer(prevLayerShape: number[]) {
-        this.prevShape = prevLayerShape
+        this.prevLayerShape = prevLayerShape
         let h, w, ch;
         const [f_h, f_w] = this.filterSize
         if (this.channel_first) {
@@ -40,6 +39,12 @@ export default class PoolingLayer extends Layer {
         ]
         console.log(h, (h + 2 * this.padding) - f_h / this.stride[0])
         this.prevLayerShape = prevLayerShape
+    }
+
+    getLayerInfo(): { shape: number[]; type: string; activation: string } {
+        const d =  super.getLayerInfo();
+        d.type += "_" + this.poolingFunc
+        return d
     }
 
     feedForward(input: Layer, isInTraining: boolean) {
@@ -110,11 +115,11 @@ export default class PoolingLayer extends Layer {
         let t: Tensor[] = new Array(gradients.length);
         for(let i = 0; i < t.length; i++) {
             t[i] = new Tensor();
-            t[i].createEmptyArray(this.prevShape[0], this.prevShape[1], this.prevShape[2])
+            t[i].createEmptyArray(this.prevLayerShape[0], this.prevLayerShape[1], this.prevLayerShape[2])
         }
 
         const [s_h,s_w] = this.stride
-        const [h, w, d] = this.prevShape
+        const [h, w, d] = this.prevLayerShape
         const [hh, ww] = this.shape
         const [f_h, f_w] = this.filterSize
         for(let n = 0; n < t.length; n++) {
@@ -142,23 +147,23 @@ export default class PoolingLayer extends Layer {
     }
 
     toSavedModel(): SavedLayer {
-        return {
+        const data = super.toSavedModel()
+        data.layer_specific = {
             filterSize: this.filterSize,
-            shape: this.shape,
-            prevLayerShape: this.prevLayerShape,
             poolingFunc: this.poolingFunc,
             padding: this.padding,
             stride: this.stride
         }
+
+        return data
     }
 
     fromSavedModel(data: SavedLayer) {
-        this.filterSize = data.filterSize
-        this.shape = data.shape
-        this.prevLayerShape = data.prevLayerShape
-        this.poolingFunc = data.poolingFunc
-        this.stride = <number[]> data.stride
-        this.padding = data.padding
+        super.fromSavedModel(data)
+        this.filterSize = data.layer_specific.filterSize
+        this.poolingFunc = data.layer_specific.poolingFunc
+        this.stride = <number[]> data.layer_specific.stride
+        this.padding = data.layer_specific.padding
     }
 
 }

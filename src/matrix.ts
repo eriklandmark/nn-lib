@@ -185,13 +185,14 @@ export default class Matrix {
         }
     }
 
-    public mm(b: Matrix | Vector, gpu: boolean = false): Matrix | Vector {
+    public mm(b: Matrix | Vector): Matrix | Vector {
         if (b instanceof Vector) {
             const v: Vector = b;
 
             if (v.size() != this.dim().c) {
                 console.trace()
-                throw "Matrix Multiplication (Vector): Wrong dimension.."
+                throw "Matrix Multiplication (Vector): Wrong dimension..\n"+
+                        "This: [ " + this.dim().r + " , " + this.dim().c + " ] | Other: [ " + b.size() + " ]"
             }
 
             const c = new Vector(this.dim().r);
@@ -202,7 +203,8 @@ export default class Matrix {
         } else {
             if (b.dim().r != this.dim().c) {
                 console.trace()
-                throw "Matrix Multiplication (Matrix): Wrong dimension.."
+                throw "Matrix Multiplication (Matrix): Wrong dimension..\n"+
+                "This: [ " + this.dim().r + " , " + this.dim().c + " ] | Other: [ " + b.dim().r + " , " + b.dim().c + " ]"
             }
 
             const m: Matrix = b;

@@ -1,18 +1,19 @@
 import Model from "../src/model";
 import Dataset from "../src/dataset";
 import Helper from "../src/helpers/helper";
+import cliProgress from "cli-progress";
 
 const model = new Model([])
 
-model.load("./model/model.json")
+model.load("./model/model_checkpoint_63.json")
 model.summary()
 
 const dataset = new Dataset();
 
-const MAX_EXAMPLE = 1000
+const MAX_EXAMPLE = 10000
 const VERBOSE = false
 
-dataset.loadMnistTrain("dataset/mnist-fashion", MAX_EXAMPLE, false);
+dataset.loadMnistTest("dataset/mnist", MAX_EXAMPLE, false);
 dataset.BATCH_SIZE = MAX_EXAMPLE
 
 let examples = dataset.getBatch(0)
@@ -21,18 +22,39 @@ let numRights = 0;
 
 
 Helper.timeit(() => {
+    const bar = new cliProgress.Bar({
+        barCompleteChar: '#',
+        barIncompleteChar: '-',
+        format:'Example: {value}/{total} [{bar}] {percentage}% | Rights: {rights}/{value} ({per} %)',
+        fps: 30,
+        stream: process.stdout,
+        barsize: 15
+    });
+    if (!VERBOSE) {
+        bar.start(MAX_EXAMPLE, 0, {
+            rights: "0",
+            per: "0"
+        })
+    }
     for (let i = 0; i < MAX_EXAMPLE; i++ ) {
         const pred = model.predict(examples[i].data)
         const predArg = pred.argmax(0)
         const labelArg = examples[i].label.argmax();
-        if (VERBOSE) {
-            console.log(pred.toString())
-            console.log(predArg, labelArg)
-        }
         if (predArg == labelArg) {
             numRights += 1
         }
+        if (VERBOSE) {
+            console.log(pred.toString())
+            console.log(predArg, labelArg)
+        } else {
+            bar.increment(1, {
+                rights: numRights,
+                per: ((numRights / i) * 100).toPrecision(4)
+            })
+        }
+
     }
+    bar.stop()
 }, false).then((seconds) => {
     console.log("Num rights: " + numRights + " of " + MAX_EXAMPLE + " (" + Math.round((numRights / MAX_EXAMPLE) * 100) + " %)")
     console.log("It took " + seconds + " seconds.")

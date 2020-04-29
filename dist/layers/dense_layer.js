@@ -5,12 +5,13 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 const layer_1 = __importDefault(require("./layer"));
 const matrix_1 = __importDefault(require("../matrix"));
-const activations_1 = __importDefault(require("../activations/activations"));
-const vector_1 = __importDefault(require("../vector"));
 const sigmoid_1 = __importDefault(require("../activations/sigmoid"));
 class DenseLayer extends layer_1.default {
     constructor(layerSize = 1, activation = new sigmoid_1.default()) {
         super();
+        this.weights = new matrix_1.default();
+        this.errorWeights = new matrix_1.default();
+        this.bias = new matrix_1.default();
         this.activationFunction = activation;
         this.layerSize = layerSize;
         this.hasGPUSupport = true;
@@ -21,7 +22,8 @@ class DenseLayer extends layer_1.default {
         this.prevLayerShape = prevLayerShape;
         this.weights = new matrix_1.default();
         this.weights.createEmptyArray(prevLayerShape[0], this.layerSize);
-        this.bias = new vector_1.default(this.layerSize);
+        this.bias = new matrix_1.default();
+        this.bias.createEmptyArray(1, this.layerSize);
         this.weights.populateRandom();
         this.bias.populateRandom();
         this.errorWeights = new matrix_1.default();
@@ -95,15 +97,11 @@ class DenseLayer extends layer_1.default {
                 act = input.activation;
             }
             const z = act.mm(this.weights);
-            //console.log(z.toString(10, 6))
             z.iterate((i, j) => {
-                z.set(i, j, z.get(i, j) + this.bias.get(j));
+                z.set(i, j, z.get(i, j) + this.bias.get(0, j));
             });
             this.activation = this.activationFunction.normal(z);
-            //console.log(this.activation.toString())
         }
-    }
-    calculate_errors(error, input) {
     }
     backPropagation(prev_layer, next_layer) {
         if (this.useGpu) {
@@ -138,26 +136,6 @@ class DenseLayer extends layer_1.default {
             this.errorBias = error.sum(0);
             this.output_error = error;
         }
-    }
-    updateWeights(l_rate) {
-        this.weights = this.weights.sub(this.errorWeights.mul(l_rate));
-        this.bias.iterate((val, i) => {
-            this.bias.set(i, val - (this.errorBias.get(0, i) * l_rate));
-        });
-    }
-    toSavedModel() {
-        return {
-            weights: this.weights.matrix,
-            bias: this.bias.vector,
-            shape: this.shape,
-            activation: this.activationFunction.name
-        };
-    }
-    fromSavedModel(data) {
-        this.weights = matrix_1.default.fromJsonObject(data.weights);
-        this.bias = vector_1.default.fromJsonObj(data.bias);
-        this.shape = data.shape;
-        this.activationFunction = activations_1.default.fromName(data.activation);
     }
 }
 exports.default = DenseLayer;

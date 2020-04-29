@@ -31,6 +31,10 @@ export default class Dataset {
         this.GENERATOR = gen
     }
 
+    public addExample(ex: Example) {
+        this.data.push(ex)
+    }
+
     public static async read_image(path: string): Promise<Tensor> {
         const image = await Jimp.read(path);
         const t = new Tensor()
@@ -76,8 +80,8 @@ export default class Dataset {
         }
         const bar = new cliProgress.Bar({
             barCompleteChar: '#',
-            barIncompleteChar: '_',
-            format:'Loading.. |' + '{bar}' + '| {percentage}% | {value}/{total}',
+            barIncompleteChar: '-',
+            format:'Loading mnist.. [' + '{bar}' + '] {percentage}% | {value}/{total}',
             fps: 10,
             stream: process.stdout,
             barsize: 30

@@ -30,6 +30,7 @@ const helper_1 = __importDefault(require("./helpers/helper"));
 const output_layer_1 = __importDefault(require("./layers/output_layer"));
 const path_1 = __importDefault(require("path"));
 const cli_progress_1 = __importDefault(require("cli-progress"));
+const StochasticGradientDescent_1 = __importDefault(require("./optimizers/StochasticGradientDescent"));
 class Model {
     constructor(layers) {
         this.isBuilt = false;
@@ -54,11 +55,11 @@ class Model {
     isGpuAvailable() {
         return gpu_js_1.GPU.isGPUSupported;
     }
-    build(inputShape, lossFunction, verbose = true) {
+    build(inputShape, learning_rate, lossFunction, optimizer = StochasticGradientDescent_1.default, verbose = true) {
         if (!(this.layers[this.layers.length - 1] instanceof output_layer_1.default)) {
             throw "Last layer must be an OutputLayer!...";
         }
-        if (!this.isGpuAvailable()) {
+        if (!this.isGpuAvailable() && this.settings.USE_GPU) {
             console.error("GPU is not supported.. falling back on CPU.");
             this.settings.USE_GPU = false;
         }
@@ -75,15 +76,18 @@ class Model {
                 fs.mkdirSync(this.settings.MODEL_SAVE_PATH);
             }
         }
+        this.model_data.learning_rate = learning_rate;
         this.model_data.input_shape = inputShape;
         this.layers[0].isFirstLayer = true;
         for (let i = 0; i < this.layers.length; i++) {
-            this.layers[i].setGpuInstance(this.gpuInstance);
+            this.layers[i].gpuInstance = this.gpuInstance;
             this.layers[i].useGpu = this.settings.USE_GPU;
+            this.layers[i].learning_rate = learning_rate;
             if (i == this.layers.length - 1) {
-                this.layers[i].lossFunction = lossFunction;
+                this.layers[i].lossFunction = new lossFunction();
             }
             this.layers[i].buildLayer(i == 0 ? inputShape : this.layers[i - 1].shape);
+            this.layers[i].optimizer = new optimizer(this.layers[i]);
         }
         if (verbose) {
             console.log("Successfully build model!");
@@ -92,7 +96,7 @@ class Model {
     }
     summary() {
         if (this.isBuilt) {
-            let input = { type: "input", shape: this.model_data.input_shape, activation: "NO ACTIVATION" };
+            let input = { type: "input", shape: this.model_data.input_shape, activation: "NONE" };
             let layer_info = this.layers.map((layer) => layer.getLayerInfo());
             let total_neurons = layer_info.map((info) => info.shape).reduce((acc, val) => {
                 return acc + val.reduce((a, s) => a * s, 1);
@@ -124,13 +128,13 @@ class Model {
             this.layers[this.layers.length - 1].output_error = this.layers[this.layers.length - 1].output_error.toNumberArray();
             for (let i = this.layers.length - 2; i >= 0; i--) {
                 if (this.layers[i].hasGPUSupport) {
-                    this.layers[i].buildBPKernels(this.layers[i + 1].weights.dim().c);
+                    //this.layers[i].buildBPKernels(this.layers[i + 1].weights.dim().c)
                 }
                 let input = i == 0 ? examples : this.layers[i - 1];
                 this.layers[i].backPropagation(this.layers[i + 1], input);
             }
             for (let layer of this.layers) {
-                layer.updateWeights(this.model_data.learning_rate);
+                layer.updateLayer();
             }
             return { loss: this.layers[this.layers.length - 1].loss,
                 accuracy: this.layers[this.layers.length - 1].accuracy };
@@ -146,18 +150,17 @@ class Model {
             }
             this.layers[0].backPropagation(this.layers[1], examples);
             for (let layer of this.layers) {
-                layer.updateWeights(this.model_data.learning_rate);
+                layer.updateLayer();
             }
             return { loss: this.layers[this.layers.length - 1].loss,
                 accuracy: this.layers[this.layers.length - 1].accuracy };
         }
     }
-    train(data, epochs, learning_rate, shuffle = false, verbose = true) {
+    train(data, epochs, shuffle = false) {
         return __awaiter(this, void 0, void 0, function* () {
             if (!this.isBuilt) {
                 throw "Model hasn't been build yet!..";
             }
-            this.model_data.learning_rate = learning_rate;
             if (data instanceof dataset_1.default) {
                 console.log("Starting training...");
                 const startTime = Date.now();
@@ -230,7 +233,7 @@ class Model {
                             epoch_data.total_accuracy += b_acc;
                             epoch_data.calculated_duration += seconds;
                             this.backlog.calculated_duration += seconds;
-                            this.backlog["epoch_" + epoch] = epoch_data;
+                            this.backlog.epochs["epoch_" + epoch] = epoch_data;
                             this.saveBacklog();
                             if (this.settings.VERBOSE_COMPACT) {
                                 bar.increment(1, {
@@ -310,20 +313,24 @@ class Model {
         fs.writeFileSync(path, JSON.stringify(modelObj));
     }
     load(path, verbose = true) {
+        if (!fs.existsSync(path)) {
+            throw "Model file not found!!";
+        }
         const modelObj = JSON.parse(fs.readFileSync(path, { encoding: "UTF-8" }));
         this.model_data = modelObj.model_data;
         this.settings = modelObj.settings;
         const layer_keys = Object.keys(modelObj.layers).sort();
         this.layers = [];
-        if (!this.isGpuAvailable()) {
+        if (!this.isGpuAvailable() && this.settings.USE_GPU) {
             console.error("GPU is not supported.. falling back on CPU.");
             this.settings.USE_GPU = false;
         }
         for (let layer_key of layer_keys) {
             let layer = layer_helper_1.LayerHelper.fromType(modelObj.layers[layer_key].type);
             layer.fromSavedModel(modelObj.layers[layer_key].info);
-            layer.setGpuInstance(this.gpuInstance);
+            layer.gpuInstance = this.gpuInstance;
             layer.useGpu = this.settings.USE_GPU;
+            layer.learning_rate = this.model_data.learning_rate;
             this.layers.push(layer);
         }
         this.layers[0].isFirstLayer = true;

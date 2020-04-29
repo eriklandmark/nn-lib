@@ -74,9 +74,5 @@ class BatchNormLayer extends layer_1.default {
         this.errorWeights = dout.mul(xhat).sum(0);
         this.errorBias = dout.sum(0);
     }
-    updateWeights(l_rate) {
-        this.weights = this.weights.sub(this.errorWeights.mul(l_rate));
-        this.bias = this.bias.sub(this.errorBias.mul(l_rate));
-    }
 }
 exports.default = BatchNormLayer;

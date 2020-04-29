@@ -8,7 +8,6 @@ export default class DropoutLayer extends Layer {
     buildLayer(prevLayerShape: number[]): void;
     feedForward(input: Layer | Matrix, isInTraining: boolean): void;
     backPropagation(prev_layer: Layer, next_layer: Layer | Matrix): void;
-    updateWeights(l_rate: number): void;
     toSavedModel(): SavedLayer;
     fromSavedModel(data: SavedLayer): void;
 }

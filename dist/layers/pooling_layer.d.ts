@@ -3,7 +3,6 @@ import Tensor from "../tensor";
 import { SavedLayer } from "../model";
 export default class PoolingLayer extends Layer {
     type: string;
-    prevShape: number[];
     filterSize: number[];
     padding: number;
     stride: number[];
@@ -11,6 +10,11 @@ export default class PoolingLayer extends Layer {
     poolingFunc: string;
     constructor(filterSize?: number[], stride?: number[], ch_first?: boolean);
     buildLayer(prevLayerShape: number[]): void;
+    getLayerInfo(): {
+        shape: number[];
+        type: string;
+        activation: string;
+    };
     feedForward(input: Layer, isInTraining: boolean): void;
     backPropagation(prev_layer: Layer, next_layer: Layer | Tensor[]): void;
     toSavedModel(): SavedLayer;

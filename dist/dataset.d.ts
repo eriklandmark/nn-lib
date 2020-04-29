@@ -15,6 +15,7 @@ export default class Dataset {
     GENERATOR: Function;
     size(): number;
     setGenerator(gen: Function): void;
+    addExample(ex: Example): void;
     static read_image(path: string): Promise<Tensor>;
     vectorize_image(image: Tensor): Vector;
     loadMnistTrain(folderPath: string, maxExamples?: number, vectorize?: boolean): void;

@@ -1,14 +1,14 @@
 import Matrix from "../matrix";
-import Vector from "../vector";
 import { GPU } from "gpu.js";
 import { IActivation } from "../activations/activations";
 import Tensor from "../tensor";
 import { SavedLayer } from "../model";
+import { IOptimizer } from "../optimizers/Optimizers";
 export default class Layer {
-    weights: Matrix;
-    bias: Vector | Matrix;
-    errorWeights: Matrix;
-    errorBias: Matrix | Vector;
+    weights: Matrix | Tensor[];
+    bias: Matrix;
+    errorWeights: Matrix | Tensor[];
+    errorBias: Matrix;
     output_error: any;
     activation: Matrix | Tensor[];
     activationFunction: IActivation;
@@ -19,11 +19,12 @@ export default class Layer {
     type: string;
     hasGPUSupport: boolean;
     isFirstLayer: boolean;
+    optimizer: IOptimizer;
+    learning_rate: number;
     ff_kernel: any;
     act_kernel: any;
     bp_error_kernel: any;
     bp_error_weight_kernel: any;
-    setGpuInstance(gpuIns: GPU): void;
     getLayerInfo(): {
         type: string;
         shape: number[];
@@ -34,8 +35,7 @@ export default class Layer {
     buildFFKernels(batch_size: number): void;
     buildBPKernels(size: number): void;
     backPropagation(prev_layer: Layer, next_layer: Layer | Matrix | Tensor[]): void;
-    calculate_errors(error: any, next_layer: Layer | Matrix): void;
-    updateWeights(l_rate: number): void;
     toSavedModel(): SavedLayer;
     fromSavedModel(data: SavedLayer): void;
+    updateLayer(): void;
 }

@@ -4,11 +4,12 @@ import Matrix from "../matrix";
 export default class BatchNormLayer extends Layer {
 
     momentum: number
-
     running_mean: Matrix
     running_var: Matrix
-
     cache: any = {}
+
+    weights: Matrix
+    errorWeights: Matrix
 
     constructor(momentum: number = 0.9) {
         super();
@@ -69,7 +70,7 @@ export default class BatchNormLayer extends Layer {
 
 
         const {variance,diff, xhat} = this.cache
-        const dout = error.mm(prev_layer.weights.transpose())
+        const dout = error.mm((<Matrix>prev_layer.weights).transpose())
         const N = dout.dim().r
         const std_inv = variance.sqrt().inv_el(10**-8)
         const dX_norm = dout.mul(this.weights.repeat(0, N))
@@ -79,10 +80,4 @@ export default class BatchNormLayer extends Layer {
         this.errorWeights = dout.mul(xhat).sum(0)
         this.errorBias = dout.sum(0)
     }
-
-    updateWeights(l_rate: number) {
-        this.weights = this.weights.sub(this.errorWeights.mul(l_rate))
-        this.bias = (<Matrix> this.bias).sub((<Matrix>this.errorBias).mul(l_rate))
-    }
-
 }

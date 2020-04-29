@@ -42,7 +42,7 @@ export default class Visualizer {
               }
               
               type Subscription {
-                new_batch: Batch
+                update: Epoch
               }
             `)
 
@@ -63,8 +63,8 @@ export default class Visualizer {
                     }
                 },
                 Subscription: {
-                    new_batch: {
-                        subscribe: () => this.pubsub.asyncIterator("new_batch"),
+                    update: {
+                        subscribe: () => this.pubsub.asyncIterator("update"),
                     },
                 }
             }
