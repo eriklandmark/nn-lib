@@ -1,16 +1,19 @@
-import {createServer, Server} from 'http';
-import {ApolloServer, gql, PubSub} from "apollo-server";
+import {ApolloServer, gql, PubSub} from "apollo-server-express";
+import express from "express"
+import {createServer} from 'http';
 import {SubscriptionServer} from 'subscriptions-transport-ws';
-import {DocumentNode, execute, GraphQLSchema, subscribe} from 'graphql';
+import {execute, subscribe} from 'graphql';
 import {makeExecutableSchema} from "graphql-tools";
 import DataHandler from "./data_handler";
+import Path from "path"
 
 export default class Visualizer {
     PORT = 3000
 
     pubsub = new PubSub();
     data_handler: DataHandler
-    server: ApolloServer
+    server: any
+    wsServer: any
 
     constructor(path: string) {
         this.data_handler = new DataHandler(this.pubsub, path)
@@ -69,7 +72,33 @@ export default class Visualizer {
                 }
             }
         })
-        this.server = new ApolloServer({schema})
+        this.wsServer = createServer((request, response) => {
+            response.writeHead(404)
+            response.end()
+        });
+
+        const apolloServer = new ApolloServer({schema})
+
+        const subscriptionServer = SubscriptionServer.create(
+            {
+                schema,
+                execute,
+                subscribe,
+            },
+            {
+                server: this.wsServer,
+                path: '/graphql',
+            },
+        );
+
+        const app = express();
+        // @ts-ignore
+        apolloServer.applyMiddleware({ app });
+        app.use(express.static(Path.join(__dirname, 'interface')))
+        app.get("/*", (req, res) => {
+            res.sendFile(Path.join(__dirname, 'interface/index.html'))
+        })
+        this.server = app
     }
 
     run() {
@@ -77,8 +106,12 @@ export default class Visualizer {
 
         this.data_handler.startWatcher()
 
-        this.server.listen({port: this.PORT}).then(({url}) => {
-            console.log(`Visualizer server ready at ${url}`);
+        this.wsServer.listen(3001, () => console.log(
+            `Websocket Server is now running on http://localhost:${this.PORT + 1}`
+        ));
+
+        this.server.listen({port: this.PORT},() => {
+            console.log(`Visualizer server ready at http://localhost:${this.PORT}`);
         });
     }
 }

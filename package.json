@@ -9,6 +9,7 @@
     "train": "ts-node-dev test/train.ts",
     "predict": "ts-node-dev test/predict.ts",
     "build": "tsc -p tsconfig.json",
+    "postbuild": "ts-node-dev tools/postbuild.ts",
     "build-native": "node-gyp rebuild",
     "visualize": "ts-node-dev tools/visualize.ts"
   },
@@ -35,6 +36,7 @@
     "gpu.js": "^2.6.9",
     "graphql": "^15.0.0",
     "jimp": "^0.9.3",
+    "ncp": "^2.0.0",
     "node-addon-api": "^2.0.0",
     "node-worker-threads-pool": "^1.1.2",
     "typescript": "^3.8.3"
