@@ -5,7 +5,7 @@ import cliProgress from "cli-progress";
 
 const model = new Model([])
 
-model.load("./model/model_checkpoint_63.json")
+model.load("./model/model.json")
 model.summary()
 
 const dataset = new Dataset();
@@ -28,7 +28,7 @@ Helper.timeit(() => {
         format:'Example: {value}/{total} [{bar}] {percentage}% | Rights: {rights}/{value} ({per} %)',
         fps: 30,
         stream: process.stdout,
-        barsize: 15
+        barsize: 20
     });
     if (!VERBOSE) {
         bar.start(MAX_EXAMPLE, 0, {
@@ -49,7 +49,7 @@ Helper.timeit(() => {
         } else {
             bar.increment(1, {
                 rights: numRights,
-                per: ((numRights / i) * 100).toPrecision(4)
+                per: ((numRights / (i + 1)) * 100).toPrecision(4)
             })
         }
 
