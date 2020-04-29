@@ -1,15 +1,16 @@
 import fs from "fs"
 import Path from "path";
-let ncp = require('ncp').ncp;
-
-console.log("Moving interface files...")
+const ncp = require('ncp').ncp;
+const rimraf = require("rimraf");
 const destPath = "./dist/visualizer/interface"
 
 if(fs.existsSync(destPath)) {
-    fs.rmdirSync(destPath)
+    console.log("Files already exists.. deleting..")
+    rimraf.sync(destPath);
+    console.log("Done!")
 }
 
-fs.mkdirSync(destPath)
+console.log("Moving interface files...")
 
 ncp("./src/visualizer/interface", destPath, function (err) {
     if (err) {
