@@ -34,6 +34,7 @@ class Visualizer {
                 accuracy: Float
                 loss: Float
                 time: Float
+                global_id: Float
               }
               
               type Query {

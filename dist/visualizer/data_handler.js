@@ -31,6 +31,8 @@ class DataHandler {
             acc.push(...this.data.epochs[epoch].batches.map((batch, index) => {
                 batch["id"] = index;
                 batch["epoch_id"] = parseInt(epoch.substr(epoch.lastIndexOf("_") + 1));
+                batch["global_id"] = batch["epoch_id"] - 1 == 0 ? index :
+                    (batch["epoch_id"] - 1) * this.data.epochs["epoch_" + (batch["epoch_id"] - 1)].batches.length + index;
                 return batch;
             }));
             return acc;
@@ -45,6 +47,8 @@ class DataHandler {
         data.batches = data.batches.map((batch, index) => {
             batch["id"] = index;
             batch["epoch_id"] = epoch_id;
+            batch["global_id"] = epoch_id - 1 == 0 ? index :
+                (epoch_id - 1) * this.data.epochs["epoch_" + (epoch_id - 1)].batches.length + index;
             return batch;
         });
         data["accuracy"] = this.data.epochs[epoch].total_accuracy / this.data.epochs[epoch].batches.length;

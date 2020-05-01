@@ -12,20 +12,15 @@ tokenizer.createVocabulary(sentences)
 
 console.log(tokenizer.tokenize(sentences[sentences.length-1]))*/
 
-import Matrix from "../src/matrix";
-import Helper from "../src/helpers/helper";
+let b_id = 0;
+let id = 0;
 
-const size = 1000
-const a = new Matrix()
-a.createEmptyArray(size, size)
-a.populateRandom()
-
-const b = new Matrix()
-b.createEmptyArray(size, size)
-b.populateRandom()
-
-Helper.timeit(() => {
-    a.mm(b)
-}, false).then((result) => {
-    console.log(result)
-})
+for (let i = 0; i < 20; i++) {
+    for (let j = 0; j < 10; j++) {
+       if(i == 0) {
+           console.log(j)
+       } else {
+           console.log(i * 10 + j)
+       }
+    }
+}
