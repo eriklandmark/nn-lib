@@ -134,7 +134,7 @@ export default class Visualizer {
 
         this.data_handler.startWatcher()
 
-        this.wsServer.listen(3001, () => console.log(
+        this.wsServer.listen(this.PORT + 1, () => console.log(
             `Websocket Server is now running on http://localhost:${this.PORT + 1}`
         ));
 

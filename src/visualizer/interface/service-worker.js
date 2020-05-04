@@ -14,7 +14,7 @@
 importScripts("https://storage.googleapis.com/workbox-cdn/releases/4.3.1/workbox-sw.js");
 
 importScripts(
-  "/precache-manifest.d032cd05d81864c18245df836d648cc4.js"
+  "/precache-manifest.218840a7985505ad16c52a79e73e9e03.js"
 );
 
 workbox.core.setCacheNameDetails({prefix: "nn-lib-visualizer"});

@@ -15,11 +15,13 @@ export default class ConvolutionLayer extends Layer {
     bp_error_kernel: any;
     bp_error_weight_kernel: any;
     useMM: boolean;
-    constructor(nr_filters: number, filterSize: number[], ch_first: boolean, activation: IActivation);
+    use_bias: boolean;
+    constructor(nr_filters: number, filterSize: number[], ch_first: boolean, activation: IActivation, use_bias?: boolean);
     buildLayer(prevLayerShape: number[]): void;
     feedForward(input: Layer | Tensor[], isInTraining: boolean): void;
     backPropagation(prev_layer: Layer, next_layer: Layer | Tensor[]): void;
     convolve(image: Tensor, filters: Tensor[], channel_first?: boolean): Tensor | Tensor[];
     toSavedModel(): SavedLayer;
+    updateLayer(): void;
     fromSavedModel(data: SavedLayer): void;
 }

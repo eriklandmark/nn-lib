@@ -123,7 +123,7 @@ class Visualizer {
     run() {
         console.log("Starting server...");
         this.data_handler.startWatcher();
-        this.wsServer.listen(3001, () => console.log(`Websocket Server is now running on http://localhost:${this.PORT + 1}`));
+        this.wsServer.listen(this.PORT + 1, () => console.log(`Websocket Server is now running on http://localhost:${this.PORT + 1}`));
         this.server.listen({ port: this.PORT }, () => {
             console.log(`Visualizer server ready at http://localhost:${this.PORT}`);
         });
