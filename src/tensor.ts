@@ -6,14 +6,14 @@ export default class Tensor {
     tensor: Float32Array[][] = [];
 
     public get: Function = (i: number, j: number, k: number) => {
-        if(isNaN(this.tensor[i][j][k])) {
+        if(!isFinite(this.tensor[i][j][k])) {
             console.trace()
             throw "Getting an NaN..."
         }
         return this.tensor[i][j][k]
     };
     public set: Function = (i: number, j: number, k: number, n: number) => {
-        if (isNaN(n)) {
+        if (!isFinite(n)) {
             console.trace()
             throw "Number is NaN..."
         }

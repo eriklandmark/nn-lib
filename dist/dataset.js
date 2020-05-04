@@ -24,7 +24,7 @@ const fs = __importStar(require("fs"));
 const path = __importStar(require("path"));
 const jimp_1 = __importDefault(require("jimp"));
 const tensor_1 = __importDefault(require("./tensor"));
-const array_helper_1 = __importDefault(require("./helpers/array_helper"));
+const array_helper_1 = __importDefault(require("./lib/array_helper"));
 const cli_progress_1 = __importDefault(require("cli-progress"));
 class Dataset {
     constructor() {
@@ -46,17 +46,19 @@ class Dataset {
     addExample(ex) {
         this.data.push(ex);
     }
-    static read_image(path) {
+    static read_image(path, channels = 3) {
         return __awaiter(this, void 0, void 0, function* () {
             const image = yield jimp_1.default.read(path);
             const t = new tensor_1.default();
-            for (let i = 0; i < image.bitmap.data.length; i += 4) {
-                let y = Math.floor((i / 4) / image.getHeight());
-                let x = (i / 4) - (y * image.getWidth());
-                for (let d = 0; d < 3; d++) {
-                    t.set(y, x, d, image.bitmap.data[i + d]);
-                }
+            t.createEmptyArray(image.getHeight(), image.getWidth(), channels);
+            if (channels > 4) {
+                channels = 4;
             }
+            image.scan(0, 0, image.bitmap.width, image.bitmap.height, (x, y, idx) => {
+                for (let i = 0; i < channels; i++) {
+                    t.set(y, x, i, image.bitmap.data[idx + i]);
+                }
+            });
             return t;
         });
     }
@@ -138,8 +140,13 @@ class Dataset {
             this.data.push(example);
         }
     }
-    getBatch(batch) {
-        return this.data.slice(batch * this.BATCH_SIZE, batch * this.BATCH_SIZE + this.BATCH_SIZE);
+    getBatch(batch_id) {
+        if (this.IS_GENERATOR) {
+            return this.GENERATOR(batch_id);
+        }
+        else {
+            return this.data.slice(batch_id * this.BATCH_SIZE, batch_id * this.BATCH_SIZE + this.BATCH_SIZE);
+        }
     }
 }
 exports.default = Dataset;

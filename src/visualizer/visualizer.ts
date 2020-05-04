@@ -18,6 +18,12 @@ export default class Visualizer {
     constructor(path: string) {
         this.data_handler = new DataHandler(this.pubsub, path)
         const typeDefs = gql(`
+              type LayerInfo {
+                type: String
+                activation: String
+                shape: [Int]
+              }
+        
               type Epoch {
                 id: Float
                 accuracy: Float
@@ -27,6 +33,8 @@ export default class Visualizer {
                 actual_duration: Float
                 calculated_duration: Float
                 batches: [Batch]
+                eval_loss: Float
+                eval_accuracy: Float
               }
               
               type Batch {
@@ -38,15 +46,31 @@ export default class Visualizer {
                 global_id: Float
               }
               
+              type Info {
+                model_structure: [LayerInfo]
+                total_neurons: Int
+                duration: Float
+                start_time: Float
+                total_epochs: Int
+                batches_per_epoch: Int
+                eval_model: Boolean
+              }
+              
               type Query {
                 epochs:[Epoch]
                 epoch(id: Float): Epoch
                 batches: [Batch]
                 batch(id: Float, epoch_id: Float): Batch
+                info: Info
+              }
+              
+              type UpdateData {
+                epoch: Epoch
+                info: Info
               }
               
               type Subscription {
-                update: Epoch
+                update: UpdateData
               }
             `)
 
@@ -64,6 +88,9 @@ export default class Visualizer {
                     },
                     epoch: (parent: any, args: any, context: any, info: any) => {
                         return this.data_handler.getEpoch(args.id);
+                    },
+                    info: () => {
+                        return this.data_handler.getModelInfo()
                     }
                 },
                 Subscription: {
@@ -96,7 +123,7 @@ export default class Visualizer {
         // @ts-ignore
         apolloServer.applyMiddleware({ app });
         app.use(express.static(Path.join(__dirname, 'interface')))
-        app.get("/*", (req, res) => {
+        app.get("*", (req, res) => {
             res.sendFile(Path.join(__dirname, 'interface/index.html'))
         })
         this.server = app

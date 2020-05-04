@@ -29,10 +29,17 @@ interface ModelSettings {
     SAVE_CHECKPOINTS: boolean;
     MODEL_SAVE_PATH: string;
     VERBOSE_COMPACT: boolean;
+    EVAL_PER_EPOCH: boolean;
 }
 export interface BacklogData {
     actual_duration: number;
     calculated_duration: number;
+    model_structure: any;
+    total_neurons: number;
+    train_start_time: number;
+    batches_per_epoch: number;
+    total_epochs: number;
+    eval_model: boolean;
     epochs: {
         [propName: string]: {
             total_loss: number;
@@ -44,6 +51,8 @@ export interface BacklogData {
             }[];
             calculated_duration: number;
             actual_duration: number;
+            eval_loss: number;
+            eval_accuracy: number;
         };
     };
 }
@@ -63,8 +72,9 @@ export default class Model {
     build(inputShape: number[], learning_rate: number, lossFunction: any, optimizer?: typeof StochasticGradientDescent, verbose?: boolean): void;
     summary(): void;
     train_on_batch(examples: Matrix | Tensor[], labels: Matrix): any;
-    train(data: Example[] | Dataset, epochs: number, shuffle?: boolean): Promise<void>;
+    train(data: Example[] | Dataset, epochs: number, eval_ds?: Dataset | null, shuffle?: boolean): Promise<void>;
     saveBacklog(): void;
+    eval(example: Example): any;
     predict(data: Vector | Matrix | Tensor): Matrix;
     save(model_path?: string): void;
     load(path: string, verbose?: boolean): void;

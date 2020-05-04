@@ -27,9 +27,21 @@ export default class DataHandler {
             this.loadData()
             const latest_epoch = Object.keys(this.data.epochs)[Object.keys(this.data.epochs).length - 1]
             const data = this.getEpoch(parseInt(latest_epoch.substr(latest_epoch.lastIndexOf("_") + 1)))
-            this.pubSub.publish("update", {update: data})
+            this.pubSub.publish("update", {update: {epoch:data, info: this.getModelInfo()}})
         })
         console.log("Started backlog watcher!")
+    }
+
+    getModelInfo() {
+        return {
+            model_structure: this.data.model_structure,
+            total_neurons: this.data.total_neurons,
+            duration: this.data.calculated_duration,
+            start_time: this.data.train_start_time,
+            total_epochs: this.data.total_epochs,
+            batches_per_epoch: this.data.batches_per_epoch,
+            eval_model: this.data.eval_model
+        }
     }
 
     getBatches() {

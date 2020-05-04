@@ -7,7 +7,7 @@ const layer_1 = __importDefault(require("./layer"));
 const tensor_1 = __importDefault(require("../tensor"));
 const matrix_1 = __importDefault(require("../matrix"));
 class ConvolutionLayer extends layer_1.default {
-    constructor(nr_filters = 3, filterSize = [3, 3], ch_first = false, activation) {
+    constructor(nr_filters = 3, filterSize = [3, 3], ch_first = false, activation, use_bias = true) {
         super();
         this.weights = [];
         this.filterSize = [];
@@ -17,11 +17,13 @@ class ConvolutionLayer extends layer_1.default {
         this.errorWeights = [];
         this.channel_first = true;
         this.useMM = false;
+        this.use_bias = true;
         this.channel_first = ch_first;
         this.activationFunction = activation;
         this.filterSize = filterSize;
         this.nr_filters = nr_filters;
         this.type = "conv";
+        this.use_bias = use_bias;
     }
     buildLayer(prevLayerShape) {
         let h, w;
@@ -110,6 +112,7 @@ class ConvolutionLayer extends layer_1.default {
                                                     this.weights[f].get(c_f_h, c_f_w, c_f_c);
                                             }
                                             else {
+                                                //console.log(r + c_f_h, c + c_f_w, c_f_c)
                                                 val += input_images[t].get(r + c_f_h, c + c_f_w, c_f_c) *
                                                     this.weights[f].get(c_f_h, c_f_w, c_f_c);
                                             }
@@ -117,10 +120,10 @@ class ConvolutionLayer extends layer_1.default {
                                     }
                                 }
                                 if (this.channel_first) {
-                                    patch.set(f, r, c, this.activationFunction.normal(val) + this.bias.get(0, f));
+                                    patch.set(f, r, c, this.activationFunction.normal(val) + (this.use_bias ? this.bias.get(0, f) : 0));
                                 }
                                 else {
-                                    patch.set(r, c, f, this.activationFunction.normal(val) + this.bias.get(0, f));
+                                    patch.set(r, c, f, this.activationFunction.normal(val) + (this.use_bias ? this.bias.get(0, f) : 0));
                                 }
                             }
                         }
@@ -228,16 +231,18 @@ class ConvolutionLayer extends layer_1.default {
                 }
             }
             this.errorWeights = this.errorWeights.map((eW) => eW.rotate180());
-            const sum = [];
-            for (let n = 0; n < dout.length; n++) {
-                const sumMatrix = new matrix_1.default();
-                sumMatrix.createEmptyArray(1, dout[n].dim().d);
-                dout[n].iterate((i, j, k) => {
-                    sumMatrix.set(0, k, sumMatrix.get(0, k) + dout[n].get(i, j, k));
-                });
-                sum.push(sumMatrix);
+            if (this.use_bias) {
+                const sum = [];
+                for (let n = 0; n < dout.length; n++) {
+                    const sumMatrix = new matrix_1.default();
+                    sumMatrix.createEmptyArray(1, dout[n].dim().d);
+                    dout[n].iterate((i, j, k) => {
+                        sumMatrix.set(0, k, sumMatrix.get(0, k) + dout[n].get(i, j, k));
+                    });
+                    sum.push(sumMatrix);
+                }
+                this.errorBias = sum.reduce((acc, v) => acc.add(v), sum[0].copy(false)).div(sum.length);
             }
-            this.errorBias = sum.reduce((acc, v) => acc.add(v), sum[0].copy(false)).div(sum.length);
             if (!this.isFirstLayer) {
                 const doutp = new Array(dout.length).fill(new tensor_1.default());
                 doutp.forEach((tensor) => {
@@ -328,13 +333,21 @@ class ConvolutionLayer extends layer_1.default {
         data.layer_specific = {
             nr_filters: this.nr_filters,
             filterSize: this.filterSize,
+            use_bias: this.use_bias
         };
         return data;
+    }
+    updateLayer() {
+        this.optimizer.optimizeWeights();
+        if (this.use_bias) {
+            this.optimizer.optimizeBias();
+        }
     }
     fromSavedModel(data) {
         super.fromSavedModel(data);
         this.nr_filters = data.layer_specific.nr_filters;
         this.filterSize = data.layer_specific.filterSize;
+        this.use_bias = data.layer_specific.use_bias;
     }
 }
 exports.default = ConvolutionLayer;

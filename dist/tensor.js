@@ -9,14 +9,14 @@ class Tensor {
     constructor(v = []) {
         this.tensor = [];
         this.get = (i, j, k) => {
-            if (isNaN(this.tensor[i][j][k])) {
+            if (!isFinite(this.tensor[i][j][k])) {
                 console.trace();
                 throw "Getting an NaN...";
             }
             return this.tensor[i][j][k];
         };
         this.set = (i, j, k, n) => {
-            if (isNaN(n)) {
+            if (!isFinite(n)) {
                 console.trace();
                 throw "Number is NaN...";
             }

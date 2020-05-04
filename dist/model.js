@@ -26,23 +26,32 @@ const vector_1 = __importDefault(require("./vector"));
 const gpu_js_1 = require("gpu.js");
 const tensor_1 = __importDefault(require("./tensor"));
 const layer_helper_1 = require("./layers/layer_helper");
-const helper_1 = __importDefault(require("./helpers/helper"));
+const helper_1 = __importDefault(require("./lib/helper"));
 const output_layer_1 = __importDefault(require("./layers/output_layer"));
 const path_1 = __importDefault(require("path"));
-const cli_progress_1 = __importDefault(require("cli-progress"));
 const StochasticGradientDescent_1 = __importDefault(require("./optimizers/StochasticGradientDescent"));
+const progress_bar_1 = __importDefault(require("./lib/progress_bar"));
 class Model {
     constructor(layers) {
         this.isBuilt = false;
         this.backlog = {
-            actual_duration: 0, calculated_duration: 0, epochs: {}
+            actual_duration: 0,
+            calculated_duration: 0,
+            total_neurons: 0,
+            train_start_time: 0,
+            batches_per_epoch: 0,
+            total_epochs: 0,
+            model_structure: [],
+            eval_model: false,
+            epochs: {}
         };
         this.settings = {
             USE_GPU: false,
             BACKLOG: true,
             SAVE_CHECKPOINTS: false,
             MODEL_SAVE_PATH: "",
-            VERBOSE_COMPACT: true
+            VERBOSE_COMPACT: true,
+            EVAL_PER_EPOCH: false
         };
         this.model_data = {
             input_shape: [0],
@@ -92,17 +101,17 @@ class Model {
         if (verbose) {
             console.log("Successfully build model!");
         }
+        this.backlog.model_structure = this.layers.map((layer) => layer.getLayerInfo());
+        this.backlog.total_neurons = this.backlog.model_structure.map((info) => info.shape).reduce((acc, val) => {
+            return acc + val.reduce((a, s) => a * s, 1);
+        }, 0);
         this.isBuilt = true;
     }
     summary() {
         if (this.isBuilt) {
             let input = { type: "input", shape: this.model_data.input_shape, activation: "NONE" };
-            let layer_info = this.layers.map((layer) => layer.getLayerInfo());
-            let total_neurons = layer_info.map((info) => info.shape).reduce((acc, val) => {
-                return acc + val.reduce((a, s) => a * s, 1);
-            }, 0);
-            console.table([input, ...layer_info]);
-            console.log("Total: neurons: ", total_neurons);
+            console.table([input, ...this.backlog.model_structure]);
+            console.log("Total: neurons: ", this.backlog.total_neurons);
         }
         else {
             console.log("Model hasn't been built yet!..");
@@ -136,8 +145,10 @@ class Model {
             for (let layer of this.layers) {
                 layer.updateLayer();
             }
-            return { loss: this.layers[this.layers.length - 1].loss,
-                accuracy: this.layers[this.layers.length - 1].accuracy };
+            return {
+                loss: this.layers[this.layers.length - 1].loss,
+                accuracy: this.layers[this.layers.length - 1].accuracy
+            };
         }
         else {
             this.layers[0].feedForward(examples, true);
@@ -152,110 +163,129 @@ class Model {
             for (let layer of this.layers) {
                 layer.updateLayer();
             }
-            return { loss: this.layers[this.layers.length - 1].loss,
-                accuracy: this.layers[this.layers.length - 1].accuracy };
+            return {
+                loss: this.layers[this.layers.length - 1].loss,
+                accuracy: this.layers[this.layers.length - 1].accuracy
+            };
         }
     }
-    train(data, epochs, shuffle = false) {
+    train(data, epochs, eval_ds = null, shuffle = false) {
         return __awaiter(this, void 0, void 0, function* () {
             if (!this.isBuilt) {
                 throw "Model hasn't been build yet!..";
             }
+            this.backlog.train_start_time = Date.now();
+            this.backlog.total_epochs += epochs;
             if (data instanceof dataset_1.default) {
                 console.log("Starting training...");
                 const startTime = Date.now();
+                const batch_count = Math.floor(data.size() | data.TOTAL_EXAMPLES / data.BATCH_SIZE);
+                this.backlog.batches_per_epoch = batch_count;
                 if (data.IS_GENERATOR) {
-                    const batch_count = Math.floor(data.TOTAL_EXAMPLES / data.BATCH_SIZE);
                     console.log("Total " + batch_count + " batches for " + epochs + " epochs.");
-                    for (let epoch = 0; epoch < epochs; epoch++) {
-                        console.log("Starting Epoch:", epoch);
-                        for (let batch_id = 0; batch_id < batch_count; batch_id++) {
-                            const batch = yield data.GENERATOR(batch_id);
-                            const examples = new matrix_1.default(batch.map((ex) => ex.data)).transpose();
-                            const labels = new matrix_1.default(batch.map((ex) => ex.label)).transpose();
-                            let error = this.train_on_batch(examples, labels);
-                            console.log("Error for batch: " + batch_id + " =", error);
-                        }
-                    }
                 }
-                else {
-                    const batch_count = Math.floor(data.size() / data.BATCH_SIZE);
-                    for (let epoch = 1; epoch <= epochs; epoch++) {
-                        console.log("----------------");
-                        console.log("Starting Epoch:", epoch, "/", epochs);
-                        if (shuffle) {
-                            data.shuffle();
+                this.backlog.eval_model = this.settings.EVAL_PER_EPOCH;
+                this.saveBacklog();
+                for (let epoch = 1; epoch <= epochs; epoch++) {
+                    console.log("----------------");
+                    console.log("Starting Epoch:", epoch, "/", epochs);
+                    if (shuffle && !data.IS_GENERATOR) {
+                        data.shuffle();
+                    }
+                    const epoch_data = {
+                        total_loss: 0,
+                        total_accuracy: 0,
+                        batches: [],
+                        calculated_duration: 0,
+                        actual_duration: 0,
+                        eval_loss: 0,
+                        eval_accuracy: 0
+                    };
+                    const epoch_startTime = Date.now();
+                    const bar = new progress_bar_1.default('Batch: {value}/{total} [' + '{bar}' + '] {percentage}% | loss: {loss} | acc: {acc} | Time (TOT/AVG): {time_tot} / {time_avg}', batch_count, {
+                        acc: (0).toPrecision(3),
+                        time_tot: (0).toPrecision(5),
+                        time_avg: (0).toPrecision(5),
+                        loss: (0).toPrecision(5),
+                    });
+                    if (this.settings.VERBOSE_COMPACT) {
+                        bar.start();
+                    }
+                    for (let batch_id = 0; batch_id < batch_count; batch_id++) {
+                        const batch = yield data.getBatch(batch_id);
+                        let examples;
+                        let b_loss = 0;
+                        let b_acc = 0;
+                        let exampleData = batch.map((ex) => ex.data);
+                        const labels = new matrix_1.default(batch.map((ex) => ex.label)).transpose();
+                        if (data.DATA_STRUCTURE == vector_1.default) {
+                            examples = new matrix_1.default(batch.map((ex) => ex.data)).transpose();
                         }
-                        const epoch_data = {
-                            total_loss: 0,
-                            total_accuracy: 0,
-                            batches: [],
-                            calculated_duration: 0,
-                            actual_duration: 0
-                        };
-                        const epoch_startTime = Date.now();
-                        const bar = new cli_progress_1.default.Bar({
-                            barCompleteChar: '#',
-                            barIncompleteChar: '-',
-                            format: 'Batch: {value}/{total} [' + '{bar}' + '] {percentage}% | loss: {loss} | acc: {acc} | Time (TOT/AVG): {time_tot} / {time_avg}',
-                            fps: 10,
-                            stream: process.stdout,
-                            barsize: 15
-                        });
+                        else if (data.DATA_STRUCTURE == tensor_1.default) {
+                            examples = exampleData;
+                        }
+                        const seconds = yield helper_1.default.timeit(() => {
+                            let { loss, accuracy } = this.train_on_batch(examples, labels);
+                            b_loss = loss;
+                            b_acc = accuracy;
+                        }, false);
+                        epoch_data.batches.push({ accuracy: b_acc, loss: b_loss, time: seconds });
+                        epoch_data.total_loss += b_loss;
+                        epoch_data.total_accuracy += b_acc;
+                        epoch_data.calculated_duration += seconds;
+                        this.backlog.calculated_duration += seconds;
+                        this.backlog.epochs["epoch_" + epoch] = epoch_data;
+                        this.saveBacklog();
                         if (this.settings.VERBOSE_COMPACT) {
-                            bar.start(batch_count, 0, {
-                                acc: (0).toPrecision(3),
-                                time_tot: (0).toPrecision(5),
-                                time_avg: (0).toPrecision(5),
-                                loss: (0).toPrecision(5)
+                            bar.increment({
+                                acc: (epoch_data.total_accuracy / (batch_id + 1)).toPrecision(3),
+                                time_tot: epoch_data.calculated_duration.toPrecision(5),
+                                time_avg: (epoch_data.calculated_duration / (batch_id + 1)).toPrecision(4),
+                                loss: (epoch_data.total_loss / (batch_id + 1)).toPrecision(5)
                             });
                         }
-                        for (let batch_id = 0; batch_id < batch_count; batch_id++) {
-                            let batch = data.getBatch(batch_id);
-                            let examples;
-                            let b_loss = 0;
-                            let b_acc = 0;
-                            let exampleData = batch.map((ex) => ex.data);
-                            const labels = new matrix_1.default(batch.map((ex) => ex.label)).transpose();
-                            if (data.DATA_STRUCTURE == vector_1.default) {
-                                examples = new matrix_1.default(batch.map((ex) => ex.data)).transpose();
-                            }
-                            else if (data.DATA_STRUCTURE == tensor_1.default) {
-                                examples = exampleData;
-                            }
-                            const seconds = yield helper_1.default.timeit(() => {
-                                let { loss, accuracy } = this.train_on_batch(examples, labels);
-                                b_loss = loss;
-                                b_acc = accuracy;
-                            }, false);
-                            epoch_data.batches.push({ accuracy: b_acc, loss: b_loss, time: seconds });
-                            epoch_data.total_loss += b_loss;
-                            epoch_data.total_accuracy += b_acc;
-                            epoch_data.calculated_duration += seconds;
-                            this.backlog.calculated_duration += seconds;
-                            this.backlog.epochs["epoch_" + epoch] = epoch_data;
-                            this.saveBacklog();
-                            if (this.settings.VERBOSE_COMPACT) {
-                                bar.increment(1, {
-                                    acc: (epoch_data.total_accuracy / (batch_id + 1)).toPrecision(3),
-                                    time_tot: epoch_data.calculated_duration.toPrecision(5),
-                                    time_avg: (epoch_data.calculated_duration / (batch_id + 1)).toPrecision(4),
-                                    loss: (epoch_data.total_loss / (batch_id + 1)).toPrecision(5)
+                        else {
+                            console.log("Batch:", (batch_id + 1), "/", batch_count, "Loss =", b_loss, ", Acc = ", b_acc, "| Time:", seconds, "seconds");
+                        }
+                    }
+                    bar.stop();
+                    if (this.settings.EVAL_PER_EPOCH && eval_ds) {
+                        const eval_examples = eval_ds.size();
+                        eval_ds.BATCH_SIZE = eval_examples;
+                        let numRights = 0;
+                        let tot_eval_loss = 0;
+                        const eval_data = eval_ds.getBatch(0);
+                        const bar = new progress_bar_1.default('Evaluation: {value}/{total} [{bar}] {percentage}% | Rights: {rights}/{value} ({per} %)', eval_examples, {
+                            rights: "0",
+                            per: "0"
+                        });
+                        bar.start();
+                        const seconds = yield helper_1.default.timeit(() => {
+                            for (let i = 0; i < eval_examples; i++) {
+                                const result = this.eval(eval_data[i]);
+                                numRights += result.accuracy;
+                                tot_eval_loss += result.loss;
+                                bar.increment({
+                                    rights: numRights,
+                                    per: ((numRights / (i + 1)) * 100).toPrecision(4)
                                 });
                             }
-                            else {
-                                console.log("Batch:", (batch_id + 1), "/", batch_count, "Loss =", b_loss, ", Acc = ", b_acc, "| Time:", seconds, "seconds");
-                            }
-                        }
+                        }, false);
                         bar.stop();
-                        epoch_data.actual_duration = (Date.now() - epoch_startTime) / 1000;
-                        this.backlog.epochs["epoch_" + epoch] = epoch_data;
-                        console.log("Loss: TOT", epoch_data.total_loss.toPrecision(5), "AVG", (epoch_data.total_loss / batch_count).toPrecision(5), "| Accuracy:", (epoch_data.total_accuracy / batch_count).toPrecision(3), "| Total time:", epoch_data.actual_duration.toPrecision(5), "/", epoch_data.calculated_duration.toPrecision(4));
-                        this.saveBacklog();
-                        this.model_data.last_epoch = epoch;
-                        if (this.settings.SAVE_CHECKPOINTS) {
-                            this.save("model_checkpoint_" + epoch + ".json");
-                        }
+                        epoch_data.eval_accuracy = numRights / eval_examples;
+                        epoch_data.eval_loss = tot_eval_loss / eval_examples;
+                        console.log("Num rights: " + numRights + " of " + eval_examples + " (" +
+                            (epoch_data.eval_accuracy * 100).toPrecision(3) + " %)");
+                        console.log("Average loss: " + epoch_data.eval_loss);
+                        console.log("It took " + seconds + " seconds.");
+                    }
+                    epoch_data.actual_duration = (Date.now() - epoch_startTime) / 1000;
+                    this.backlog.epochs["epoch_" + epoch] = epoch_data;
+                    console.log("Loss: TOT", epoch_data.total_loss.toPrecision(5), "AVG", (epoch_data.total_loss / batch_count).toPrecision(5), "| Accuracy:", (epoch_data.total_accuracy / batch_count).toPrecision(3), "| Total time:", epoch_data.actual_duration.toPrecision(5), "/", epoch_data.calculated_duration.toPrecision(4));
+                    this.saveBacklog();
+                    this.model_data.last_epoch = epoch;
+                    if (this.settings.SAVE_CHECKPOINTS) {
+                        this.save("model_checkpoint_" + epoch + ".json");
                     }
                 }
                 console.log("Done..");
@@ -279,6 +309,34 @@ class Model {
             const path = path_1.default.join(this.settings.MODEL_SAVE_PATH, "backlog.json");
             fs.writeFileSync(path, JSON.stringify(this.backlog));
         }
+    }
+    eval(example) {
+        if (!this.isBuilt) {
+            throw "Model hasn't been build yet!..";
+        }
+        let exampleMatrix;
+        let labelMatrix;
+        if (example.label instanceof vector_1.default) {
+            labelMatrix = new matrix_1.default([example.label]).transpose();
+        }
+        else {
+            labelMatrix = example.label;
+        }
+        if (example.data instanceof vector_1.default) {
+            exampleMatrix = new matrix_1.default([example.data]).transpose();
+        }
+        else {
+            exampleMatrix = [example.data];
+        }
+        this.layers[0].feedForward(exampleMatrix, false);
+        for (let i = 1; i < this.layers.length; i++) {
+            this.layers[i].feedForward(this.layers[i - 1], false);
+        }
+        this.layers[this.layers.length - 1].backPropagationOutputLayer(labelMatrix, this.layers[this.layers.length - 2]);
+        return {
+            loss: this.layers[this.layers.length - 1].loss,
+            accuracy: this.layers[this.layers.length - 1].accuracy
+        };
     }
     predict(data) {
         if (!this.isBuilt) {
@@ -334,6 +392,10 @@ class Model {
             this.layers.push(layer);
         }
         this.layers[0].isFirstLayer = true;
+        this.backlog.model_structure = this.layers.map((layer) => layer.getLayerInfo());
+        this.backlog.total_neurons = this.backlog.model_structure.map((info) => info.shape).reduce((acc, val) => {
+            return acc + val.reduce((a, s) => a * s, 1);
+        }, 0);
         this.isBuilt = true;
         if (verbose) {
             console.log("Successfully build model!");

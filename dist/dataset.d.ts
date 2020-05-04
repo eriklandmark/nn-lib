@@ -16,12 +16,12 @@ export default class Dataset {
     size(): number;
     setGenerator(gen: Function): void;
     addExample(ex: Example): void;
-    static read_image(path: string): Promise<Tensor>;
+    static read_image(path: string, channels?: number): Promise<Tensor>;
     vectorize_image(image: Tensor): Vector;
     loadMnistTrain(folderPath: string, maxExamples?: number, vectorize?: boolean): void;
     loadMnistTest(folderPath: string, maxExamples?: number, vectorize?: boolean): void;
     shuffle(): void;
     private loadMnist;
     loadTestData(path: string, maxExamples?: number): void;
-    getBatch(batch: number): Example[];
+    getBatch(batch_id: number): Example[];
 }

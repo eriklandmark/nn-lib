@@ -4,7 +4,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 const suffixes_1 = require("./suffixes");
-const array_helper_1 = __importDefault(require("../helpers/array_helper"));
+const array_helper_1 = __importDefault(require("../lib/array_helper"));
 const fs_1 = __importDefault(require("fs"));
 class Tokenizer {
     constructor() {

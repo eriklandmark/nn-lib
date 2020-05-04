@@ -17,6 +17,12 @@ class Visualizer {
         this.pubsub = new apollo_server_express_1.PubSub();
         this.data_handler = new data_handler_1.default(this.pubsub, path);
         const typeDefs = apollo_server_express_1.gql(`
+              type LayerInfo {
+                type: String
+                activation: String
+                shape: [Int]
+              }
+        
               type Epoch {
                 id: Float
                 accuracy: Float
@@ -26,6 +32,8 @@ class Visualizer {
                 actual_duration: Float
                 calculated_duration: Float
                 batches: [Batch]
+                eval_loss: Float
+                eval_accuracy: Float
               }
               
               type Batch {
@@ -37,15 +45,31 @@ class Visualizer {
                 global_id: Float
               }
               
+              type Info {
+                model_structure: [LayerInfo]
+                total_neurons: Int
+                duration: Float
+                start_time: Float
+                total_epochs: Int
+                batches_per_epoch: Int
+                eval_model: Boolean
+              }
+              
               type Query {
                 epochs:[Epoch]
                 epoch(id: Float): Epoch
                 batches: [Batch]
                 batch(id: Float, epoch_id: Float): Batch
+                info: Info
+              }
+              
+              type UpdateData {
+                epoch: Epoch
+                info: Info
               }
               
               type Subscription {
-                update: Epoch
+                update: UpdateData
               }
             `);
         const schema = graphql_tools_1.makeExecutableSchema({
@@ -62,6 +86,9 @@ class Visualizer {
                     },
                     epoch: (parent, args, context, info) => {
                         return this.data_handler.getEpoch(args.id);
+                    },
+                    info: () => {
+                        return this.data_handler.getModelInfo();
                     }
                 },
                 Subscription: {
@@ -88,7 +115,7 @@ class Visualizer {
         // @ts-ignore
         apolloServer.applyMiddleware({ app });
         app.use(express_1.default.static(path_1.default.join(__dirname, 'interface')));
-        app.get("/*", (req, res) => {
+        app.get("*", (req, res) => {
             res.sendFile(path_1.default.join(__dirname, 'interface/index.html'));
         });
         this.server = app;

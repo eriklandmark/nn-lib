@@ -1,6 +1,6 @@
 import Model from "../src/model";
 import Dataset from "../src/dataset";
-import Helper from "../src/helpers/helper";
+import Helper from "../src/lib/helper";
 import cliProgress from "cli-progress";
 
 const model = new Model([])

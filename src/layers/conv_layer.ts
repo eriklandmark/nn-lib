@@ -21,9 +21,10 @@ export default class ConvolutionLayer extends Layer {
     bp_error_weight_kernel: any
 
     useMM: boolean = false
+    use_bias: boolean = true
 
     constructor(nr_filters: number = 3, filterSize: number[] = [3, 3], ch_first: boolean = false,
-                activation: IActivation) {
+                activation: IActivation, use_bias: boolean = true) {
         super();
         this.channel_first = ch_first
         this.activationFunction = activation
@@ -31,6 +32,7 @@ export default class ConvolutionLayer extends Layer {
         this.nr_filters = nr_filters
 
         this.type = "conv"
+        this.use_bias = use_bias
     }
 
     buildLayer(prevLayerShape: number[]) {
@@ -119,6 +121,7 @@ export default class ConvolutionLayer extends Layer {
                                                 val += input_images[t].get(c_f_c, r + c_f_h, c + c_f_w) *
                                                     this.weights[f].get(c_f_h, c_f_w, c_f_c)
                                             } else {
+                                                //console.log(r + c_f_h, c + c_f_w, c_f_c)
                                                 val += input_images[t].get(r + c_f_h, c + c_f_w, c_f_c) *
                                                     this.weights[f].get(c_f_h, c_f_w, c_f_c)
                                             }
@@ -126,9 +129,9 @@ export default class ConvolutionLayer extends Layer {
                                     }
                                 }
                                 if(this.channel_first) {
-                                    patch.set(f, r, c, this.activationFunction.normal(val) + this.bias.get(0,f))
+                                    patch.set(f, r, c, this.activationFunction.normal(val) + (this.use_bias? this.bias.get(0,f) : 0))
                                 } else {
-                                    patch.set(r, c, f, this.activationFunction.normal(val) + this.bias.get(0,f))
+                                    patch.set(r, c, f, this.activationFunction.normal(val) + (this.use_bias? this.bias.get(0,f) : 0))
                                 }
                             }
                         }
@@ -247,20 +250,23 @@ export default class ConvolutionLayer extends Layer {
 
             this.errorWeights = this.errorWeights.map((eW) => eW.rotate180())
 
-            const sum: Matrix[] = []
+            if(this.use_bias) {
+                const sum: Matrix[] = []
 
-            for(let n = 0; n < dout.length; n++) {
-                const sumMatrix = new Matrix()
-                sumMatrix.createEmptyArray(1, dout[n].dim().d)
-                dout[n].iterate((i,j,k) => {
-                    sumMatrix.set(0,k, sumMatrix.get(0, k) + dout[n].get(i,j,k))
-                })
-                sum.push(sumMatrix)
+                for(let n = 0; n < dout.length; n++) {
+                    const sumMatrix = new Matrix()
+                    sumMatrix.createEmptyArray(1, dout[n].dim().d)
+                    dout[n].iterate((i,j,k) => {
+                        sumMatrix.set(0,k, sumMatrix.get(0, k) + dout[n].get(i,j,k))
+                    })
+                    sum.push(sumMatrix)
+                }
+
+
+                this.errorBias = sum.reduce((acc, v) => acc.add(v),
+                    sum[0].copy(false)).div(sum.length)
             }
 
-
-            this.errorBias = sum.reduce((acc, v) => acc.add(v),
-                sum[0].copy(false)).div(sum.length)
 
             if (!this.isFirstLayer) {
                 const doutp: Tensor[] = new Array(dout.length).fill(new Tensor())
@@ -358,14 +364,23 @@ export default class ConvolutionLayer extends Layer {
         data.layer_specific = {
             nr_filters: this.nr_filters,
             filterSize: this.filterSize,
+            use_bias: this.use_bias
         }
 
         return data
+    }
+
+    updateLayer() {
+        this.optimizer.optimizeWeights()
+        if (this.use_bias) {
+            this.optimizer.optimizeBias()
+        }
     }
 
     fromSavedModel(data: SavedLayer) {
         super.fromSavedModel(data)
         this.nr_filters = data.layer_specific.nr_filters
         this.filterSize = data.layer_specific.filterSize
+        this.use_bias = data.layer_specific.use_bias
     }
 }

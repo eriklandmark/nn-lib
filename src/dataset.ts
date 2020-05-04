@@ -4,7 +4,7 @@ import * as path from 'path';
 import Jimp from 'jimp';
 import Tensor from "./tensor";
 import Matrix from "./matrix";
-import ArrayHelper from "./helpers/array_helper";
+import ArrayHelper from "./lib/array_helper";
 import cliProgress from "cli-progress"
 
 export interface Example {
@@ -35,17 +35,18 @@ export default class Dataset {
         this.data.push(ex)
     }
 
-    public static async read_image(path: string): Promise<Tensor> {
+    public static async read_image(path: string, channels:number = 3): Promise<Tensor> {
         const image = await Jimp.read(path);
         const t = new Tensor()
-        for (let i = 0; i < image.bitmap.data.length; i += 4) {
-            let y = Math.floor((i / 4) / image.getHeight())
-            let x = (i / 4) - (y * image.getWidth())
-
-            for (let d = 0; d < 3; d++) {
-                t.set(y, x, d, image.bitmap.data[i + d])
-            }
+        t.createEmptyArray(image.getHeight(), image.getWidth(), channels)
+        if (channels > 4) {
+            channels = 4
         }
+        image.scan(0, 0, image.bitmap.width, image.bitmap.height, (x, y, idx) => {
+            for( let i = 0; i < channels; i++) {
+                t.set(y, x, i, image.bitmap.data[idx + i])
+            }
+        });
         return t
     }
 
@@ -142,7 +143,11 @@ export default class Dataset {
         }
     }
 
-    public getBatch(batch: number): Example[] {
-        return this.data.slice(batch * this.BATCH_SIZE, batch * this.BATCH_SIZE + this.BATCH_SIZE)
+    public getBatch(batch_id: number): Example[] {
+        if (this.IS_GENERATOR) {
+            return this.GENERATOR(batch_id)
+        } else {
+            return this.data.slice(batch_id * this.BATCH_SIZE, batch_id * this.BATCH_SIZE + this.BATCH_SIZE)
+        }
     }
 }

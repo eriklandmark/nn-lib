@@ -1,5 +1,5 @@
 import {suffixes} from "./suffixes";
-import ArrayHelper from "../helpers/array_helper";
+import ArrayHelper from "../lib/array_helper";
 import fs from "fs"
 
 export default class Tokenizer {

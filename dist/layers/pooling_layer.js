@@ -37,7 +37,6 @@ class PoolingLayer extends layer_1.default {
             ((w + 2 * this.padding) - f_w) / this.stride[1] + 1,
             ch
         ];
-        console.log(h, (h + 2 * this.padding) - f_h / this.stride[0]);
         this.prevLayerShape = prevLayerShape;
     }
     getLayerInfo() {
