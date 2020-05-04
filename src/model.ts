@@ -240,7 +240,7 @@ export default class Model {
             console.log("Starting training...")
 
             const startTime = Date.now();
-            const batch_count = Math.floor(data.size() | data.TOTAL_EXAMPLES / data.BATCH_SIZE)
+            const batch_count = Math.floor(data.TOTAL_EXAMPLES / data.BATCH_SIZE)
             this.backlog.batches_per_epoch = batch_count
 
             if(data.IS_GENERATOR) {

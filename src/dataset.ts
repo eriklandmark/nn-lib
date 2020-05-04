@@ -76,9 +76,9 @@ export default class Dataset {
     private loadMnist(folderPath: string, imageFileName: string, labelFileName: string, maxExamples: number, vectorize: boolean) {
         const trainFileBuffer = fs.readFileSync(path.join(folderPath + "/" + imageFileName));
         const labelFileBuffer = fs.readFileSync(path.join(folderPath + "/" + labelFileName));
-        if(this.VERBOSE) {
 
-        }
+        this.TOTAL_EXAMPLES = maxExamples
+
         const bar = new cliProgress.Bar({
             barCompleteChar: '#',
             barIncompleteChar: '-',
