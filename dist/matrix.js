@@ -1,19 +1,9 @@
 "use strict";
-var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
-    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
-    return new (P || (P = Promise))(function (resolve, reject) {
-        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
-        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
-        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
-        step((generator = generator.apply(thisArg, _arguments || [])).next());
-    });
-};
 var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 const vector_1 = __importDefault(require("./vector"));
-const node_worker_threads_pool_1 = require("node-worker-threads-pool");
 class Matrix {
     constructor(defaultValue = []) {
         this.matrix = [];
@@ -208,48 +198,52 @@ class Matrix {
             return c;
         }
     }
-    mmAsync(b) {
-        return __awaiter(this, void 0, void 0, function* () {
-            return new Promise((resolve, reject) => __awaiter(this, void 0, void 0, function* () {
-                if (b instanceof vector_1.default) {
-                    if (b.size() != this.dim().c) {
-                        reject("Matrix Multiplication (Vector): Wrong dimension..");
-                    }
-                    const c = new vector_1.default(this.dim().r);
-                    for (let i = 0; i < this.dim().r; i++) {
-                        c.set(i, this.matrix[i].reduce((acc, val, k) => acc + (val * b.get(k)), 0));
-                    }
-                    resolve(c);
+    /*
+    public async mmAsync(b: Matrix | Vector): Promise<Matrix | Vector> {
+        return new Promise<Matrix | Vector>(async (resolve, reject) => {
+            if (b instanceof Vector) {
+                if (b.size() != this.dim().c) {
+                    reject("Matrix Multiplication (Vector): Wrong dimension..")
                 }
-                else if (b instanceof Matrix) {
-                    if (b.dim().r != this.dim().c)
-                        reject("Matrix Multiplication (Matrix): Wrong dimension..");
-                    let c = new Matrix();
-                    c.createEmptyArray(this.dim().r, b.dim().c);
-                    const pool = new node_worker_threads_pool_1.StaticPool({
-                        size: Math.min(c.dim().r, 5),
-                        task: function (row) {
-                            const { matrix, bMatrix } = this.workerData;
-                            let result = (new Float32Array(bMatrix[0].length)).map((_, col) => {
-                                return matrix[row].reduce((acc, val, k) => acc + (val * bMatrix[k][col]), 0);
-                            });
-                            return { i: row, v: result };
-                        },
-                        workerData: { matrix: this.matrix, bMatrix: b.matrix }
-                    });
-                    yield (() => __awaiter(this, void 0, void 0, function* () {
-                        for (let row = 0; row < c.dim().r; row++) {
-                            const { i, v } = yield pool.exec(row);
-                            for (let col = 0; col < v.length; col++) {
-                                c.set(i, col, v[col]);
-                            }
+
+                const c = new Vector(this.dim().r);
+                for (let i = 0; i < this.dim().r; i++) {
+                    c.set(i, this.matrix[i].reduce((acc: number, val: number, k: number) => acc + (val * b.get(k)), 0))
+                }
+                resolve(c);
+            } else if (b instanceof Matrix) {
+                if (b.dim().r != this.dim().c)
+                    reject("Matrix Multiplication (Matrix): Wrong dimension..")
+
+                let c = new Matrix();
+                c.createEmptyArray(this.dim().r, b.dim().c)
+
+                const pool = new StaticPool({
+                    size: Math.min(c.dim().r, 5),
+                    task: function (row: any) {
+                        const {matrix, bMatrix} = this.workerData
+                        let result = (new Float32Array(bMatrix[0].length)).map((_, col) => {
+                            return matrix[row].reduce((acc: number, val: number, k: number) => acc + (val * bMatrix[k][col]), 0);
+                        })
+
+                        return {i: row, v: result}
+                    },
+                    workerData: {matrix: this.matrix, bMatrix: b.matrix}
+                });
+
+                await (async () => {
+                    for (let row = 0; row < c.dim().r; row++) {
+                        const {i, v} = await pool.exec(row)
+                        for (let col = 0; col < v.length; col++) {
+                            c.set(i, col, v[col])
                         }
-                    }))();
-                    resolve(c);
-                }
-            }));
-        });
-    }
+                    }
+                })()
+
+                resolve(c)
+            }
+        })
+    }*/
     add(b) {
         let m = this.copy(false);
         if (b instanceof Matrix) {

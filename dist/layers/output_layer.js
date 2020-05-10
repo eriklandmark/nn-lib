@@ -21,16 +21,13 @@ class OutputLayer extends dense_layer_1.default {
         this.gradientFunction = gradients_1.default.get_gradient(this.activationFunction, this.lossFunction);
     }
     backPropagationOutputLayer(labels, next_layer) {
-        this.loss = labels.mul(-1).mul(this.activation.add(Math.pow(10, -8)).log()).sum();
+        this.loss = labels.mul(-1).mul(this.activation.add(Math.pow(10, -8)).log()).sum() / labels.dim().r;
         const gradient = this.gradientFunction(this.activation, labels);
         let total_acc = 0;
-        let total_loss = 0;
         for (let i = 0; i < labels.dim().r; i++) {
             total_acc += this.activation.argmax(i) == labels.argmax(i) ? 1 : 0;
-            total_loss += Math.abs(gradient.get(i, 0));
         }
         this.accuracy = total_acc / labels.dim().r;
-        //this.loss = total_loss
         this.errorBias = gradient.sum(0, false);
         this.output_error = gradient;
         this.errorWeights = next_layer.activation.transpose().mm(gradient);

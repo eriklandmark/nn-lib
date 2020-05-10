@@ -254,7 +254,7 @@ class Model {
                         eval_ds.BATCH_SIZE = eval_examples;
                         let numRights = 0;
                         let tot_eval_loss = 0;
-                        const eval_data = eval_ds.getBatch(0);
+                        const eval_data = yield eval_ds.getBatch(0);
                         const bar = new progress_bar_1.default('Evaluation: {value}/{total} [{bar}] {percentage}% | Rights: {rights}/{value} ({per} %)', eval_examples, {
                             rights: "0",
                             per: "0"

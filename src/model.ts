@@ -323,13 +323,13 @@ export default class Model {
                 }
                 bar.stop()
 
-                if(this.settings.EVAL_PER_EPOCH && eval_ds) {
+                if (this.settings.EVAL_PER_EPOCH && eval_ds) {
 
                     const eval_examples = eval_ds.size()
                     eval_ds.BATCH_SIZE = eval_examples
                     let numRights = 0
                     let tot_eval_loss = 0
-                    const eval_data = eval_ds.getBatch(0)
+                    const eval_data = await eval_ds.getBatch(0)
                     const bar = new ProgressBar(
                         'Evaluation: {value}/{total} [{bar}] {percentage}% | Rights: {rights}/{value} ({per} %)',
                         eval_examples,

@@ -28,7 +28,6 @@ export default class Matrix {
     static multiplyGpu(): KernelFunction;
     static mmGpu(): KernelFunction;
     mm(b: Matrix | Vector): Matrix | Vector;
-    mmAsync(b: Matrix | Vector): Promise<Matrix | Vector>;
     add(b: number | Matrix): Matrix;
     sub(b: number | Matrix): Matrix;
     mul(b: number | Matrix): Matrix;

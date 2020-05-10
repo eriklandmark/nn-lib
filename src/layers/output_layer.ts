@@ -28,16 +28,13 @@ export default class OutputLayer extends DenseLayer {
     }
 
     public backPropagationOutputLayer(labels: Matrix, next_layer: Layer) {
-        this.loss = <number> labels.mul(-1).mul((<Matrix> this.activation).add(10**-8).log()).sum()
+        this.loss = <number> labels.mul(-1).mul((<Matrix> this.activation).add(10**-8).log()).sum() / labels.dim().r
         const gradient = this.gradientFunction((<Matrix> this.activation), labels)
         let total_acc = 0
-        let total_loss = 0
         for (let i = 0; i < labels.dim().r; i++) {
             total_acc += (<Matrix> this.activation).argmax(i) == labels.argmax(i)? 1:0
-            total_loss += Math.abs(gradient.get(i,0))
         }
         this.accuracy = total_acc / labels.dim().r
-        //this.loss = total_loss
 
         this.errorBias = <Matrix> gradient.sum(0, false)
         this.output_error = gradient

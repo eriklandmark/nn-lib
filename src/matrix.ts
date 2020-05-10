@@ -1,5 +1,5 @@
 import Vector from "./vector";
-import {StaticPool} from "node-worker-threads-pool";
+//import {StaticPool} from "node-worker-threads-pool";
 import {KernelFunction} from "gpu.js";
 
 export default class Matrix {
@@ -216,7 +216,7 @@ export default class Matrix {
             return c
         }
     }
-
+    /*
     public async mmAsync(b: Matrix | Vector): Promise<Matrix | Vector> {
         return new Promise<Matrix | Vector>(async (resolve, reject) => {
             if (b instanceof Vector) {
@@ -261,7 +261,7 @@ export default class Matrix {
                 resolve(c)
             }
         })
-    }
+    }*/
 
     public add(b: number | Matrix): Matrix {
         let m = this.copy(false);

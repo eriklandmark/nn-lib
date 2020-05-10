@@ -84,8 +84,7 @@ class Dataset {
     loadMnist(folderPath, imageFileName, labelFileName, maxExamples, vectorize) {
         const trainFileBuffer = fs.readFileSync(path.join(folderPath + "/" + imageFileName));
         const labelFileBuffer = fs.readFileSync(path.join(folderPath + "/" + labelFileName));
-        if (this.VERBOSE) {
-        }
+        this.TOTAL_EXAMPLES = maxExamples;
         const bar = new cli_progress_1.default.Bar({
             barCompleteChar: '#',
             barIncompleteChar: '-',

@@ -3,7 +3,7 @@ import Tensor from "../src/tensor";
 
 console.log("----")
 
-console.log(images[2].toString())
+//console.log(images[2].toString())
 
 function pool(input: Tensor, channel_first = false) {
     const ch = input.dim().d
@@ -44,8 +44,8 @@ function pool(input: Tensor, channel_first = false) {
     return patch
 }
 
-const pooled = pool(images[2])
-console.log(pooled.toString())
+//const pooled = pool(images[2])
+//console.log(pooled.toString())
 
 function reverse_pool(gradients: Tensor, input: Tensor) {
     const [s_h,s_w] = [2,2]
@@ -75,4 +75,4 @@ function reverse_pool(gradients: Tensor, input: Tensor) {
     return t
 }
 
-console.log(reverse_pool(pooled, images[2]).toString())
+//console.log(reverse_pool(pooled, images[2]).toString())
