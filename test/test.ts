@@ -31,10 +31,10 @@ const batches = Object.keys(data.epochs).reduce((acc, epoch) => {
     }, [])
 
 
-const x = new Vector(Object.keys(data.epochs).slice(0, 50).map((epoch, index) => index + 1))
-const y = new Vector(Object.keys(data.epochs).slice(0, 50).map((epoch) => data.epochs[epoch].total_loss / 10))
-//const x = new Vector(batches.map((batch, index) => index + 1))
-//const y = new Vector(batches.map((batch) => batch.loss))
+//const x = new Vector(Object.keys(data.epochs).slice(0, 100).map((epoch, index) => index + 1))
+//const y = new Vector(Object.keys(data.epochs).slice(0, 100).map((epoch) => data.epochs[epoch].total_accuracy / 20))
+const x = new Vector(batches.map((batch, index) => index + 1))
+const y = new Vector(batches.map((batch) => batch.accuracy))
 
 
 let A = new Matrix()
@@ -46,7 +46,7 @@ A.matrix.forEach((val: Float32Array, index) => {
 
 let b = new Vector(y.size())
 b.iterate((v, i) => {
-    b.set(i, Math.log(y.get(i)))
+    b.set(i, y.get(i))
 })
 
 const VL: Matrix = <Matrix> A.transpose().mm(A)

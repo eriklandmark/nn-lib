@@ -5,7 +5,7 @@ import cliProgress from "cli-progress";
 
 const model = new Model([])
 
-model.load("./model/model_checkpoint_90.json")
+model.load("./model/model.json")
 model.summary()
 
 const dataset = new Dataset();
