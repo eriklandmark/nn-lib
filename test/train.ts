@@ -10,6 +10,7 @@ import FlattenLayer from "../src/layers/flatten_layer";
 import HyperbolicTangent from "../src/activations/hyperbolic_tangent";
 import Adam from "../src/optimizers/Adam";
 import ReLu from "../src/activations/relu";
+import DropoutLayer from "../src/layers/dropout_layer";
 
 console.log("Starting..")
 const dataset = new Dataset()
@@ -24,12 +25,13 @@ const model = new Model([
     new PoolingLayer([2,2], [2,2]),
     new ConvolutionLayer(16, [5,5], false, new ReLu()),
     new FlattenLayer(),
+    new DropoutLayer(0.15),
     new DenseLayer(500, new HyperbolicTangent()),
     new OutputLayer(10, new Softmax())
 ])
 
 model.settings.USE_GPU = false
-model.settings.MODEL_SAVE_PATH = "./model"
+model.settings.MODEL_SAVE_PATH = "./model_dropout"
 model.settings.BACKLOG = true
 model.settings.EVAL_PER_EPOCH = true
 model.settings.SAVE_CHECKPOINTS = true

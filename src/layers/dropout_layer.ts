@@ -32,6 +32,8 @@ export default class DropoutLayer extends Layer {
         this.output_error = prev_layer.output_error;
     }
 
+    updateLayer() {}
+
     toSavedModel(): SavedLayer {
         const data = super.toSavedModel()
         data.layer_specific = {
