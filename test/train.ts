@@ -11,36 +11,45 @@ import HyperbolicTangent from "../src/activations/hyperbolic_tangent";
 import Adam from "../src/optimizers/Adam";
 import ReLu from "../src/activations/relu";
 import DropoutLayer from "../src/layers/dropout_layer";
+import Tokenizer from "../src/linguistics/tokenizer";
+import CsvParser from "../src/linguistics/csv_parser";
+import ArrayHelper from "../src/lib/array_helper";
+import Sigmoid from "../src/activations/sigmoid";
+import Vector from "../src/vector";
+import StochasticGradientDescent from "../src/optimizers/StochasticGradientDescent"
 
 console.log("Starting..")
-const dataset = new Dataset()
-dataset.BATCH_SIZE = 100
-dataset.loadMnistTrain("../nn-lib/dataset/mnist", 2000, false)
+const tokenizer = new Tokenizer()
 
-const eval_dataset = new Dataset()
-eval_dataset.loadMnistTest("../nn-lib/dataset/mnist", 200, false)
+const trainData = CsvParser.parse("./dataset/nlp/train.tsv", true)
+const sentences = ArrayHelper.flatten(CsvParser.filterColumns(trainData, [3]))
+tokenizer.createVocabulary(sentences)
+
+const dataset = tokenizer.createDataset("./dataset/nlp/train.tsv", [1,3])
+
+dataset.BATCH_SIZE = dataset.size()
+dataset.TOTAL_EXAMPLES = dataset.size()
+dataset.IS_GENERATOR = false
+dataset.DATA_STRUCTURE = Vector
 
 const model = new Model([
-    new ConvolutionLayer(8, [5,5], false, new ReLu()),
-    new PoolingLayer([2,2], [2,2]),
-    new ConvolutionLayer(16, [5,5], false, new ReLu()),
-    new FlattenLayer(),
-    new DropoutLayer(0.15),
-    new DenseLayer(500, new HyperbolicTangent()),
-    new OutputLayer(10, new Softmax())
+    new DenseLayer(8, new Sigmoid()),
+    new DenseLayer(16, new Sigmoid()),
+    new DenseLayer(16, new Sigmoid()),
+    new OutputLayer(3, new Softmax())
 ])
 
 model.settings.USE_GPU = false
-model.settings.MODEL_SAVE_PATH = "./model_dropout"
+model.settings.MODEL_SAVE_PATH = "./model_nlp"
 model.settings.BACKLOG = true
-model.settings.EVAL_PER_EPOCH = true
-model.settings.SAVE_CHECKPOINTS = true
+model.settings.EVAL_PER_EPOCH = false
+model.settings.SAVE_CHECKPOINTS = false
 
-model.build([28,28,1],0.001, CrossEntropy, Adam)
+model.build([4],0.01, CrossEntropy, StochasticGradientDescent)
 model.summary()
 
 async function run() {
-    await model.train(dataset, 100, eval_dataset, true)
+    await model.train(dataset, 300, null, false)
     console.log("Done")
     model.save()
     let ex = dataset.getBatch(0)[0]

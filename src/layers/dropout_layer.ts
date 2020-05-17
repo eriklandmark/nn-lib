@@ -16,14 +16,24 @@ export default class DropoutLayer extends Layer {
         this.shape = prevLayerShape
     }
 
-    feedForward(input: Layer | Matrix, isInTraining: boolean) {
+    feedForward(input: Layer, isInTraining: boolean) {
         this.activation = (<Layer>input).activation
         if (isInTraining) {
-            (<Matrix> this.activation).iterate((i: number, j: number) => {
-                if(Math.random() < this.rate) {
-                    (<Matrix> this.activation).set(i,j, 0)
-                }
-            })
+            if(this.activation instanceof Matrix) {
+                (<Matrix> this.activation).iterate((i: number, j: number) => {
+                    if(Math.random() < this.rate) {
+                        (<Matrix> this.activation).set(i,j, 0)
+                    }
+                })
+            } else {
+                this.activation.forEach((tensor) => {
+                    tensor.iterate((i: number, j: number, k: number) => {
+                        if (Math.random() < this.rate) {
+                            tensor.set(i,j,k, 0)
+                        }
+                    })
+                })
+            }
         }
     }
 

@@ -8,14 +8,17 @@ export default class PoolingLayer extends Layer {
     filterSize: number[] = []
     padding: number = 0;
     stride: number[] = [];
-    channel_first:boolean = true
-    poolingFunc: string = "max"
+    channel_first: boolean = false
+    poolingFuncName: "max" | "avg"
+    poolingFunc: Function
 
-    constructor(filterSize: number[] = [2, 2], stride: number[] = null, ch_first: boolean = false) {
+    constructor(filterSize: number[] = [2, 2], stride: number[] = null, poolingFuncName: "max" | "avg" = "max",
+                ch_first: boolean = false) {
         super();
         this.channel_first = ch_first
         this.filterSize = filterSize
         this.stride = stride? stride : filterSize
+        this.poolingFuncName = poolingFuncName
     }
 
     buildLayer(prevLayerShape: number[]) {
@@ -37,12 +40,20 @@ export default class PoolingLayer extends Layer {
             ((w + 2 * this.padding) - f_w )/ this.stride[1] + 1,
             ch
         ]
+
         this.prevLayerShape = prevLayerShape
+
+        switch(this.poolingFuncName) {
+            case "avg":
+                this.poolingFunc = (x: number[]) => x.reduce((acc, n) => acc+n, 0) / x.length; break
+            case "max":
+                this.poolingFunc = (x: number[]) => Math.max(...x); break
+        }
     }
 
     getLayerInfo(): { shape: number[]; type: string; activation: string } {
         const d =  super.getLayerInfo();
-        d.type += "_" + this.poolingFunc
+        d.type += "_" + this.poolingFuncName
         return d
     }
 
@@ -89,9 +100,9 @@ export default class PoolingLayer extends Layer {
                             }
                         }
                         if(this.channel_first) {
-                            patch.set(f, r/this.stride[0], c/this.stride[1], Math.max(...val))
+                            patch.set(f, r/this.stride[0], c/this.stride[1], this.poolingFunc(val))
                         } else {
-                            patch.set(r/this.stride[0], c/this.stride[1], f, Math.max(...val))
+                            patch.set(r/this.stride[0], c/this.stride[1], f, this.poolingFunc(val))
                         }
                     }
                 }
@@ -149,7 +160,7 @@ export default class PoolingLayer extends Layer {
         const data = super.toSavedModel()
         data.layer_specific = {
             filterSize: this.filterSize,
-            poolingFunc: this.poolingFunc,
+            poolingFuncName: this.poolingFuncName,
             padding: this.padding,
             stride: this.stride
         }
@@ -160,7 +171,7 @@ export default class PoolingLayer extends Layer {
     fromSavedModel(data: SavedLayer) {
         super.fromSavedModel(data)
         this.filterSize = data.layer_specific.filterSize
-        this.poolingFunc = data.layer_specific.poolingFunc
+        this.poolingFuncName = data.layer_specific.poolingFuncName
         this.stride = <number[]> data.layer_specific.stride
         this.padding = data.layer_specific.padding
     }
