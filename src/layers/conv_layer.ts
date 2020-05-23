@@ -1,18 +1,16 @@
 import Layer from "./layer";
 import Tensor from "../tensor";
 import {IActivation} from "../activations/activations";
-import Vector from "../vector";
 import {SavedLayer} from "../model";
-import Matrix from "../matrix";
 
 export default class ConvolutionLayer extends Layer {
 
-    weights: Tensor[] = []
+    weights: Tensor = new Tensor()
     filterSize: number[] = []
     padding: number = 0;
     stride: number = 1;
     nr_filters: number = 0
-    errorWeights: Tensor[] = []
+    errorWeights: Tensor = new Tensor()
     channel_first:boolean = true
 
     ff_kernel: any
@@ -52,42 +50,36 @@ export default class ConvolutionLayer extends Layer {
             this.nr_filters
         ]
         this.prevLayerShape = prevLayerShape
-
-        for (let i = 0; i < this.nr_filters; i++) {
-            const filter = new Tensor()
-            if (this.channel_first) {
-                filter.createEmptyArray(prevLayerShape[0], this.filterSize[0], this.filterSize[1])
-            } else {
-                filter.createEmptyArray(this.filterSize[0], this.filterSize[1], prevLayerShape[2])
-            }
-
-            filter.populateRandom()
-            this.weights.push(filter)
+        if (this.channel_first) {
+            this.weights = new Tensor([this.nr_filters, prevLayerShape[0], this.filterSize[0], this.filterSize[1]], true)
+        } else {
+            this.weights = new Tensor([this.nr_filters, this.filterSize[0], this.filterSize[1], prevLayerShape[2]], true)
         }
-        this.bias = new Matrix()
-        this.bias.createEmptyArray(1, this.nr_filters)
+
+        this.weights.populateRandom()
+
+        this.bias = new Tensor([1, this.nr_filters], true)
         this.bias.populateRandom()
-        this.errorBias = new Matrix()
-        this.errorBias.createEmptyArray(1, this.nr_filters)
+        this.errorBias = new Tensor([1, this.nr_filters], true)
     }
 
-    feedForward(input: Layer | Tensor[], isInTraining: boolean) {
+    feedForward(input: Layer | Tensor, isInTraining: boolean) {
         if (false) {
 
         } else {
-            let input_images: Tensor[]
+            let input_images: Tensor
             if (input instanceof Layer) {
-                input_images = <Tensor[]>input.activation
+                input_images = input.activation
             } else {
-                input_images = <Tensor[]>input
+                input_images = input
             }
             const ch = this.channel_first? this.prevLayerShape[0]: this.prevLayerShape[2];
             const [f_h, f_w] = this.filterSize
             const patch_width = this.shape[1]
             const patch_height = this.shape[0]
-            let new_images: Tensor[] = []
+            let new_images: Tensor
             if (this.useMM) {
-                const filterMatrix = new Matrix(this.weights.map((t) => t.vectorize(true))).transpose()
+                /*const filterMatrix = new Tensor(this.weights.map((t) => t.vectorize(true))).transpose()
                 for (let t = 0; t < input_images.length; t++) {
                     const convolutionMatrix = <Matrix> filterMatrix.mm(input_images[t].im2patches(patch_height, patch_width, f_h, f_w))
                     const activationMatrix = <Matrix> this.activationFunction.normal(convolutionMatrix)
@@ -100,16 +92,14 @@ export default class ConvolutionLayer extends Layer {
                         })
                     }
                     new_images.push(patch)
-                }
+                }*/
             }else{
-                for (let t = 0; t < input_images.length; t++) {
-                    let patch = new Tensor();
-                    if (this.channel_first) {
-                        patch.createEmptyArray(this.nr_filters, patch_height, patch_width)
-                    } else {
-                        patch.createEmptyArray(patch_height, patch_width, this.nr_filters)
-                    }
-
+                if (this.channel_first) {
+                    new_images = new Tensor([input_images.shape[0], this.nr_filters, patch_height, patch_width], true)
+                } else {
+                    new_images = new Tensor([input_images.shape[0], patch_height, patch_width, this.nr_filters], true)
+                }
+                for (let n = 0; n < input_images.shape[0]; n++) {
                     for (let f = 0; f < this.nr_filters; f++) {
                         for (let r = 0; r < patch_height; r++) {
                             for (let c = 0; c < patch_width; c++) {
@@ -118,25 +108,23 @@ export default class ConvolutionLayer extends Layer {
                                     for (let c_f_h = 0; c_f_h < f_h; c_f_h++) {
                                         for (let c_f_w = 0; c_f_w < f_w; c_f_w++) {
                                             if (this.channel_first) {
-                                                val += input_images[t].get(c_f_c, r + c_f_h, c + c_f_w) *
-                                                    this.weights[f].get(c_f_h, c_f_w, c_f_c)
+                                                val += input_images.t[n][c_f_c][r + c_f_h][c + c_f_w] *
+                                                    this.weights.t[f][c_f_h][c_f_w][c_f_c]
                                             } else {
-                                                //console.log(r + c_f_h, c + c_f_w, c_f_c)
-                                                val += input_images[t].get(r + c_f_h, c + c_f_w, c_f_c) *
-                                                    this.weights[f].get(c_f_h, c_f_w, c_f_c)
+                                                val += input_images.t[n][r + c_f_h][c + c_f_w][c_f_c] *
+                                                    this.weights.t[f][c_f_h][c_f_w][c_f_c]
                                             }
                                         }
                                     }
                                 }
                                 if(this.channel_first) {
-                                    patch.set(f, r, c, this.activationFunction.normal(val) + (this.use_bias? this.bias.get(0,f) : 0))
+                                    new_images.t[n][f][r][c] = this.activationFunction.normal(val) + (this.use_bias? this.bias.t[0][f] : 0)
                                 } else {
-                                    patch.set(r, c, f, this.activationFunction.normal(val) + (this.use_bias? this.bias.get(0,f) : 0))
+                                    new_images.t[n][r][c][f] = this.activationFunction.normal(val) + (this.use_bias? this.bias.t[0][f] : 0)
                                 }
                             }
                         }
                     }
-                    new_images.push(patch)
                 }
             }
             this.activation = new_images
@@ -177,36 +165,27 @@ export default class ConvolutionLayer extends Layer {
         this.act_kernel.immutable = true
     }*/
 
-    backPropagation(prev_layer: Layer, next_layer: Layer | Tensor[]) {
-        let input: Tensor[]
-        let prev_layer_output: Tensor[] = <Tensor[]> prev_layer.output_error
+    backPropagation(prev_layer: Layer, next_layer: Layer | Tensor) {
+        let input: Tensor
         if (next_layer instanceof Layer) {
-            input = <Tensor[]> next_layer.activation
+            input = next_layer.activation
         } else {
             input = next_layer
         }
 
-        let dout: Tensor[] = []
-        prev_layer_output.forEach((t, index )=> {
-            let ex = t.copy(false);
-            ex.iterate((x: number, y : number, z: number) => {
-                const dActv = <number> this.activationFunction.derivative((<Tensor> this.activation[index]).get(x,y,z))
-                ex.set(x,y,z, t.get(x,y,z) * dActv)
-            })
-            dout.push(ex.rotate180())
-        })
+        const dout = prev_layer.output_error.mul(this.activationFunction.derivative(this.activation)).rotate180()
 
-        const N = input.length
+        const N = input.shape[0]
         const [h, w, ch] = this.prevLayerShape // X
         const [f_h, f_w] = this.filterSize // W
-        const patch_width = dout[0].dim().c
-        const patch_height =  dout[0].dim().r
-        const patch_depth =  dout[0].dim().d
+        const patch_width = dout.shape[2]
+        const patch_height =  dout.shape[1]
+        const patch_depth =  dout.shape[3]
         const padding_width = f_w - 1
         const padding_height = f_h - 1
 
         if (this.useMM) {
-            const filterMatrix = new Matrix(dout.map((t) => t.vectorize(true))).transpose()
+            /*const filterMatrix = new Tensor(dout.map((t) => t.vectorize(true))).transpose()
             this.errorWeights = []
 
             for (let t = 0; t < input.length; t++) {
@@ -223,10 +202,10 @@ export default class ConvolutionLayer extends Layer {
                 }
                 this.errorWeights.push(patch)
             }
-
+            */
         } else {
-            this.errorWeights = this.weights.map((filter) => filter.copy(false))
-            this.output_error = input.map((inp) => inp.copy(false))
+            this.errorWeights = this.weights.copy()
+            this.output_error = input.copy()
 
             for (let n = 0; n < N; n++) {
                 for (let f = 0; f < this.nr_filters; f++) {
@@ -235,11 +214,11 @@ export default class ConvolutionLayer extends Layer {
                             for (let k = 0; k < patch_height; k++) {
                                 for (let l = 0; l < patch_width; l++) {
                                     for (let c = 0; c < ch; c++) {
-                                        this.errorWeights[f].set(i, j, c,
-                                            this.errorWeights[f].get(i, j, c) + (
-                                                input[n].get(this.stride * i + k, this.stride * j + l, c) *
-                                                dout[n].get(k, l, f)
-                                            ))
+                                        this.errorWeights.t[f][i][j][c] =
+                                            this.errorWeights.t[f][i][j][c] + (
+                                                input.t[n][this.stride * i + k][this.stride * j + l][c] *
+                                                dout.t[n][k][l][f]
+                                            )
                                     }
                                 }
                             }
@@ -248,48 +227,31 @@ export default class ConvolutionLayer extends Layer {
                 }
             }
 
-            this.errorWeights = this.errorWeights.map((eW) => eW.rotate180())
+            this.errorWeights = this.errorWeights.rotate180()
 
             if(this.use_bias) {
-                const sum: Matrix[] = []
-
-                for(let n = 0; n < dout.length; n++) {
-                    const sumMatrix = new Matrix()
-                    sumMatrix.createEmptyArray(1, dout[n].dim().d)
-                    dout[n].iterate((i,j,k) => {
-                        sumMatrix.set(0,k, sumMatrix.get(0, k) + dout[n].get(i,j,k))
-                    })
-                    sum.push(sumMatrix)
-                }
-
-
-                this.errorBias = sum.reduce((acc, v) => acc.add(v),
-                    sum[0].copy(false)).div(sum.length)
+                const sum: Tensor = new Tensor([1,this.nr_filters], true)
+                dout.iterate((n,i,j,k) => { sum.t[0][k] = sum.t[0][k] + dout.t[n][i][j][k] })
+                this.errorBias = sum.div(dout.shape[0])
             }
 
 
             if (!this.isFirstLayer) {
-                const doutp: Tensor[] = new Array(dout.length).fill(new Tensor())
-                doutp.forEach((tensor) => {
-                    tensor.createEmptyArray(2 * padding_height + patch_height, 2 * padding_width + patch_width, patch_depth)
-                })
-
-                for (let n = 0; n < doutp.length; n++) {
+                const doutp: Tensor = new Tensor([dout.shape[0], 2 * padding_height + patch_height, 2 * padding_width + patch_width, patch_depth], true)
+                for (let n = 0; n < doutp.shape[0]; n++) {
                     for (let i = 0; i < patch_height; i++) {
                         for (let j = 0; j < patch_width; j++) {
                             for (let c = 0; c < patch_depth; c++) {
-                                doutp[n].set(i + padding_height, j + padding_width, c, dout[n].get(i, j, c))
+                                doutp.t[n][i + padding_height][j + padding_width][c] = dout.t[n][i][j][c]
                             }
                         }
                     }
                 }
 
-                const filterInv = this.weights.map((f) => f.copy(false))
-                for (let n = 0; n < filterInv.length; n++) {
-                    filterInv[n].iterate((i: number, j: number, k: number) => {
-                        filterInv[n].set(filterInv[n].dim().r - 1 - i, filterInv[n].dim().c - 1 - j, k, this.weights[n].get(i, j, k))
-                    })
-                }
+                const filterInv = this.weights.copy(false)
+                filterInv.iterate((n: number, i: number, j: number, k: number) => {
+                    filterInv.t[n][filterInv.shape[1] - 1 - i][filterInv.shape[2] - 1 - j][k] = this.weights.t[n][i][j][k]
+                })
 
                 for (let n = 0; n < N; n++) {
                     for (let f = 0; f < this.nr_filters; f++) {
@@ -298,10 +260,10 @@ export default class ConvolutionLayer extends Layer {
                                 for (let k = 0; k < f_h; k++) {
                                     for (let l = 0; l < f_w; l++) {
                                         for (let c = 0; c < ch; c++) {
-                                            this.output_error[n].set(i, j, c,
-                                                this.output_error[n].get(i, j, c) + (
-                                                    doutp[n].get(i + k, j + l, f) * filterInv[f].get(k, l, c)
-                                                ))
+                                            this.output_error.t[n][i][j][c] =
+                                                this.output_error.t[n][i][j][c] + (
+                                                    doutp.t[n][i+k][j + l][f] * filterInv.t[f][k][l][c]
+                                                )
                                         }
                                     }
                                 }
@@ -313,49 +275,10 @@ export default class ConvolutionLayer extends Layer {
         }
     }
 
-    convolve(image: Tensor, filters: Tensor[], channel_first= false) {
-        const f_h = filters[0].dim().r
-        const f_w = filters[0].dim().c
-        const patch_width = ((image.dim().r + 2 * this.padding) - f_h + 1) / this.stride
-        const patch_height = ((image.dim().c + 2 * this.padding) - f_w + 1) / this.stride
-        if (this.useMM) {
-            const filterMatrix = new Matrix(filters.map((t) => t.vectorize(true))).transpose()
-
-            return (<Matrix>filterMatrix.mm(image.im2patches(patch_height, patch_width, filters[0].dim().r, filters[0].dim().c)))
-                .rowVectors().map((v) => v.reshape([patch_height, patch_width, 1]))
-        } else {
-            let patch = new Tensor();
-            if (channel_first) {
-                patch.createEmptyArray(filters.length, patch_height, patch_width)
-            } else {
-                patch.createEmptyArray(patch_height, patch_width, filters.length)
-            }
-
-            const chs = channel_first ? image.dim().r : image.dim().d
-            for (let f = 0; f < filters.length; f++) {
-                for (let r = 0; r < patch_height; r++) {
-                    for (let c = 0; c < patch_width; c++) {
-                        let val: number = 0
-                        for (let c_f_c = 0; c_f_c < chs; c_f_c++) {
-                            for (let c_f_h = 0; c_f_h < f_h; c_f_h++) {
-                                for (let c_f_w = 0; c_f_w < f_w; c_f_w++) {
-                                    if (channel_first) {
-                                        val += image.get(c_f_c, r + c_f_h, c + c_f_w) * filters[f].get(c_f_h, c_f_w, c_f_c)
-                                    } else {
-                                        val += image.get(r + c_f_h, c + c_f_w, c_f_c) * filters[f].get(c_f_h, c_f_w, c_f_c)
-                                    }
-                                }
-                            }
-                        }
-                        if (channel_first) {
-                            patch.set(f, r, c, val)
-                        } else {
-                            patch.set(r, c, f, val)
-                        }
-                    }
-                }
-            }
-            return patch
+    updateLayer() {
+        this.optimizer.optimizeWeights()
+        if (this.use_bias) {
+            this.optimizer.optimizeBias()
         }
     }
 
@@ -368,13 +291,6 @@ export default class ConvolutionLayer extends Layer {
         }
 
         return data
-    }
-
-    updateLayer() {
-        this.optimizer.optimizeWeights()
-        if (this.use_bias) {
-            this.optimizer.optimizeBias()
-        }
     }
 
     fromSavedModel(data: SavedLayer) {

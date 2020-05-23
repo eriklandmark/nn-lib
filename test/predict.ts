@@ -5,7 +5,7 @@ import cliProgress from "cli-progress";
 
 const model = new Model([])
 
-model.load("./model/model.json")
+model.load("./models/model_test3_0/model.json")
 model.summary()
 
 const dataset = new Dataset();
@@ -19,23 +19,19 @@ dataset.BATCH_SIZE = MAX_EXAMPLE
 let examples = dataset.getBatch(0)
 
 let numRights = 0;
+const bar = new cliProgress.Bar({
+    barCompleteChar: '#',
+    barIncompleteChar: '-',
+    format:'Example: {value}/{total} [{bar}] {percentage}% | Rights: {rights}/{value} ({per} %)',
+    fps: 30,
+    stream: process.stdout,
+    barsize: 20
+});
 
+if (!VERBOSE)
+    bar.start(MAX_EXAMPLE, 0, { rights: "0", per: "0"})
 
 Helper.timeit(() => {
-    const bar = new cliProgress.Bar({
-        barCompleteChar: '#',
-        barIncompleteChar: '-',
-        format:'Example: {value}/{total} [{bar}] {percentage}% | Rights: {rights}/{value} ({per} %)',
-        fps: 30,
-        stream: process.stdout,
-        barsize: 20
-    });
-    if (!VERBOSE) {
-        bar.start(MAX_EXAMPLE, 0, {
-            rights: "0",
-            per: "0"
-        })
-    }
     for (let i = 0; i < MAX_EXAMPLE; i++ ) {
         const pred = model.predict(examples[i].data)
         const predArg = pred.argmax(0)
@@ -52,10 +48,9 @@ Helper.timeit(() => {
                 per: ((numRights / (i + 1)) * 100).toPrecision(4)
             })
         }
-
     }
-    bar.stop()
 }, false).then((seconds) => {
+    bar.stop()
     console.log("Num rights: " + numRights + " of " + MAX_EXAMPLE + " (" + Math.round((numRights / MAX_EXAMPLE) * 100) + " %)")
     console.log("It took " + seconds + " seconds.")
 })

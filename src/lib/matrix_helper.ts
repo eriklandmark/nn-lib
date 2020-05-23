@@ -1,10 +1,9 @@
-import Matrix from "../matrix";
-import Vector from "../vector";
+import Tensor from "../tensor";
 
 export default class MatrixHelper {
-
-    public static row_reduction(matrix: Matrix): Matrix {
-        let m = matrix.copy();
+    /*
+    public static row_reduction(matrix: Tensor): Tensor {
+        /*let m = matrix.copy();
         let h = 0
         let k = 0
         let swapArray = []
@@ -56,7 +55,7 @@ export default class MatrixHelper {
         } else {
             return new Matrix()
         }
-    }*/
+    }
 
     public static linear_least_squares(x: Vector, y: Vector) {
         let A = new Matrix()
@@ -94,5 +93,5 @@ export default class MatrixHelper {
         //const reducedVL = this.row_reduction(VL)
         //let zerosCount = new Vector(reducedVL.dim().r)
         //reducedVL.iterate((i,j) => {zerosCount.set(i, zerosCount.get(i) + (reducedVL.get(i,j) == 0? 1 : 0))})
-    }
+    }*/
 }

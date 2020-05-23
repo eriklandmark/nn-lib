@@ -1,15 +1,15 @@
-import Matrix from "../matrix";
 import {GPUFunction, KernelFunction, KernelVariable, ThreadKernelVariable} from "gpu.js";
 import Sigmoid from "./sigmoid";
 import ReLu from "./relu";
 import Softmax from "./softmax";
 import HyperbolicTangent from "./hyperbolic_tangent";
 import Elu from "./elu";
+import Tensor from "../tensor";
 
 export interface IActivation {
     name: string
-    normal(input: Matrix | number): Matrix | number
-    derivative(input: Matrix | number): Matrix | number
+    normal(input: Tensor | number): Tensor | number
+    derivative(input: Tensor | number): Tensor | number
     normal_gpu(): KernelFunction
     derivative_gpu(): GPUFunction<ThreadKernelVariable[]>
 }

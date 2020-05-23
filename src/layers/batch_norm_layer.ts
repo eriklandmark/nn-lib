@@ -1,8 +1,8 @@
 import Layer from "./layer";
-import Matrix from "../matrix";
 
 export default class BatchNormLayer extends Layer {
 
+    /*
     momentum: number
     running_mean: Matrix
     running_var: Matrix
@@ -79,5 +79,5 @@ export default class BatchNormLayer extends Layer {
         this.output_error = dX_norm.mul(std_inv.repeat(0, N)).add(dVar.repeat(0, N).mul(2).mul(diff).div(N)).add(dMean.div(N).repeat(0, N))
         this.errorWeights = dout.mul(xhat).sum(0)
         this.errorBias = dout.sum(0)
-    }
+    }*/
 }

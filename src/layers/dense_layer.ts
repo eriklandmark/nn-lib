@@ -1,9 +1,8 @@
 import Layer from "./layer";
-import Matrix from "../matrix";
-import Activation, {IActivation} from "../activations/activations";
-import Vector from "../vector";
-import {SavedLayer} from "../model";
+import {IActivation} from "../activations/activations";
 import Sigmoid from "../activations/sigmoid";
+import Tensor from "../tensor";
+import {SavedLayer} from "../model";
 
 export default class DenseLayer extends Layer {
 
@@ -13,9 +12,9 @@ export default class DenseLayer extends Layer {
     act_kernel: any
     bp_error_kernel: any
     bp_error_weight_kernel: any
-    weights: Matrix = new Matrix()
-    errorWeights: Matrix = new Matrix()
-    bias: Matrix = new Matrix()
+    weights: Tensor = new Tensor()
+    errorWeights: Tensor = new Tensor()
+    bias: Tensor = new Tensor()
 
     constructor(layerSize: number = 1, activation: IActivation = new Sigmoid()) {
         super();
@@ -29,18 +28,17 @@ export default class DenseLayer extends Layer {
     buildLayer(prevLayerShape: number[]) {
         this.shape = [this.layerSize]
         this.prevLayerShape = prevLayerShape
-        this.weights = new Matrix()
-        this.weights.createEmptyArray(prevLayerShape[0], this.layerSize)
-        this.bias = new Matrix()
-        this.bias.createEmptyArray(1, this.layerSize)
+        this.weights = new Tensor([prevLayerShape[0], this.layerSize], true)
+        this.bias = new Tensor([1, this.layerSize], true)
         this.weights.populateRandom();
         this.bias.populateRandom();
-        this.errorWeights = new Matrix()
-        this.errorBias = new Matrix()
-        this.output_error = new Matrix()
-        this.activation = new Matrix()
+        this.errorWeights = new Tensor()
+        this.errorBias = new Tensor()
+        this.output_error = new Tensor()
+        this.activation = new Tensor()
     }
 
+    /*
     buildFFKernels(batch_size: number) {
         const output_shape = [this.weights.dim().c, batch_size]
         this.ff_kernel = this.gpuInstance.createKernel(function (a, w, b) {
@@ -95,31 +93,24 @@ export default class DenseLayer extends Layer {
             .setPrecision("single")
             .setDynamicOutput(true)
         this.bp_error_weight_kernel.immutable = true
-    }
+    }*/
 
-    feedForward(input: Layer | Matrix, isInTraining: boolean) {
+    feedForward(input: Layer | Tensor, isInTraining: boolean) {
         if (this.useGpu) {
-            const result = this.act_kernel(this.ff_kernel(input, this.weights.toNumberArray(), this.bias.toNumberArray()))
+            /*const result = this.act_kernel(this.ff_kernel(input, this.weights.toNumberArray(), this.bias.toNumberArray()))
             this.activation = new Matrix(result.toArray())
-            return result
+            return result*/
         } else {
-            let act: Matrix
-            if (input instanceof Matrix) {
-                act = input
-            } else {
-                act = <Matrix>(<Layer>input).activation
-            }
-            const z = <Matrix>act.mm(this.weights)
-            z.iterate((i: number, j: number) => {
-                z.set(i, j, z.get(i, j) + this.bias.get(0, j))
-            })
-            this.activation = <Matrix>this.activationFunction.normal(z)
+            let act: Tensor = input instanceof Tensor? input: (<Layer>input).activation
+            const z = act.dot(this.weights)
+            z.iterate((pos) => {z.set(pos, z.get(pos) + this.bias.t[0][pos[1]])}, true)
+            this.activation = <Tensor>this.activationFunction.normal(z)
         }
     }
 
-    backPropagation(prev_layer: Layer, next_layer: Layer | Matrix) {
+    backPropagation(prev_layer: Layer, next_layer: Layer | Tensor) {
         if (this.useGpu) {
-            let input: Matrix
+            /*let input: Matrix
             if (next_layer instanceof Layer) {
                 input = <Matrix>next_layer.activation
             } else {
@@ -135,20 +126,25 @@ export default class DenseLayer extends Layer {
             const error_weights = this.bp_error_weight_kernel(input.toNumberArray(), error)
             this.errorWeights = new Matrix(error_weights)
             const errorMatrix = new Matrix(error.toArray())
-            this.errorBias = <Matrix>errorMatrix.sum(0)
+            this.errorBias = <Matrix>errorMatrix.sum(0)*/
         } else {
-            let dzh_dwh: Matrix
-            if (next_layer instanceof Layer) {
-                dzh_dwh = <Matrix>next_layer.activation
-            } else {
-                dzh_dwh = next_layer
-            }
-            const deltaActv = <Matrix>this.activationFunction.derivative(<Matrix>this.activation)
-            // @ts-ignore
-            const error = ((<Matrix>prev_layer.output_error).mm(prev_layer.weights.transpose())).mul(deltaActv)
-            this.errorWeights = <Matrix>dzh_dwh.transpose().mm(error);
-            this.errorBias = <Matrix> (<Matrix>error).sum(0)
+            let dzh_dwh: Tensor = next_layer instanceof Layer ? next_layer.activation: next_layer
+            const error = prev_layer.output_error.dot(prev_layer.weights.transpose())
+                .mul(this.activationFunction.derivative(this.activation))
+            this.errorWeights = dzh_dwh.transpose().dot(error);
+            this.errorBias = <Tensor> error.sum(0)
             this.output_error = error;
         }
+    }
+
+    toSavedModel(): SavedLayer {
+        const data = super.toSavedModel();
+        data.layer_specific.layerSize = this.layerSize
+        return data
+    }
+
+    fromSavedModel(data: SavedLayer) {
+        this.layerSize = data.layer_specific.layerSize
+        super.fromSavedModel(data);
     }
 }

@@ -1,19 +1,19 @@
 import ILoss from "./losses";
-import Matrix from "../matrix";
 import {KernelFunction} from "gpu.js";
+import Tensor from "../tensor";
 
 export default class MeanSquaredError implements ILoss {
 
     name: string = "mean_squared_error"
 
-    normal(input: Matrix, labels: Matrix): Matrix {
-        if (input.dim().r != labels.dim().r || input.dim().c != labels.dim().c)
+    normal(input: Tensor, labels: Tensor): Tensor {
+        if (!input.equalShape(labels))
             throw "Labels and output vector doesn't match size..";
         return input.sub(labels).pow(2)
     }
 
-    derivative(input: Matrix, labels: Matrix): Matrix {
-        if (input.dim().r != labels.dim().r || input.dim().c != labels.dim().c)
+    derivative(input: Tensor, labels: Tensor): Tensor {
+        if (!input.equalShape(labels))
             throw "Labels and output vector doesn't match size..";
         return input.sub(labels)
     }

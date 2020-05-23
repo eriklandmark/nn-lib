@@ -1,6 +1,5 @@
 import StochasticGradientDescent from "./StochasticGradientDescent";
 import Adam from "./Adam";
-import Layer from "../layers/layer";
 
 export interface IOptimizer {
     name: string

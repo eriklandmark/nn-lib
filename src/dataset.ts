@@ -1,25 +1,23 @@
-import Vector from "./vector";
 import * as fs from "fs";
 import * as path from 'path';
 import Jimp from 'jimp';
 import Tensor from "./tensor";
-import Matrix from "./matrix";
 import ArrayHelper from "./lib/array_helper";
 import cliProgress from "cli-progress"
 
 export interface Example {
-    data: Vector | Matrix | Tensor,
-    label: Vector
+    data: Tensor,
+    label: Tensor
 }
 
 export default class Dataset {
     private data: Array<Example> = []
 
-    public VERBOSE = true
+    public VERBOSE = false
     public BATCH_SIZE = 1;
     public IS_GENERATOR = false;
     public TOTAL_EXAMPLES = 0;
-    public DATA_STRUCTURE: any = undefined
+    public DATA_SHAPE: number[] = []
     public GENERATOR: Function = () => {
     };
 
@@ -37,28 +35,16 @@ export default class Dataset {
 
     public static async read_image(path: string, channels:number = 3): Promise<Tensor> {
         const image = await Jimp.read(path);
-        const t = new Tensor()
-        t.createEmptyArray(image.getHeight(), image.getWidth(), channels)
+        const t = new Tensor([image.getHeight(), image.getWidth(), channels], true)
         if (channels > 4) {
             channels = 4
         }
         image.scan(0, 0, image.bitmap.width, image.bitmap.height, (x, y, idx) => {
             for( let i = 0; i < channels; i++) {
-                t.set(y, x, i, image.bitmap.data[idx + i])
+                t.t[y][x][i] = image.bitmap.data[idx + i]
             }
         });
         return t
-    }
-
-    public vectorize_image(image: Tensor): Vector {
-        const v = new Vector(image.count())
-        let index = 0;
-        image.iterate((i: number, j: number, k: number) => {
-            v.set(index, image.get(i, j, k))
-            index += 1
-        })
-        this.DATA_STRUCTURE = Vector
-        return v
     }
 
     public loadMnistTrain(folderPath: string, maxExamples: number = 60000, vectorize: boolean = true) {
@@ -79,55 +65,47 @@ export default class Dataset {
 
         this.TOTAL_EXAMPLES = maxExamples
 
-        const bar = new cliProgress.Bar({
-            barCompleteChar: '#',
-            barIncompleteChar: '-',
-            format:'Loading mnist.. [' + '{bar}' + '] {percentage}% | {value}/{total}',
-            fps: 10,
-            stream: process.stdout,
-            barsize: 30
-        });
+        let bar
 
-        bar.start(maxExamples, 0)
+        if (this.VERBOSE) {
+            bar = new cliProgress.Bar({
+                barCompleteChar: '#',
+                barIncompleteChar: '-',
+                format:'Loading mnist.. [' + '{bar}' + '] {percentage}% | {value}/{total}',
+                fps: 10,
+                stream: process.stdout,
+                barsize: 30
+            });
+            bar.start(maxExamples, 0)
+        }
 
         for (let imageIndex = 0; imageIndex < maxExamples; imageIndex++) {
-            const image: Tensor = new Tensor()
             const size = 28
-            image.createEmptyArray(size, size, 1/*vectorize? 1: 3*/)
+            const image: Tensor = new Tensor([size, size, 1], true)
 
             for (let x = 0; x < size; x++) {
                 for (let y = 0; y < size; y++) {
-                    const val = trainFileBuffer[(imageIndex * size * size) + (x + (y * size)) + 15]
-                    if (isNaN(val)) {
-                        console.log("Failes", val)
-                    }
-                    image.set(y, x, 0, val)
-                    /*if (!vectorize) {
-                        image.set(y, x, 1, val)
-                        image.set(y, x, 2, val)
-                    }*/
+                    image.t[y][x][0] = trainFileBuffer[(imageIndex * size * size) + (x + (y * size)) + 15]
                 }
             }
 
-            let exampleData: Tensor | Vector
-            if (vectorize) {
-                exampleData = this.vectorize_image(image)
-            } else {
-                exampleData = image
-                this.DATA_STRUCTURE = Tensor
-            }
+            let exampleData: Tensor = vectorize? image.vectorize().div(255): image.div(255)
 
-            exampleData = exampleData.div(255)
+            this.DATA_SHAPE = exampleData.shape
 
             let example: Example = {
                 data: exampleData,
-                label: Vector.toCategorical(labelFileBuffer[imageIndex + 8], 10)
+                label: Tensor.toCategorical(labelFileBuffer[imageIndex + 8], 10)
             };
 
             this.data.push(example);
-            bar.increment();
+            if (this.VERBOSE) {
+                bar.increment();
+            }
         }
-        bar.stop()
+        if (this.VERBOSE) {
+            bar.stop()
+        }
     }
 
     public loadTestData(path: string, maxExamples: number = 2100) {
@@ -135,8 +113,8 @@ export default class Dataset {
 
         for (let imageIndex = 0; imageIndex < maxExamples; imageIndex++) {
             let example: Example = {
-                data: new Vector(data["features"][imageIndex]),
-                label: Vector.toCategorical(data["labels"][imageIndex], 3)
+                data: new Tensor(data["features"][imageIndex]),
+                label: Tensor.toCategorical(data["labels"][imageIndex], 3)
             };
 
             this.data.push(example);

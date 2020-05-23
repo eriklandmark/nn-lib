@@ -1,26 +1,26 @@
-import Matrix from "../matrix";
 import IActivation from "./activations";
 import {GPUFunction, KernelFunction, ThreadKernelVariable} from "gpu.js";
+import Tensor from "../tensor";
 
 export default class Softmax implements IActivation{
 
     name: string = "softmax"
 
-    normal(input: Matrix): Matrix {
+    normal(input: Tensor): Tensor {
         const exp = input.exp();
-        return exp.div(exp.sum(1, true))
+        return exp.div(exp.sum(1, true), true)
     }
 
-    derivative(input: Matrix | number): Matrix | number {
-        if (input instanceof Matrix) {
+    derivative(input: Tensor | number): Tensor | number {
+        if (input instanceof Tensor) {
             const m = input.copy(false)
-            m.iterate((i: number, j: number) => {
-                if (i == j) {
-                    m.set(i, j, input.get(i, j) * (1 - input.get(i, j)))
+            m.iterate((pos) => {
+                if (pos[0] == pos[1]) {
+                    m.set(pos, input.get(pos) * (1 - input.get(pos)))
                 } else {
-                    m.set(i, j, -(input.get(i, j)*input.get(i,j)))
+                    m.set(pos, -(input.get(pos)*input.get(pos)))
                 }
-            });
+            }, true);
             return m
         } else {
             return input * (1 - input)

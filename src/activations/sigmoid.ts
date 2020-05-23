@@ -1,6 +1,6 @@
 import IActivation from "./activations";
 import {GPUFunction, KernelFunction, ThreadKernelVariable} from "gpu.js";
-import Matrix from "../matrix";
+import Tensor from "../tensor";
 
 export default class Sigmoid implements IActivation {
 
@@ -18,24 +18,24 @@ export default class Sigmoid implements IActivation {
         }
     }
 
-    normal(input: Matrix | number): Matrix | number {
-        if (input instanceof Matrix) {
+    normal(input: Tensor | number): Tensor | number {
+        if (input instanceof Tensor) {
             const m = input.copy(false)
-            m.iterate((i: number, j: number) => {
-                m.set(i, j, 1 / (1 + Math.exp(-input.get(i, j))))
-            });
+            m.iterate((pos) => {
+                m.set(pos, 1 / (1 + Math.exp(-input.get(pos))))
+            }, true);
             return m
         } else {
             return 1 / (1 + Math.exp(-input))
         }
     }
 
-    derivative(input: Matrix | number): Matrix | number {
-        if (input instanceof Matrix) {
+    derivative(input: Tensor | number): Tensor | number {
+        if (input instanceof Tensor) {
             const m = input.copy(false)
-            m.iterate((i: number, j: number) => {
-                m.set(i, j, input.get(i, j) * (1 - input.get(i, j)))
-            });
+            m.iterate((pos) => {
+                m.set(pos, input.get(pos) * (1 - input.get(pos)))
+            }, true);
             return m
         } else {
             return input * (1 - input)

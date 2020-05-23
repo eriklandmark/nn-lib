@@ -1,8 +1,6 @@
 import Dataset, {Example} from "./dataset";
 import Layer from "./layers/layer";
 import * as fs from "fs";
-import Matrix from "./matrix";
-import Vector from "./vector";
 import {GPU} from 'gpu.js';
 import Tensor from "./tensor";
 import {LayerHelper} from "./layers/layer_helper";
@@ -11,11 +9,10 @@ import OutputLayer from "./layers/output_layer";
 import Path from "path";
 import StochasticGradientDescent from "./optimizers/StochasticGradientDescent";
 import ProgressBar from "./lib/progress_bar";
-import cliProgress from "cli-progress";
 
 export interface SavedLayer {
-    weights: Float32Array[] | Float32Array[][][]
-    bias: Float32Array | Float32Array[]
+    weights: any
+    bias: any
     shape: number[]
     activation: string
     prevLayerShape: number[]
@@ -28,17 +25,21 @@ export interface SavedLayer {
         poolingFunc?: string
         loss?: string
         rate?: number
+        layerSize?: number
         [propName: string]: any
     }
+    type?: string
 }
 
-interface ModelSettings {
+export interface ModelSettings {
     USE_GPU: boolean,
     BACKLOG: boolean,
     SAVE_CHECKPOINTS: boolean,
     MODEL_SAVE_PATH: string,
     VERBOSE_COMPACT: boolean,
-    EVAL_PER_EPOCH: boolean
+    EVAL_PER_EPOCH: boolean,
+    WORKER_MODE?: boolean,
+    WORKER_CALLBACK?: Function
 }
 
 export interface BacklogData {
@@ -84,7 +85,9 @@ export default class Model {
         SAVE_CHECKPOINTS: false,
         MODEL_SAVE_PATH: "",
         VERBOSE_COMPACT: true,
-        EVAL_PER_EPOCH: false
+        EVAL_PER_EPOCH: false,
+        WORKER_MODE: false,
+        WORKER_CALLBACK: () => {}
     }
     model_data: {
         input_shape: number[]
@@ -107,7 +110,7 @@ export default class Model {
 
     public build(inputShape: number[], learning_rate: number, lossFunction,
                  optimizer = StochasticGradientDescent, verbose: boolean = true) {
-        if (!(this.layers[this.layers.length - 1] instanceof OutputLayer)) {
+        if (!(this.layers[this.layers.length - 1].type == "output")) {
             throw "Last layer must be an OutputLayer!..."
         }
 
@@ -170,9 +173,9 @@ export default class Model {
         }
     }
 
-    train_on_batch(examples: Matrix | Tensor[], labels: Matrix): any {
+    train_on_batch(examples: Tensor, labels: Tensor): any {
         if (this.settings.USE_GPU) {
-            let result: any = examples instanceof Matrix ? (<Matrix>examples).toNumberArray() :
+            /*let result: any = examples instanceof Matrix ? (<Matrix>examples).toNumberArray() :
                 examples.map((t) => t.toNumberArray())
             let batch_size: number = examples instanceof Matrix ? (<Matrix>examples).dim().r :
                 examples.length
@@ -203,7 +206,7 @@ export default class Model {
             return {
                 loss: (<OutputLayer>this.layers[this.layers.length - 1]).loss,
                 accuracy: (<OutputLayer>this.layers[this.layers.length - 1]).accuracy
-            }
+            }*/
         } else {
             this.layers[0].feedForward(examples, true)
             for (let i = 1; i < this.layers.length; i++) {
@@ -237,13 +240,15 @@ export default class Model {
         this.backlog.total_epochs += epochs
 
         if (data instanceof Dataset) {
-            console.log("Starting training...")
+            if (!this.settings.WORKER_MODE) {
+                console.log("Starting training...")
+            }
 
             const startTime = Date.now();
             const batch_count = Math.floor(data.TOTAL_EXAMPLES / data.BATCH_SIZE)
             this.backlog.batches_per_epoch = batch_count
 
-            if(data.IS_GENERATOR) {
+            if(data.IS_GENERATOR && !this.settings.WORKER_MODE) {
                 console.log("Total " + batch_count + " batches for " + epochs + " epochs.")
             }
 
@@ -252,8 +257,10 @@ export default class Model {
             this.saveBacklog()
 
             for (let epoch = 1; epoch <= epochs; epoch++) {
-                console.log("----------------")
-                console.log("Starting Epoch:", epoch, "/", epochs)
+                if (!this.settings.WORKER_MODE) {
+                    console.log("----------------")
+                    console.log("Starting Epoch:", epoch, "/", epochs)
+                }
                 if (shuffle && !data.IS_GENERATOR) {
                     data.shuffle()
                 }
@@ -278,23 +285,18 @@ export default class Model {
                         loss: (0).toPrecision(5),
                     })
 
-                if (this.settings.VERBOSE_COMPACT) {
+                if (this.settings.VERBOSE_COMPACT && !this.settings.WORKER_MODE) {
                     bar.start()
                 }
 
                 for (let batch_id = 0; batch_id < batch_count; batch_id++) {
+
                     const batch: Example[] = await data.getBatch(batch_id)
 
-                    let examples: Matrix | Tensor[]
                     let b_loss: number = 0
                     let b_acc: number = 0
-                    let exampleData = <Vector[] | Tensor[]>batch.map((ex) => ex.data)
-                    const labels = new Matrix(batch.map((ex) => ex.label)).transpose()
-                    if (data.DATA_STRUCTURE == Vector) {
-                        examples = new Matrix(batch.map((ex) => <Vector>ex.data)).transpose()
-                    } else if (data.DATA_STRUCTURE == Tensor) {
-                        examples = <Tensor[]>exampleData
-                    }
+                    const labels = new Tensor(batch.map((ex) => ex.label.t))
+                    const examples = new Tensor(batch.map((ex) => ex.data.t))
 
                     const seconds = await Helper.timeit(() => {
                         let {loss, accuracy} = this.train_on_batch(examples, labels);
@@ -309,22 +311,33 @@ export default class Model {
                     this.backlog.epochs["epoch_" + epoch] = epoch_data
                     this.saveBacklog()
 
-                    if (this.settings.VERBOSE_COMPACT) {
-                        bar.increment({
-                            acc: (epoch_data.total_accuracy / (batch_id + 1)).toPrecision(3),
-                            time_tot: epoch_data.calculated_duration.toPrecision(5),
-                            time_avg: (epoch_data.calculated_duration / (batch_id + 1)).toPrecision(4),
-                            loss: (epoch_data.total_loss / (batch_id + 1)).toPrecision(5)
-                        })
-                    } else {
+                    const callback_data = {
+                        acc: (epoch_data.total_accuracy / (batch_id + 1)).toPrecision(3),
+                        time_tot: epoch_data.calculated_duration.toPrecision(5),
+                        time_avg: (epoch_data.calculated_duration / (batch_id + 1)).toPrecision(4),
+                        loss: (epoch_data.total_loss / (batch_id + 1)).toPrecision(5)
+                    }
+
+                    if (this.settings.VERBOSE_COMPACT && !this.settings.WORKER_MODE) {
+                        bar.increment(callback_data)
+                    } else if (!this.settings.WORKER_MODE) {
                         console.log("Batch:", (batch_id + 1), "/", batch_count,
                             "Loss =", b_loss, ", Acc = ", b_acc, "| Time:", seconds, "seconds")
                     }
+
+                    if (this.settings.WORKER_MODE) {
+                        callback_data["batch"] = batch_id + 1
+                        callback_data["batch_tot"] = batch_count
+                        callback_data["epoch"] = epoch
+                        callback_data["epoch_tot"] = epochs
+                        this.settings.WORKER_CALLBACK(callback_data)
+                    }
                 }
-                bar.stop()
+                if (this.settings.VERBOSE_COMPACT && !this.settings.WORKER_MODE) {
+                    bar.stop()
+                }
 
                 if (this.settings.EVAL_PER_EPOCH && eval_ds) {
-
                     const eval_examples = eval_ds.size()
                     eval_ds.BATCH_SIZE = eval_examples
                     let numRights = 0
@@ -337,55 +350,66 @@ export default class Model {
                             rights: "0",
                             per: "0"
                         })
-                    bar.start()
+                    if (this.settings.VERBOSE_COMPACT && !this.settings.WORKER_MODE) {
+                        bar.start()
+                    }
                     const seconds = await Helper.timeit(() => {
                         for (let i = 0; i < eval_examples; i++ ) {
                             const result = this.eval(eval_data[i])
                             numRights += result.accuracy
                             tot_eval_loss += result.loss
-                            bar.increment({
-                                rights: numRights,
-                                per: ((numRights / (i + 1)) * 100).toPrecision(4)
-                            })
+                            if (this.settings.VERBOSE_COMPACT && !this.settings.WORKER_MODE) {
+                                bar.increment({
+                                    rights: numRights,
+                                    per: ((numRights / (i + 1)) * 100).toPrecision(4)
+                                })
+                            }
                         }
 
                     }, false)
-                    bar.stop()
                     epoch_data.eval_accuracy = numRights / eval_examples
                     epoch_data.eval_loss = tot_eval_loss / eval_examples
-                    console.log("Num rights: " + numRights + " of " + eval_examples + " (" +
-                        (epoch_data.eval_accuracy * 100).toPrecision(3) + " %)")
-                    console.log("Average loss: " + epoch_data.eval_loss)
-                    console.log("It took " + seconds + " seconds.")
+                    if (this.settings.VERBOSE_COMPACT && !this.settings.WORKER_MODE) {
+                        bar.stop()
+                    } else if (!this.settings.WORKER_MODE) {
+                        console.log("Num rights: " + numRights + " of " + eval_examples + " (" +
+                            (epoch_data.eval_accuracy * 100).toPrecision(3) + " %)")
+                        console.log("Average loss: " + epoch_data.eval_loss)
+                        console.log("It took " + seconds + " seconds.")
+                    }
                 }
 
                 epoch_data.actual_duration = (Date.now() - epoch_startTime) / 1000
                 this.backlog.epochs["epoch_" + epoch] = epoch_data
-                console.log("Loss: TOT", epoch_data.total_loss.toPrecision(5),
-                    "AVG", (epoch_data.total_loss / batch_count).toPrecision(5),
-                    "| Accuracy:", (epoch_data.total_accuracy / batch_count).toPrecision(3),
-                    "| Total time:", epoch_data.actual_duration.toPrecision(5), "/",
-                    epoch_data.calculated_duration.toPrecision(4))
+                if (!this.settings.WORKER_MODE) {
+                    console.log("Loss: TOT", epoch_data.total_loss.toPrecision(5),
+                        "AVG", (epoch_data.total_loss / batch_count).toPrecision(5),
+                        "| Accuracy:", (epoch_data.total_accuracy / batch_count).toPrecision(3),
+                        "| Total time:", epoch_data.actual_duration.toPrecision(5), "/",
+                        epoch_data.calculated_duration.toPrecision(4))
+                }
                 this.saveBacklog()
                 this.model_data.last_epoch = epoch
                 if (this.settings.SAVE_CHECKPOINTS) {
                     this.save("model_checkpoint_" + epoch + ".json")
                 }
             }
-
-            console.log("Done..")
             const duration = (Date.now() - startTime) / 1000
             this.backlog.actual_duration = duration
-            console.log("Duration: " + duration + " seconds")
+            if (!this.settings.WORKER_MODE) {
+                console.log("Done..")
+                console.log("Duration: " + duration + " seconds")
+            }
             this.saveBacklog()
         } else {
+            /*
             let exampleData = <Vector[] | Tensor[]>data.map((ex) => ex.data)
             let examples = exampleData[0] instanceof Vector ? new Matrix(<Vector[]>exampleData) : <Tensor[]>exampleData
             let labels = new Matrix(data.map((ex) => ex.label)).transpose()
 
             for (let epoch = 0; epoch < epochs; epoch++) {
                 console.log(this.train_on_batch(examples, labels))
-            }
+            }*/
         }
     }
 
@@ -400,17 +424,12 @@ export default class Model {
         if (!this.isBuilt) {
             throw "Model hasn't been build yet!.."
         }
-        let exampleMatrix: Matrix | Tensor[]
-        let labelMatrix: Matrix
-        if (example.label instanceof Vector) {
-            labelMatrix = new Matrix([example.label]).transpose()
+        let exampleMatrix: Tensor
+        let labelMatrix: Tensor = new Tensor([example.label.t])
+        if (example.data.shape.length == 1) {
+            exampleMatrix = new Tensor([example.data.t]).transpose()
         } else {
-            labelMatrix = example.label
-        }
-        if (example.data instanceof Vector) {
-            exampleMatrix = new Matrix([example.data]).transpose()
-        } else {
-            exampleMatrix = [<Tensor>example.data]
+            exampleMatrix = new Tensor([example.data.t])
         }
         this.layers[0].feedForward(exampleMatrix, false)
         for (let i = 1; i < this.layers.length; i++) {
@@ -424,21 +443,19 @@ export default class Model {
         }
     }
 
-    predict(data: Vector | Matrix | Tensor): Matrix {
+    predict(data: Tensor): Tensor {
         if (!this.isBuilt) {
             throw "Model hasn't been build yet!.."
         }
-        let exampleMatrix: Matrix | Tensor[]
-        if (data instanceof Vector) {
-            exampleMatrix = new Matrix([data]).transpose()
-        } else {
-            exampleMatrix = [<Tensor>data]
-        }
+
+        let exampleMatrix: Tensor = new Tensor([data.t])
+
         this.layers[0].feedForward(exampleMatrix, false)
         for (let i = 1; i < this.layers.length; i++) {
             this.layers[i].feedForward(this.layers[i - 1], false)
         }
-        return <Matrix>this.layers[this.layers.length - 1].activation
+
+        return <Tensor>this.layers[this.layers.length - 1].activation
     }
 
     save(model_path: string = "model.json") {

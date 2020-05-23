@@ -1,5 +1,3 @@
-import Matrix from "../matrix";
-import Vector from "../vector";
 import {GPU} from "gpu.js";
 import Activation, {IActivation} from "../activations/activations";
 import Tensor from "../tensor";
@@ -7,12 +5,12 @@ import {SavedLayer} from "../model";
 import Optimizers, {IOptimizer} from "../optimizers/Optimizers";
 
 export default class Layer {
-    weights: Matrix | Tensor[] = new Matrix()
-    bias: Matrix = new Matrix()
-    errorWeights: Matrix | Tensor[] = new Matrix()
-    errorBias: Matrix = new Matrix()
+    weights: Tensor = new Tensor()
+    bias: Tensor = new Tensor()
+    errorWeights: Tensor = new Tensor()
+    errorBias: Tensor = new Tensor()
     output_error: any
-    activation: Matrix | Tensor[]
+    activation: Tensor = new Tensor()
     activationFunction: IActivation
     useGpu: boolean = false;
     gpuInstance: GPU = new GPU()
@@ -38,34 +36,32 @@ export default class Layer {
     }
 
     buildLayer(prevLayerShape: number[]) {}
-    feedForward(input: Layer | Matrix | Tensor[], isInTraining: boolean) {}
+    feedForward(input: Layer | Tensor, isInTraining: boolean) {}
     buildFFKernels(batch_size: number) {}
     buildBPKernels(size: number) {}
-    backPropagation(prev_layer: Layer, next_layer: Layer | Matrix | Tensor[]) {}
+    backPropagation(prev_layer: Layer, next_layer: Layer | Tensor) {}
 
     toSavedModel(): SavedLayer {
         return {
-            weights: this.weights instanceof Matrix? this.weights.matrix: this.weights.map((t) => t.tensor),
-            bias: this.bias instanceof Vector? this.bias.vector : this.bias.matrix,
+            weights: this.weights.t,
+            bias: this.bias.t,
             activation: this.activationFunction? this.activationFunction.name: "none",
             shape: this.shape,
             prevLayerShape: this.prevLayerShape,
-            optimizer: this.optimizer.name,
+            optimizer: this.optimizer? this.optimizer.name : "adam",
             layer_specific: {}
         }
     }
 
     fromSavedModel(data: SavedLayer) {
-        this.weights = this.weights instanceof Matrix? Matrix.fromJsonObject(data.weights):
-            (<Float32Array[][][]>data.weights).map((t) => Tensor.fromJsonObject(t))
-        this.bias = Matrix.fromJsonObject(<Float32Array[]>data.bias)
+        this.weights = Tensor.fromJsonObject(data.weights)
+        this.bias = Tensor.fromJsonObject(data.bias)
         if(data.activation != "none") {
             this.activationFunction = Activation.fromName(data.activation)
         }
         this.shape = data.shape
         this.prevLayerShape = data.prevLayerShape
-        const opt = Optimizers.fromName(data.optimizer)
-        this.optimizer = new opt(this)
+        this.optimizer = new (Optimizers.fromName(data.optimizer))(this)
     }
 
     updateLayer() {

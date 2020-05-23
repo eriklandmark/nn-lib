@@ -1,6 +1,6 @@
 import {IActivation} from "./activations";
-import Matrix from "../matrix";
 import {GPUFunction, KernelFunction, ThreadKernelVariable} from "gpu.js";
+import Tensor from "../tensor";
 
 export default class HyperbolicTangent implements IActivation {
     name: string = "tanh";
@@ -17,24 +17,24 @@ export default class HyperbolicTangent implements IActivation {
         }
     }
 
-    normal(input: Matrix | number): Matrix | number {
-        if (input instanceof Matrix) {
+    normal(input: Tensor | number): Tensor | number {
+        if (input instanceof Tensor) {
             const m = input.copy(false)
-            m.iterate((i: number, j: number) => {
-                m.set(i, j, Math.tanh(input.get(i, j)))
-            });
+            m.iterate((pos) => {
+                m.set(pos, Math.tanh(input.get(pos)))
+            }, true);
             return m
         } else {
             return Math.tanh(input)
         }
     }
 
-    derivative(input: Matrix | number): Matrix | number {
-        if (input instanceof Matrix) {
+    derivative(input: Tensor | number): Tensor | number {
+        if (input instanceof Tensor) {
             const m = input.copy(false)
-            m.iterate((i: number, j: number) => {
-                m.set(i, j, 1 - input.get(i, j)**2)
-            });
+            m.iterate((pos) => {
+                m.set(pos, 1 - input.get(pos)**2)
+            }, true);
             return m
         } else {
             return 1 - input**2

@@ -42,7 +42,10 @@ export default class PoolingLayer extends Layer {
         ]
 
         this.prevLayerShape = prevLayerShape
+        this.calcPoolFunc()
+    }
 
+    calcPoolFunc() {
         switch(this.poolingFuncName) {
             case "avg":
                 this.poolingFunc = (x: number[]) => x.reduce((acc, n) => acc+n, 0) / x.length; break
@@ -58,11 +61,11 @@ export default class PoolingLayer extends Layer {
     }
 
     feedForward(input: Layer, isInTraining: boolean) {
-        let input_images: Tensor[]
+        let input_images: Tensor
         if (input instanceof Layer) {
-            input_images = <Tensor[]>input.activation
+            input_images = input.activation
         } else {
-            input_images = <Tensor[]>input
+            input_images = input
         }
         let h, w, ch;
         const [f_h, f_w] = this.filterSize
@@ -77,15 +80,15 @@ export default class PoolingLayer extends Layer {
         }
         const patch_width = this.shape[1]
         const patch_height = this.shape[0]
-        let new_images: Tensor[] = []
-        for (let t = 0; t < input_images.length; t++) {
-            let patch = new Tensor();
-            if (this.channel_first) {
-                patch.createEmptyArray(ch, patch_height, patch_width)
-            } else {
-                patch.createEmptyArray(patch_height, patch_width, ch)
-            }
+        let new_images: Tensor
 
+        if (this.channel_first) {
+            new_images = new Tensor([input_images.shape[0], ch, patch_height, patch_width], true)
+        } else {
+            new_images = new Tensor([input_images.shape[0], patch_height, patch_width, ch], true)
+        }
+
+        for (let t = 0; t < input_images.shape[0]; t++) {
             for (let f = 0; f < ch; f++) {
                 for (let r = 0; r < h; r += this.stride[0]) {
                     for (let c = 0; c < w; c += this.stride[1]) {
@@ -93,46 +96,40 @@ export default class PoolingLayer extends Layer {
                         for (let c_f_h = 0; c_f_h < f_h; c_f_h++) {
                             for (let c_f_w = 0; c_f_w < f_w; c_f_w++) {
                                 if (this.channel_first) {
-                                    val.push(input_images[t].get(f, r + c_f_h, c + c_f_w))
+                                    val.push(input_images.t[t][f][r + c_f_h][c + c_f_w])
                                 } else {
-                                    val.push(input_images[t].get(r + c_f_h, c + c_f_w, f))
+                                    val.push(input_images.t[t][r + c_f_h][c + c_f_w][f])
                                 }
                             }
                         }
-                        if(this.channel_first) {
-                            patch.set(f, r/this.stride[0], c/this.stride[1], this.poolingFunc(val))
+                        if (this.channel_first) {
+                            new_images.t[t][f][r / this.stride[0]][c / this.stride[1]] = this.poolingFunc(val)
                         } else {
-                            patch.set(r/this.stride[0], c/this.stride[1], f, this.poolingFunc(val))
+                            new_images.t[t][r / this.stride[0]][c / this.stride[1]][f] = this.poolingFunc(val)
                         }
                     }
                 }
             }
-            new_images.push(patch)
         }
 
         this.activation = new_images
     }
 
-    backPropagation(prev_layer: Layer, next_layer: Layer | Tensor[]) {
-        const gradients = <Tensor[]> prev_layer.output_error
-        let input: Tensor[]
+    backPropagation(prev_layer: Layer, next_layer: Layer | Tensor) {
+        let input: Tensor
         if (next_layer instanceof Layer) {
-            input = <Tensor[]> next_layer.activation
+            input = next_layer.activation
         } else {
             input = next_layer
         }
 
-        let t: Tensor[] = new Array(gradients.length);
-        for(let i = 0; i < t.length; i++) {
-            t[i] = new Tensor();
-            t[i].createEmptyArray(this.prevLayerShape[0], this.prevLayerShape[1], this.prevLayerShape[2])
-        }
+        let t: Tensor =  new Tensor([prev_layer.output_error.shape[0], this.prevLayerShape[0], this.prevLayerShape[1], this.prevLayerShape[2]], true)
 
         const [s_h,s_w] = this.stride
         const [h, w, d] = this.prevLayerShape
         const [hh, ww] = this.shape
         const [f_h, f_w] = this.filterSize
-        for(let n = 0; n < t.length; n++) {
+        for(let n = 0; n < t.shape[0]; n++) {
             for (let ch = 0; ch < d; ch++) {
                 for (let r = 0; r < hh; r++) {
                     for (let c = 0; c < ww; c++) {
@@ -140,14 +137,14 @@ export default class PoolingLayer extends Layer {
                         let j = -1
                         for (let c_f_h = 0; c_f_h < f_h; c_f_h++) {
                             for (let c_f_w = 0; c_f_w < f_w; c_f_w++) {
-                                if(input[n].get((r*s_h) + c_f_h, (c*s_w) + c_f_w, ch) == this.activation[n].get(r,c,ch)) {
+                                if(input.t[n][(r*s_h) + c_f_h][(c*s_w) + c_f_w][ch] == this.activation.t[n][r][c][ch]) {
                                     i = c_f_h
                                     j = c_f_w
                                     break
                                 }
                             }
                         }
-                        t[n].set((r*s_h) + i,(c*s_w) + j, ch, gradients[n].get(r, c, ch))
+                        t.t[n][(r*s_h) + i][(c*s_w) + j][ch] = prev_layer.output_error.t[n][r][c][ch]
                     }
                 }
             }
@@ -155,6 +152,8 @@ export default class PoolingLayer extends Layer {
 
         this.output_error = t
     }
+
+    updateLayer() {}
 
     toSavedModel(): SavedLayer {
         const data = super.toSavedModel()
@@ -174,6 +173,7 @@ export default class PoolingLayer extends Layer {
         this.poolingFuncName = data.layer_specific.poolingFuncName
         this.stride = <number[]> data.layer_specific.stride
         this.padding = data.layer_specific.padding
+        this.calcPoolFunc()
     }
 
 }

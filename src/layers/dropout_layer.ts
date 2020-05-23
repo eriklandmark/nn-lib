@@ -1,6 +1,6 @@
 import Layer from "./layer";
-import Matrix from "../matrix";
 import {SavedLayer} from "../model";
+import Tensor from "../tensor";
 
 export default class DropoutLayer extends Layer {
 
@@ -19,25 +19,15 @@ export default class DropoutLayer extends Layer {
     feedForward(input: Layer, isInTraining: boolean) {
         this.activation = (<Layer>input).activation
         if (isInTraining) {
-            if(this.activation instanceof Matrix) {
-                (<Matrix> this.activation).iterate((i: number, j: number) => {
-                    if(Math.random() < this.rate) {
-                        (<Matrix> this.activation).set(i,j, 0)
-                    }
-                })
-            } else {
-                this.activation.forEach((tensor) => {
-                    tensor.iterate((i: number, j: number, k: number) => {
-                        if (Math.random() < this.rate) {
-                            tensor.set(i,j,k, 0)
-                        }
-                    })
-                })
-            }
+            this.activation.iterate((pos) => {
+                if(Math.random() < this.rate) {
+                    (<Tensor> this.activation).set(pos, 0)
+                }
+            }, true)
         }
     }
 
-    backPropagation(prev_layer: Layer, next_layer: Layer | Matrix) {
+    backPropagation(prev_layer: Layer, next_layer: Layer) {
         this.weights = prev_layer.weights;
         this.output_error = prev_layer.output_error;
     }

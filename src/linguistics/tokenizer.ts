@@ -3,7 +3,7 @@ import ArrayHelper from "../lib/array_helper";
 import fs from "fs"
 import CsvParser from "./csv_parser";
 import Dataset, {Example} from "../dataset";
-import Vector from "../vector";
+import Tensor from "../tensor";
 
 export default class Tokenizer {
 
@@ -54,18 +54,19 @@ export default class Tokenizer {
         const dataset = new Dataset()
 
         const data: Example[] = CsvParser.filterColumns(trainData, columns).map((ex)  => {
-            const label = Vector.toCategorical(<number> ex[0], 3)
-            const data = new Vector(this.tokenize(<string> ex[1], true))
+            const label = Tensor.toCategorical(<number> ex[0], 3)
+            const data = new Tensor(this.tokenize(<string> ex[1], true))
             return {label: label, data: data}
         })
 
-        const maxVectorSize = data.reduce((acc, e) => (<Vector>e.data).size() > acc? (<Vector>e.data).size(): acc, 0)
+        const maxVectorSize = data.reduce((acc, e) =>
+            e.data.count() > acc? e.data.count(): acc, 0)
 
         data.forEach((ex: Example) => {
-            const em = new Vector(maxVectorSize)
-            ex.data.iterate((val: number, i: number) => {
-                em.set(i, val)
-            })
+            const em = new Tensor([maxVectorSize], true)
+            ex.data.iterate((pos) => {
+                em.set(pos, ex.data.get(pos))
+            }, true)
             dataset.addExample({label: ex.label, data: em})
         })
 

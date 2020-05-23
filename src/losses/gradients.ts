@@ -1,16 +1,16 @@
 import {IActivation} from "../activations/activations";
 import {ILoss} from "./losses";
-import Matrix from "../matrix";
+import Tensor from "../tensor";
 
 export default class Gradients {
     public static get_gradient(actvFunc: IActivation, lossFunc: ILoss): IGradient {
         let gradientFunc: IGradient
         if (actvFunc.name == "softmax" && lossFunc.name == "cross_entropy") {
-            gradientFunc = function (input, labels) {
+            gradientFunc = function (input: Tensor, labels: Tensor) {
                 return input.sub(labels)
             }
         } else if (actvFunc.name == "sigmoid" && lossFunc.name == "mean_squared_error") {
-            gradientFunc = function (input, labels) {
+            gradientFunc = function (input: Tensor, labels: Tensor) {
                 return input.sub(labels)
             }
         }
@@ -20,5 +20,5 @@ export default class Gradients {
 }
 
 export interface IGradient {
-    (input: Matrix, labels: Matrix): Matrix
+    (input: Tensor, labels: Tensor): Tensor
 }

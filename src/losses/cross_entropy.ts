@@ -1,23 +1,23 @@
 import ILoss from "./losses";
-import Matrix from "../matrix";
 import {KernelFunction} from "gpu.js";
+import Tensor from "../tensor";
 
 export default class CrossEntropy implements ILoss {
 
     name: string = "cross_entropy"
     epsilon: number = 10**-14
 
-    normal(input: Matrix, labels: Matrix): Matrix {
+    normal(input: Tensor, labels: Tensor): Tensor {
         let out = input.copy(false)
-        out.iterate((i: number, j: number) => {
-            if (labels.get(i,j) != 0) {
-                out.set(i, j, (labels.get(i,j) * Math.log(input.get(i,j) + this.epsilon)))
+        out.iterate((pos) => {
+            if (labels.get(pos) != 0) {
+                out.set(pos, (labels.get(pos) * Math.log(input.get(pos) + this.epsilon)))
             }
-        });
-        return (<Matrix>(<Matrix> out).sum(1, true)).mul(-1)
+        }, true);
+        return (<Tensor>(<Tensor> out).sum(1, true)).mul(-1)
     }
 
-    derivative(input: Matrix, labels: Matrix): Matrix {
+    derivative(input: Tensor, labels: Tensor): Tensor {
         return labels.mul(-1).div(input)
     }
 

@@ -1,16 +1,20 @@
-import Tokenizer from "../src/linguistics/tokenizer";
-import CsvParser from "../src/linguistics/csv_parser";
-import ArrayHelper from "../src/lib/array_helper";
+const cliProgress = require('cli-progress');
 
-const tokenizer = new Tokenizer()
+// create new container
+const multibar = new cliProgress.MultiBar({
+    clearOnComplete: false,
+    hideCursor: true
 
-const trainData = CsvParser.parse("./dataset/nlp/train.tsv", true)
-const sentences = ArrayHelper.flatten(CsvParser.filterColumns(trainData, [3]))
-tokenizer.createVocabulary(sentences)
+}, cliProgress.Presets.shades_grey);
 
-const dataset = tokenizer.createDataset("./dataset/nlp/train.tsv", [1,3])
+// add bars
+const b1 = multibar.create(200, 0);
+const b2 = multibar.create(1000, 0);
 
-console.log(dataset.size())
-dataset.BATCH_SIZE = dataset.size()
-console.log(dataset.getBatch(0)[0].data.toString())
+// control bars
+b1.increment();
+b2.update(20, {filename: "helloworld.txt"});
+
+// stop all bars
+multibar.stop();
 

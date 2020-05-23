@@ -1,282 +1,755 @@
-import Vector from "./vector";
-import Matrix from "./matrix";
-
 export default class Tensor {
 
-    tensor: Float32Array[][] = [];
+    t: Float64Array | Float64Array[] | Float64Array[][] | Float64Array[][][] = []
+    shape: number[] = []
+    dim: number = 0
 
-    public get: Function = (i: number, j: number, k: number) => {
-        if(!isFinite(this.tensor[i][j][k])) {
-            console.trace()
-            throw "Getting an NaN..."
-        }
-        return this.tensor[i][j][k]
-    };
-    public set: Function = (i: number, j: number, k: number, n: number) => {
-        if (!isFinite(n)) {
-            console.trace()
-            throw "Number is NaN..."
-        }
-        this.tensor[i][j][k] = n;
-    };
-    public count: Function = () => {
-        return this.dim().c * this.dim().r * this.dim().d;
-    };
-
-    public dim() {
-        return {
-            r: this.tensor.length,
-            c: this.tensor[0] ? this.tensor[0].length : 0,
-            d: this.tensor[0][0] ? this.tensor[0][0].length : 0
-        }
-    }
-
-    public shape(): number[] {
-        return [this.dim().r, this.dim().c, this.dim().d]
-    }
-
-    constructor(v: number[][][] | Float32Array[][] = []) {
-        if (v.length > 0 && v[0][0] instanceof Float32Array) {
-            this.tensor = <Float32Array[][]> v
+    constructor(v: any[] | Float64Array = [], shape: boolean = false) {
+        if (shape) {
+            this.shape = <number[]>v
+            this.createFromShape(this.shape)
+            this.dim = this.shape.length
         } else {
-            for (let i = 0; i < v.length; i++) {
-                this.tensor.push([])
-                for (let j = 0; j < v[i].length; j++) {
-                    this.tensor[i].push(Float32Array.from(<Array<number>>v[i][j]))
+            if (v.length == 0) {
+                this.shape = [0]
+            } else {
+                this.calculateShape(v)
+                this.createTensor(v)
+            }
+        }
+
+        /*
+        return new Proxy(this, {
+            get(target, prop) {
+                if (Number(prop) == prop && !(prop in target)) {
+                    if (typeof target.t[prop] == "number" && !isFinite(target.t[prop])) {
+                        console.trace()
+                        throw "Getting an NaN..."
+                    }
+                    return target.t[prop];
+                }
+                return target[prop];
+            }, set(target, prop: PropertyKey, value: any): boolean {
+                if (Number(prop) == prop && !(prop in target)) {
+                    if (typeof target.t[prop] != "number") {
+                        console.trace()
+                        throw "Cannot set array to number..."
+                    }
+                    if (!isFinite(value)) {
+                        console.trace()
+                        throw "Setting an NaN..."
+                    }
+
+                    return target.t[prop] = value
+                }
+            }
+        });*/
+    }
+
+    private createTensor(v: any[] | Float64Array) {
+        if (v instanceof Float64Array) {
+            this.t = v
+        } else if (typeof v[0] == "number") {
+            this.t = Float64Array.from(v);
+        } else {
+            if (this.shape.length == 2) {
+                this.t = <Float64Array[]>[]
+                for (let i = 0; i < this.shape[0]; i++) {
+                    this.t.push(Float64Array.from(v[i]))
+                }
+            } else if (this.shape.length == 3) {
+                this.t = <Float64Array[][]>[]
+                for (let i = 0; i < this.shape[0]; i++) {
+                    this.t.push([]);
+                    for (let j = 0; j < this.shape[1]; j++) {
+                        this.t[i].push(Float64Array.from(v[i][j]))
+                    }
+                }
+            } else if (this.shape.length == 4) {
+                this.t = <Float64Array[][][]>[]
+                for (let i = 0; i < this.shape[0]; i++) {
+                    this.t.push([]);
+                    for (let j = 0; j < this.shape[1]; j++) {
+                        this.t[i].push([]);
+                        for (let k = 0; k < this.shape[2]; k++) {
+                            this.t[i][j].push(Float64Array.from(v[i][j][k]))
+                        }
+                    }
                 }
             }
         }
     }
 
-    public createEmptyArray(rows: number, columns: number, depth: number) {
-        this.tensor = []
-        for (let i = 0; i < rows; i++) {
-            this.tensor.push([]);
-            for (let j = 0; j < columns; j++) {
-                this.tensor[i].push(new Float32Array(depth).fill(0))
+    private createFromShape(shape: number[]): void {
+        this.shape = shape
+        if (shape.length == 1) {
+            this.t = new Array(shape[0]).fill(0);
+        } else if (shape.length == 2) {
+            this.t = <Float64Array[]>[]
+            for (let i = 0; i < shape[0]; i++) {
+                this.t.push(new Float64Array(shape[1]).fill(0))
+            }
+        } else if (shape.length == 3) {
+            this.t = <Float64Array[][]>[]
+            for (let i = 0; i < shape[0]; i++) {
+                this.t.push([]);
+                for (let j = 0; j < shape[1]; j++) {
+                    this.t[i].push(new Float64Array(shape[2]).fill(0))
+                }
+            }
+        } else if (shape.length == 4) {
+            this.t = <Float64Array[][][]>[]
+            for (let i = 0; i < shape[0]; i++) {
+                this.t.push([]);
+                for (let j = 0; j < shape[1]; j++) {
+                    this.t[i].push([]);
+                    for (let k = 0; k < shape[2]; k++) {
+                        this.t[i][j].push(new Float64Array(shape[3]).fill(0))
+                    }
+                }
             }
         }
     }
 
-    public static fromJsonObject(obj: any[][]) {
-        return new Tensor(obj.map((row: any[]) => {
-            return row.map((col: any) => {
-                return Object.keys(col).map((item, index) => col[index.toString()])
+    private calculateShape(arr: any) {
+        let shape = []
+        const f = (v: any) => {
+            shape.push(v.length)
+            if (!(v instanceof Float64Array || typeof v[0] == "number")) {
+                f(v[0])
+            }
+        }
+
+        if (arr instanceof Float64Array) {
+            this.shape = [arr.length]
+        } else {
+            shape.push(arr.length)
+            f(arr[0])
+            this.shape = shape
+        }
+        this.dim = this.shape.length
+    }
+
+    public get(pos: number[]): number {
+        if (pos.length == 1) {
+            if (!isFinite(<number>this.t[pos[0]])) {
+                console.trace()
+                throw "Getting an NaN... (" + this.t[pos[0]] + ")"
+            }
+            return <number>this.t[pos[0]]
+        } else if (pos.length == 2) {
+            if (!isFinite(this.t[pos[0]][pos[1]])) {
+                console.trace()
+                throw "Getting an NaN... (" + this.t[pos[0]][pos[1]] + ")"
+            }
+            return this.t[pos[0]][pos[1]]
+        } else if (pos.length == 3) {
+            if (!isFinite(this.t[pos[0]][pos[1]][pos[2]])) {
+                console.trace()
+                throw "Getting an NaN... (" + this.t[pos[0]][pos[1]][pos[2]] + ")"
+            }
+            return this.t[pos[0]][pos[1]][pos[2]]
+        } else if (pos.length == 4) {
+            if (!isFinite(this.t[pos[0]][pos[1]][pos[2]][pos[3]])) {
+                console.trace()
+                throw "Getting an NaN... (" + this.t[pos[0]][pos[1]][pos[2]][pos[3]] + ")"
+            }
+            return this.t[pos[0]][pos[1]][pos[2]][pos[3]]
+        }
+
+    }
+
+    public set(pos: number[], v: number): void {
+        if (!isFinite(v) || isNaN(v)) {
+            console.trace()
+            throw "Number is NaN... (" + v + ")"
+        }
+        if (this.dim == 1) {
+            this.t[pos[0]] = v
+        } else if (this.dim == 2) {
+            this.t[pos[0]][pos[1]] = v
+        } else if (this.dim == 3) {
+            this.t[pos[0]][pos[1]][pos[2]] = v
+        } else if (this.dim == 4) {
+            this.t[pos[0]][pos[1]][pos[2]][pos[3]] = v
+        }
+    }
+
+    public count(): number {
+        return this.shape.reduce((acc: number, d: number) => acc * d, 1)
+    };
+
+    public static toCategorical(index: number, size: number) {
+        const v = new Tensor([size], true);
+        v.t[index] = 1
+        return v
+    }
+
+    public static fromJsonObject(obj: any[][]): Tensor {
+        if (obj.length == 0) {
+            return new Tensor()
+        } else if (typeof obj["0"] == "number") {
+            return new Tensor(Object.keys(obj).map(
+                (item, index) => {
+                    return obj[index.toString()]
+                }
+            ))
+        } else if (typeof obj["0"]["0"] == "number") {
+            return new Tensor(obj.map((row: any) => {
+                return Object.keys(row).map((item) => row[item])
+            }))
+        } else if (typeof obj["0"]["0"]["0"] == "number") {
+            return new Tensor(obj.map((row: any[]) => {
+                return row.map((col: any) => {
+                    return Object.keys(col).map((item) => col[item])
+                })
+            }))
+        } else if (typeof obj["0"]["0"]["0"]["0"] == "number") {
+            return new Tensor(obj.map((row: any[]) => {
+                return row.map((col: any) => {
+                    return col.map((depth: any) => {
+                        return Object.keys(depth).map((item) => depth[item])
+                    })
+                })
+            }))
+        }
+    }
+
+    public equalShape(t: Tensor): boolean {
+        if (this.dim !== t.dim)
+            return false
+
+        for (let i = 0; i < this.dim; i++) {
+            if (this.shape[i] !== t.shape[i]) {
+                return false
+            }
+        }
+
+        return true
+    }
+
+    public toNumberArray(): any[] {
+        if (this.dim == 1) {
+            return [].slice.call(this.t)
+        } else if (this.dim == 2) {
+            return (<Float64Array[]>this.t).map((floatArray) => [].slice.call(floatArray))
+        } else if (this.dim == 3) {
+            return (<Float64Array[][]>this.t).map((array) =>
+                array.map((floatArray) => [].slice.call(floatArray)))
+        }
+    }
+
+    public iterate(func: Function, use_pos: boolean = false, channel_first = false): void {
+        if (this.dim == 1) {
+            this.t.forEach((_, index) => {
+                if (use_pos) {
+                    func([index])
+                } else {
+                    func(index)
+                }
             })
-        }))
-    }
-
-    public toNumberArray(): number[][] {
-        return this.tensor.map((array) => array.map((floatArray) => [].slice.call(floatArray)))
-    }
-
-    public iterate(func: Function, channel_first = false): void {
-        if (channel_first) {
-            for (let k: number = 0; k < this.dim().d; k++) {
-                for (let i: number = 0; i < this.dim().r; i++) {
-                    for (let j: number = 0; j < this.dim().c; j++) {
-                        func(i, j, k);
+        } else if (this.dim == 2) {
+            for (let i: number = 0; i < this.shape[0]; i++) {
+                for (let j: number = 0; j < this.shape[1]; j++) {
+                    if (use_pos) {
+                        func([i, j])
+                    } else {
+                        func(i, j)
                     }
                 }
             }
-        } else {
-            for (let i: number = 0; i < this.dim().r; i++) {
-                for (let j: number = 0; j < this.dim().c; j++) {
-                    for (let k: number = 0; k < this.dim().d; k++) {
-                        func(i, j, k);
+        } else if (this.dim == 3) {
+            if (channel_first) {
+                for (let k: number = 0; k < this.shape[2]; k++) {
+                    for (let i: number = 0; i < this.shape[0]; i++) {
+                        for (let j: number = 0; j < this.shape[1]; j++) {
+                            if (use_pos) {
+                                func([i, j, k])
+                            } else {
+                                func(i, j, k)
+                            }
+                        }
+                    }
+                }
+            } else {
+                for (let i: number = 0; i < this.shape[0]; i++) {
+                    for (let j: number = 0; j < this.shape[1]; j++) {
+                        for (let k: number = 0; k < this.shape[2]; k++) {
+                            if (use_pos) {
+                                func([i, j, k])
+                            } else {
+                                func(i, j, k)
+                            }
+                        }
+                    }
+                }
+            }
+        } else if (this.dim == 4) {
+            for (let i: number = 0; i < this.shape[0]; i++) {
+                for (let j: number = 0; j < this.shape[1]; j++) {
+                    for (let k: number = 0; k < this.shape[2]; k++) {
+                        for (let l: number = 0; l < this.shape[3]; l++) {
+                            if (use_pos) {
+                                func([i, j, k, l])
+                            } else {
+                                func(i, j, k, l)
+                            }
+                        }
                     }
                 }
             }
         }
-
     }
 
-    public toString = (max_rows: number = 10): string => {
-        if (this.tensor.length == 0) {
-            return "Tensor: 0x0x0 []"
-        } else {
+    private numberToString(nr: number, precision: number = 5, autoFill: boolean = false): string {
+        const expStr = nr.toExponential()
+        return (+expStr.substr(0, expStr.lastIndexOf("e"))).toPrecision(precision)
+            + expStr.substr(expStr.lastIndexOf("e")) +
+            (autoFill ? " ".repeat(4 - expStr.substr(expStr.lastIndexOf("e")).length) : "")
+    }
+
+    public toString(max_rows: number = 10, precision: number = 3): string {
+        if (this.dim == 0) {
+            return "Tensor: []"
+        } else if (this.dim == 1) {
+            return (<Float64Array>this.t).reduce((acc, v) => {
+                acc += `    ${this.numberToString(v, precision, true)}\n`
+                return acc;
+            }, `Tensor: ${this.shape[0]} [\n`) + " ]"
+        } else if (this.dim == 2) {
+            return (<any[]>this.t).slice(0, Math.min(max_rows, this.t.length)).reduce((acc, i) => {
+                acc += i.slice(0, Math.min(max_rows, i.length)).reduce((s, i) => {
+                    s += " "//.repeat(Math.max(maxCharCount - i.toPrecision(precision).length, 1))
+                    s += this.numberToString(i, precision, true);
+                    return s;
+                }, "    ")
+                acc += i.length > max_rows ? "  ... +" + (i.length - max_rows) + " elements\n" : "\n"
+                return acc;
+            }, `Tensor: ${this.shape[0]}x${this.shape[1]} [\n`) + (this.t.length > max_rows ?
+                "    ... +" + (this.t.length - max_rows) + " rows \n]" : " ]")
+        } else if (this.dim == 3) {
             let maxCharCount = 0;
             this.iterate((i: number, j: number, k: number) => {
-                let val = this.get(i, j, k).toString()
+                let val = this.t[i][j][k].toString()
                 if (val.length > maxCharCount) maxCharCount = val.length
             })
             maxCharCount = Math.min(maxCharCount, 7)
-            let string = `Tensor: ${this.dim().r}x${this.dim().c}x${this.dim().d} [\n`
-            for (let d = 0; d < this.dim().d; d++) {
-                string += this.tensor.slice(0, Math.min(max_rows, this.tensor.length)).reduce((acc, i) => {
+            let string = `Tensor: ${this.shape[0]}x${this.shape[1]}x${this.shape[2]} [\n`
+            for (let d = 0; d < this.shape[2]; d++) {
+                string += (<any[]>this.t).slice(0, Math.min(max_rows, this.t.length)).reduce((acc, i) => {
                     acc += i.slice(0, Math.min(max_rows, i.length)).reduce((s, j) => {
-                        s += " ".repeat(Math.max(maxCharCount - j[d].toString().length, 0))
-                        s += j[d].toString().substr(0, maxCharCount) + " ";
+                        const v = this.numberToString(j[d], precision, true)
+                        s += " "//.repeat(Math.max(maxCharCount - j[d].toString().length, 0))
+                        s += v //j[d].toString().substr(0, maxCharCount) + " ";
                         return s;
                     }, "    ")
                     acc += i.length > max_rows ? " ... +" + (i.length - max_rows) + " elements\n" : "\n"
                     return acc;
-                }, "") + (this.tensor.length > max_rows ?
-                    "    ... +" + (this.tensor.length - max_rows) + " rows \n" : "\n")
+                }, "") + (this.t.length > max_rows ?
+                    "    ... +" + (this.t.length - max_rows) + " rows \n" : "\n")
             }
             return string + "]"
         }
     }
 
-    public copy(full: boolean = true) {
-        let t = new Tensor()
-        t.createEmptyArray(this.dim().r, this.dim().c, this.dim().d)
-        if (full) {
-            t.iterate((i: number, j: number, k: number) => {
-                t.set(i, j, k, this.get(i, j, k))
+    public print(max_rows: number = 10, precision: number = 3): void {
+        console.log(this.toString(max_rows, precision))
+    }
+
+    public copy(full: boolean = true): Tensor {
+        if (this.shape == [0]) {
+            return new Tensor()
+        } else {
+            let t = new Tensor(this.shape, true)
+            if (full) {
+                t.iterate((pos) => t.set(pos, this.get(pos)), true)
+            }
+            return t
+        }
+    }
+
+    public populateRandom(seed: number | null = null) {
+        /*if (seed) {
+            var x = Math.sin(seed++) * 10000;
+            return x - Math.floor(x);
+        }*/
+        this.iterate((pos) => {
+            this.set(pos, Math.random() * 2 - 1)
+        }, true)
+    }
+
+    public empty(): boolean {
+        return this.shape[0] == 0 || this.shape[1] == 0 || this.shape[2] == 0 || this.shape[3] == 0
+    }
+
+    public vectorize(channel_first = false): Tensor {
+        const t = new Tensor([this.count()], true)
+        let index = 0;
+        if (this.dim == 1) {
+            return this.copy(true)
+        } else {
+            this.iterate((pos) => {
+                t.t[index] = this.get(pos)
+                index += 1
+            }, true)
+        }
+
+        return t
+    }
+
+    public div(v: number | Tensor, safe:boolean = false): Tensor {
+        let t = this.copy(false);
+        if (v instanceof Tensor) {
+            if (!this.equalShape(v)) {
+                console.trace()
+                throw "Tensor Division: Not the same shape"
+            }
+            this.iterate((pos) => {
+                const n = safe? v.get(pos) + 10**-7 : v.get(pos)
+                t.set(pos, this.get(pos) / n)
+            }, true);
+        } else {
+            const n = safe? v + 10**-7 : v
+            this.iterate((pos) => {
+                t.set(pos, this.get(pos) / n)
+            }, true);
+        }
+        return t
+    }
+
+    public mul(v: number | Tensor): Tensor {
+        let t = this.copy(false);
+        if (v instanceof Tensor) {
+            if (!this.equalShape(v)) {
+                console.trace()
+                throw "Tensor Multiplication: Not the same shape"
+            }
+            this.iterate((pos) => {
+                t.set(pos, this.get(pos) * v.get(pos))
+            }, true);
+        } else {
+            this.iterate((pos) => {
+                t.set(pos, this.get(pos) * v)
+            }, true);
+        }
+        return t
+    }
+
+    public sub(v: number | Tensor): Tensor {
+        let t = this.copy(false);
+        if (v instanceof Tensor) {
+            if (!this.equalShape(v)) {
+                console.trace()
+                throw "Tensor Subtraction: Not the same shape"
+            }
+            this.iterate((pos) => {
+                t.set(pos, this.get(pos) - v.get(pos))
+            }, true);
+        } else {
+            this.iterate((pos) => {
+                t.set(pos, this.get(pos) - v)
+            }, true);
+        }
+        return t
+    }
+
+    public add(v: number | Tensor): Tensor {
+        let t = this.copy(false);
+        if (v instanceof Tensor) {
+            if (!this.equalShape(v)) {
+                console.trace()
+                throw "Tensor Addition: Not the same shape"
+            }
+            this.iterate((pos) => {
+                t.set(pos, this.get(pos) + v.get(pos))
+            }, true);
+        } else {
+            this.iterate((pos) => {
+                t.set(pos, this.get(pos) + v)
+            }, true);
+        }
+        return t
+    }
+
+    public pow(v: number): Tensor {
+        let t = this.copy(false);
+        this.iterate((pos) => {
+            t.set(pos, this.get(pos) ** v)
+        }, true);
+        return t
+    }
+
+    public sqrt(): Tensor {
+        let t = this.copy(false);
+        this.iterate((pos) => {
+            t.set(pos, Math.sqrt(this.get(pos)))
+        }, true);
+        return t
+    }
+
+    public exp(base: null | number = null): Tensor {
+        let t = this.copy(false);
+        this.iterate((pos) => {
+            t.set(pos, base ? base ** this.get(pos) : Math.exp(this.get(pos)))
+        }, true);
+        return t
+    }
+
+    public inv_el(eps = 10 ** -7): Tensor {
+        let t = this.copy(false);
+        this.iterate((pos) => {
+            t.set(pos, this.get(pos) == 0 ? 1 / (this.get(pos) + eps) : 1 / this.get(pos))
+        }, true);
+        return t
+    }
+
+    public inv(): Tensor {
+        if (this.shape[0] == 1 && this.shape[1] == 1) {
+            return new Tensor([[1 / this.t[0][0]]])
+        } else if (this.shape[0] == 2 && this.shape[1] == 2) {
+            return new Tensor([
+                [this.t[1][1], -this.t[0][1]],
+                [-this.t[1][0], this.t[0][0]]
+            ]).mul(1 / ((this.t[0][0] * this.t[1][1]) - (this.t[0][1] * this.t[1][0])))
+        }
+    }
+
+    public fill(scalar: number): Tensor {
+        let t = this.copy(false);
+        this.iterate((pos) => {
+            t.set(pos, scalar)
+        }, true);
+        return t
+    }
+
+    public log(): Tensor {
+        let t = this.copy(false);
+        this.iterate((pos) => {
+            t.set(pos, Math.log(this.get(pos)))
+        }, true);
+        return t
+    }
+
+    public dot(b: Tensor): Tensor {
+        if (this.dim == 2) {
+            if (b.dim == 1) {
+                if (b.shape[0] != this.shape[1]) {
+                    console.trace()
+                    throw "Matrix Multiplication (Vector): Wrong dimension..\n" +
+                    "This: [ " + this.shape[0] + " , " + this.shape[1] + " ] | Other: [ " + b.shape[0] + " ]"
+                }
+
+                const t = new Tensor([this.shape[1]], true)
+                for (let i = 0; i < this.shape[1]; i++) {
+                    t[i] = (<Float64Array[]>this.t)[i].reduce((acc: number, val: number, k: number) => acc + (val * t[k]), 0)
+                }
+                return t;
+            } else if (b.dim == 2) {
+                if (this.shape[1] != b.shape[0]) {
+                    console.trace()
+                    throw "Matrix Multiplication (Matrix): Wrong dimension..\n" +
+                    "This: [ " + this.shape[0] + " , " + this.shape[1] + " ] | Other: [ " + b.shape[0] + " , " + b.shape[1] + " ]"
+                }
+
+                const t = new Tensor([this.shape[0], b.shape[1]], true)
+
+                for (let i: number = 0; i < this.shape[0]; i++) {
+                    for (let j: number = 0; j < this.shape[1]; j++) {
+                        t.t[i][j] = (<Float64Array[]>this.t)[i].reduce((acc, val, k) =>
+                            acc + (val * b.t[k][j]), 0)
+                    }
+                }
+                return t
+            }
+        } else {
+            console.trace()
+            throw "Dot Multiplication: Shape must be of size 2 (Matrix)..\n"
+        }
+    }
+
+    public padding(padding_height: number, padding_width: number, axis: number[] = [0, 1]) {
+        if (axis == [0, 1]) {
+            const t = new Tensor([2 * padding_height + this.shape[0], 2 * padding_width + this.shape[1], this.shape[3]], true)
+
+            for (let i = 0; i < this.shape[0]; i++) {
+                for (let j = 0; j < this.shape[1]; j++) {
+                    for (let c = 0; c < this.shape[2]; c++) {
+                        t.set([i + padding_height, j + padding_width, c], this.get([i, j, c]))
+                    }
+                }
+            }
+            return t
+        }
+    }
+
+    public im2patches(patch_height: number, patch_width: number, filter_height: number, filter_width: number): Tensor {
+        const cols = []
+        for (let r = 0; r < patch_height; r++) {
+            for (let c = 0; c < patch_width; c++) {
+                const v = []
+                for (let c_f_c = 0; c_f_c < this.shape[2]; c_f_c++) {
+                    for (let c_f_h = 0; c_f_h < filter_height; c_f_h++) {
+                        for (let c_f_w = 0; c_f_w < filter_width; c_f_w++) {
+                            v.push(this.get([r + c_f_h, c + c_f_w, c_f_c]))
+                        }
+                    }
+                }
+                cols.push(v)
+            }
+        }
+
+        return new Tensor(cols)
+    }
+
+    public rotate180(): Tensor {
+        const t = this.copy(false)
+        if (this.dim == 4) {
+            this.iterate((n: number, i: number, j: number, k: number) => {
+                t.t[n][this.shape[1] - 1 - i][this.shape[2] - 1 - j][k] = this.get([n, i, j, k])
             })
         }
         return t
     }
 
-    public populateRandom() {
-        this.iterate((i: number, j: number, k: number) => {
-            this.set(i, j, k, Math.random() * 2 - 1)
-        })
-    }
-
-    public empty(): boolean {
-        return this.dim().c == 0 || this.dim().r == 0 || this.dim().d == 0
-    }
-
-    public vectorize(channel_first = false): Vector {
-        const v = new Vector(this.count())
-        let index = 0;
-        this.iterate((i: number, j: number, k: number) => {
-            v.set(index, this.get(i, j, k))
-            index += 1
-        }, channel_first)
-        return v
-    }
-
-    public div(val: number | Tensor): Tensor {
-        let t = this.copy(false);
-        if (val instanceof Tensor) {
-            if (t.dim().r != this.dim().r || t.dim().c != this.dim().c || t.dim().d != this.dim().d) {
-                console.trace()
-                throw "Tensor Division: Not the same dimension"
-            }
-            this.iterate((i: number, j: number, k: number) => {
-                t.set(i, j, k, this.get(i, j, k) / val.get(i, j, k))
-            });
-        } else {
-            this.iterate((i: number, j: number, k: number) => {
-                t.set(i, j, k, this.get(i, j, k) / val)
-            });
+    public rowVectors() {
+        if (this.dim == 2) {
+            return (<Float64Array[]>this.t).map((row) => new Tensor(row))
         }
-        return t
     }
 
-    public mul(val: number | Tensor): Tensor {
-        let t = this.copy(false);
-        if (val instanceof Tensor) {
-            if (t.dim().r != this.dim().r || t.dim().c != this.dim().c || t.dim().d != this.dim().d) {
-                console.trace()
-                throw "Tensor Multiplication: Not the same dimension"
-            }
-            this.iterate((i: number, j: number, k: number) => {
-                t.set(i, j, k, this.get(i, j, k) * val.get(i, j, k))
-            });
-        } else {
-            this.iterate((i: number, j: number, k: number) => {
-                t.set(i, j, k, this.get(i, j, k) * val)
-            });
-        }
-        return t
-    }
-
-    public sub(val: number | Tensor): Tensor {
-        let t = this.copy(false);
-        if (val instanceof Tensor) {
-            if (t.dim().r != this.dim().r || t.dim().c != this.dim().c || t.dim().d != this.dim().d) {
-                console.trace()
-                throw "Tensor Subtraction: Not the same dimension"
-            }
-            this.iterate((i: number, j: number, k: number) => {
-                t.set(i, j, k, this.get(i, j, k) - val.get(i, j, k))
-            });
-        } else {
-            this.iterate((i: number, j: number, k: number) => {
-                t.set(i, j, k, this.get(i, j, k) - val)
-            });
-        }
-        return t
-    }
-
-    public add(val: number | Tensor): Tensor {
-        let t = this.copy(false);
-        if (val instanceof Tensor) {
-            if (t.dim().r != this.dim().r || t.dim().c != this.dim().c || t.dim().d != this.dim().d) {
-                console.trace()
-                throw "Tensor Subtraction: Not the same dimension"
-            }
-            this.iterate((i: number, j: number, k: number) => {
-                t.set(i, j, k, this.get(i, j, k) + val.get(i, j, k))
-            });
-        } else {
-            this.iterate((i: number, j: number, k: number) => {
-                t.set(i, j, k, this.get(i, j, k) + val)
-            });
-        }
-        return t
-    }
-
-    padding(padding_height: number, padding_width: number) {
-        const t = new Tensor()
-        t.createEmptyArray(
-            2 * padding_height + this.dim().r, 2 * padding_width + this.dim().c, this.dim().d
-        )
-
-        for (let i = 0; i < this.dim().r; i++) {
-            for (let j = 0; j < this.dim().c; j++) {
-                for (let c = 0; c < this.dim().d; c++) {
-                    t.set(i + padding_height, j + padding_width, c, this.get(i,j,c))
+    public argmax(index = -1, axis: number = 0): number {
+        if (this.dim == 1) {
+            return (<Float64Array>this.t).reduce((acc: number, va: number, ind) =>
+                va > this.t[acc] ? ind : acc, 0)
+        } else if (this.dim == 2) {
+            if (axis == 0) {
+                if (index < 0) {
+                    return 0;
+                } else {
+                    return (<Float64Array[]>this.t)[index].reduce((acc: number, va: number, ind) =>
+                        va > this.t[index][acc] ? ind : acc, 0)
                 }
-            }
-        }
-        return t
-    }
-
-    im2patches(patch_height: number, patch_width: number, filter_height: number, filter_width: number): Matrix {
-        const cols = []
-        for (let r = 0; r < patch_height; r++) {
-            for (let c = 0; c < patch_width; c++) {
-                const v = []
-                for (let c_f_c = 0; c_f_c < this.dim().d; c_f_c++) {
-                    for (let c_f_h = 0; c_f_h < filter_height; c_f_h++) {
-                        for (let c_f_w = 0; c_f_w < filter_width; c_f_w++) {
-                            v.push(this.get(r + c_f_h, c + c_f_w, c_f_c))
+            } else {
+                if (index < 0) {
+                    return 0;
+                } else {
+                    let maxIndex = 0;
+                    for (let j = 0; j < this.shape[0]; j++) {
+                        if (Math.abs(this.t[j][index]) > Math.abs(this.t[maxIndex][index])) {
+                            maxIndex = j;
                         }
                     }
+                    return maxIndex;
                 }
-                cols.push(new Vector(v))
+            }
+        }
+    }
+
+    public reshape(shape: number[]): Tensor {
+        if (this.dim == 1) {
+            if (this.count() != shape.reduce((acc, n) => acc * n, 1)) {
+                throw "Product of shape must be the same as size of vector!"
+            }
+            const t = new Tensor(shape, true);
+            let [h, w, d] = shape
+
+            this.iterate((val: number, i: number) => {
+                const r = Math.floor(i / (w * d))
+                const c = Math.floor(i / (d) - (r * w))
+                const g = Math.floor(i - (c * d) - (r * w * d))
+                t.t[r][c][g] = val
+            })
+            return t
+        }
+    }
+
+    public sum(axis: number = -1, keepDims = false): number | Tensor {
+        if (this.dim == 1) {
+            return (<Float64Array>this.t).reduce((acc, val) => acc + val);
+        } else if (this.dim == 2) {
+            if (keepDims) {
+                let t = this.copy();
+                if (axis == 1) {
+                    t.t.forEach((arr, i) => {
+                        const sum = arr.reduce((acc, val) => acc + val, 0);
+                        arr.forEach((val, j) => t.t[i][j] = sum)
+                    });
+                } else if (axis == 0) {
+                    for (let j = 0; j < this.shape[1]; j++) {
+                        let sum = 0;
+                        for (let i = 0; i < this.shape[0]; i++) {
+                            sum += this.t[i][j]
+                        }
+                        for (let i = 0; i < this.shape[0]; i++) {
+                            t.t[i][j] = sum
+                        }
+                    }
+                } else if (axis == -1) {
+                    const sum = (<Float64Array[]>t.t).reduce((acc, val) => {
+                        acc += val.reduce((acc, val) => acc + val, 0)
+                        return acc;
+                    }, 0);
+                    this.iterate((i: number, j: number) => {
+                        t.t[i][j] = sum
+                    });
+                } else if (axis >= 2) {
+                    return this.copy()
+                }
+                return t
+            } else {
+                if (axis == -1) {
+                    return (<Float64Array[]>this.t).reduce((acc, val) => {
+                        acc += val.reduce((acc, val) => acc + val, 0)
+                        return acc;
+                    }, 0);
+                } else if (axis == 0) {
+                    let t = new Tensor([1, this.shape[1]], true)
+                    this.iterate((i: number, j: number) => {
+                        t.t[0][j] = this.get([i, j]) + t.get([0, j])
+                    })
+                    return t;
+                } else if (axis == 1) {
+                    let t = new Tensor([this.shape[0], 1], true)
+                    this.t.forEach((arr, i) => {
+                        t.t[i][0] = arr.reduce((acc, val) => acc + val, 0);
+                    });
+                    return t;
+                } else if (axis == 2) {
+                    return this.copy()
+                }
+                return 0
+            }
+        }
+    }
+
+    public mean(axis = -1, keep_dims = false): number | Tensor {
+        if (this.dim == 1) {
+            return <number>this.sum() / this.count();
+        } else if (this.dim == 2) {
+            if (axis == -1) {
+                return <number>this.sum(-1, false) / this.count()
+            } else if (axis == 0 || axis == 1) {
+                return (<Tensor>this.sum(axis, keep_dims)).div(axis == 0 ? this.shape[0] : this.shape[1])
+            }
+        }
+    }
+
+    public repeat(axis = 0, times = 1) {
+        if (this.dim == 2) {
+            if (axis == 0) {
+                const t = new Tensor([times, this.shape[1]], true)
+                //t.t.fill(this.t[0])
+                return t
             }
         }
 
-        return new Matrix(cols)
     }
 
-    rotate180() {
-        const t = this.copy(false)
-        this.iterate((i: number, j: number, k: number) => {
-            t.set(this.dim().r - 1 - i, this.dim().c - 1 - j , k, this.get(i,j,k))
-        })
-        return t
-    }
-
-    pow(number: number): Tensor {
-        let t = this.copy(false);
-        this.iterate((i: number, j: number, k: number) => {
-            t.set(i, j, k, this.get(i, j, k) ** number)
+    public transpose(): Tensor {
+        let t = new Tensor([this.shape[1], this.shape[0]], true)
+        this.iterate((i: number, j: number) => {
+            t.t[j][i] = this.t[i][j]
         });
-        return t
-    }
-
-    sqrt(): Tensor {
-        let t = this.copy(false);
-        this.iterate((i: number, j: number, k: number) => {
-            t.set(i, j, k, Math.sqrt(this.get(i, j, k)))
-        });
-        return t
+        return t;
     }
 }
