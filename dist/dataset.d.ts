@@ -1,9 +1,7 @@
-import Vector from "./vector";
 import Tensor from "./tensor";
-import Matrix from "./matrix";
 export interface Example {
-    data: Vector | Matrix | Tensor;
-    label: Vector;
+    data: Tensor;
+    label: Tensor;
 }
 export default class Dataset {
     private data;
@@ -11,13 +9,12 @@ export default class Dataset {
     BATCH_SIZE: number;
     IS_GENERATOR: boolean;
     TOTAL_EXAMPLES: number;
-    DATA_STRUCTURE: any;
+    DATA_SHAPE: number[];
     GENERATOR: Function;
     size(): number;
     setGenerator(gen: Function): void;
     addExample(ex: Example): void;
     static read_image(path: string, channels?: number): Promise<Tensor>;
-    vectorize_image(image: Tensor): Vector;
     loadMnistTrain(folderPath: string, maxExamples?: number, vectorize?: boolean): void;
     loadMnistTest(folderPath: string, maxExamples?: number, vectorize?: boolean): void;
     shuffle(): void;

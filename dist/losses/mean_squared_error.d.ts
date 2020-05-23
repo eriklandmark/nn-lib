@@ -1,10 +1,10 @@
 import ILoss from "./losses";
-import Matrix from "../matrix";
 import { KernelFunction } from "gpu.js";
+import Tensor from "../tensor";
 export default class MeanSquaredError implements ILoss {
     name: string;
-    normal(input: Matrix, labels: Matrix): Matrix;
-    derivative(input: Matrix, labels: Matrix): Matrix;
+    normal(input: Tensor, labels: Tensor): Tensor;
+    derivative(input: Tensor, labels: Tensor): Tensor;
     normal_gpu(): KernelFunction;
     derivative_gpu(): KernelFunction;
 }

@@ -1,19 +1,20 @@
 import Layer from "./layer";
-import Matrix from "../matrix";
 import { IActivation } from "../activations/activations";
+import Tensor from "../tensor";
+import { SavedLayer } from "../model";
 export default class DenseLayer extends Layer {
     layerSize: number;
     ff_kernel: any;
     act_kernel: any;
     bp_error_kernel: any;
     bp_error_weight_kernel: any;
-    weights: Matrix;
-    errorWeights: Matrix;
-    bias: Matrix;
+    weights: Tensor;
+    errorWeights: Tensor;
+    bias: Tensor;
     constructor(layerSize?: number, activation?: IActivation);
     buildLayer(prevLayerShape: number[]): void;
-    buildFFKernels(batch_size: number): void;
-    buildBPKernels(length: number): void;
-    feedForward(input: Layer | Matrix, isInTraining: boolean): any;
-    backPropagation(prev_layer: Layer, next_layer: Layer | Matrix): void;
+    feedForward(input: Layer | Tensor, isInTraining: boolean): void;
+    backPropagation(prev_layer: Layer, next_layer: Layer | Tensor): void;
+    toSavedModel(): SavedLayer;
+    fromSavedModel(data: SavedLayer): void;
 }

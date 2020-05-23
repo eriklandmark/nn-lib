@@ -3,12 +3,12 @@ import Tensor from "../tensor";
 import { IActivation } from "../activations/activations";
 import { SavedLayer } from "../model";
 export default class ConvolutionLayer extends Layer {
-    weights: Tensor[];
+    weights: Tensor;
     filterSize: number[];
     padding: number;
     stride: number;
     nr_filters: number;
-    errorWeights: Tensor[];
+    errorWeights: Tensor;
     channel_first: boolean;
     ff_kernel: any;
     act_kernel: any;
@@ -18,10 +18,9 @@ export default class ConvolutionLayer extends Layer {
     use_bias: boolean;
     constructor(nr_filters: number, filterSize: number[], ch_first: boolean, activation: IActivation, use_bias?: boolean);
     buildLayer(prevLayerShape: number[]): void;
-    feedForward(input: Layer | Tensor[], isInTraining: boolean): void;
-    backPropagation(prev_layer: Layer, next_layer: Layer | Tensor[]): void;
-    convolve(image: Tensor, filters: Tensor[], channel_first?: boolean): Tensor | Tensor[];
-    toSavedModel(): SavedLayer;
+    feedForward(input: Layer | Tensor, isInTraining: boolean): void;
+    backPropagation(prev_layer: Layer, next_layer: Layer | Tensor): void;
     updateLayer(): void;
+    toSavedModel(): SavedLayer;
     fromSavedModel(data: SavedLayer): void;
 }

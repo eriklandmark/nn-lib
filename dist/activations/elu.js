@@ -3,18 +3,18 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-const matrix_1 = __importDefault(require("../matrix"));
+const tensor_1 = __importDefault(require("../tensor"));
 class Elu {
     constructor() {
         this.name = "elu";
         this.a = 1;
     }
     normal(input) {
-        if (input instanceof matrix_1.default) {
+        if (input instanceof tensor_1.default) {
             const m = input.copy(false);
-            m.iterate((i, j) => {
-                m.set(i, j, input.get(i, j) > 0 ? input.get(i, j) : this.a * (Math.exp(input.get(i, j)) - 1));
-            });
+            m.iterate((pos) => {
+                m.set(pos, input.get(pos) > 0 ? input.get(pos) : this.a * (Math.exp(input.get(pos)) - 1));
+            }, true);
             return m;
         }
         else {
@@ -22,11 +22,11 @@ class Elu {
         }
     }
     derivative(input) {
-        if (input instanceof matrix_1.default) {
+        if (input instanceof tensor_1.default) {
             const m = input.copy(false);
-            m.iterate((i, j) => {
-                m.set(i, j, input.get(i, j) > 0 ? 1 : input.get(i, j) + this.a);
-            });
+            m.iterate((pos) => {
+                m.set(pos, input.get(pos) > 0 ? 1 : input.get(pos) + this.a);
+            }, true);
             return m;
         }
         else {

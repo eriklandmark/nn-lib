@@ -23,5 +23,16 @@ class Helper {
             }
         }));
     }
+    static timeitSync(func, floorIt = true) {
+        const startTime = Date.now();
+        func();
+        const duration = (Date.now() - startTime) / 1000.0;
+        if (floorIt) {
+            return Math.floor(duration);
+        }
+        else {
+            return duration;
+        }
+    }
 }
 exports.default = Helper;

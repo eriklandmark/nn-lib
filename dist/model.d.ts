@@ -1,13 +1,11 @@
 import Dataset, { Example } from "./dataset";
 import Layer from "./layers/layer";
-import Matrix from "./matrix";
-import Vector from "./vector";
 import { GPU } from 'gpu.js';
 import Tensor from "./tensor";
 import StochasticGradientDescent from "./optimizers/StochasticGradientDescent";
 export interface SavedLayer {
-    weights: Float32Array[] | Float32Array[][][];
-    bias: Float32Array | Float32Array[];
+    weights: any;
+    bias: any;
     shape: number[];
     activation: string;
     prevLayerShape: number[];
@@ -20,16 +18,20 @@ export interface SavedLayer {
         poolingFunc?: string;
         loss?: string;
         rate?: number;
+        layerSize?: number;
         [propName: string]: any;
     };
+    type?: string;
 }
-interface ModelSettings {
+export interface ModelSettings {
     USE_GPU: boolean;
     BACKLOG: boolean;
     SAVE_CHECKPOINTS: boolean;
     MODEL_SAVE_PATH: string;
     VERBOSE_COMPACT: boolean;
     EVAL_PER_EPOCH: boolean;
+    WORKER_MODE?: boolean;
+    WORKER_CALLBACK?: Function;
 }
 export interface BacklogData {
     actual_duration: number;
@@ -71,12 +73,11 @@ export default class Model {
     isGpuAvailable(): boolean;
     build(inputShape: number[], learning_rate: number, lossFunction: any, optimizer?: typeof StochasticGradientDescent, verbose?: boolean): void;
     summary(): void;
-    train_on_batch(examples: Matrix | Tensor[], labels: Matrix): any;
+    train_on_batch(examples: Tensor, labels: Tensor): any;
     train(data: Example[] | Dataset, epochs: number, eval_ds?: Dataset | null, shuffle?: boolean): Promise<void>;
     saveBacklog(): void;
     eval(example: Example): any;
-    predict(data: Vector | Matrix | Tensor): Matrix;
+    predict(data: Tensor): Tensor;
     save(model_path?: string): void;
     load(path: string, verbose?: boolean): void;
 }
-export {};

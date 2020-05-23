@@ -21,27 +21,29 @@ class OutputLayer extends dense_layer_1.default {
         this.gradientFunction = gradients_1.default.get_gradient(this.activationFunction, this.lossFunction);
     }
     backPropagationOutputLayer(labels, next_layer) {
-        this.loss = labels.mul(-1).mul(this.activation.add(Math.pow(10, -8)).log()).sum() / labels.dim().r;
+        this.loss = labels.mul(-1).mul(this.activation.add(Math.pow(10, -8)).log()).sum() / labels.shape[0];
         const gradient = this.gradientFunction(this.activation, labels);
         let total_acc = 0;
-        for (let i = 0; i < labels.dim().r; i++) {
+        for (let i = 0; i < labels.shape[0]; i++) {
             total_acc += this.activation.argmax(i) == labels.argmax(i) ? 1 : 0;
         }
-        this.accuracy = total_acc / labels.dim().r;
-        this.errorBias = gradient.sum(0, false);
+        this.accuracy = total_acc / labels.shape[0];
+        this.errorBias = gradient.sum(0);
         this.output_error = gradient;
-        this.errorWeights = next_layer.activation.transpose().mm(gradient);
+        this.errorWeights = next_layer.activation.transpose().dot(gradient);
     }
     toSavedModel() {
         const data = super.toSavedModel();
         data.layer_specific = {
-            loss: this.lossFunction.name
+            layerSize: this.layerSize,
+            loss: this.lossFunction ? this.lossFunction.name : "cross_entropy"
         };
         return data;
     }
     fromSavedModel(data) {
         super.fromSavedModel(data);
-        this.lossFunction = losses_1.default.fromName(data.layer_specific.loss);
+        this.layerSize = data.layer_specific.layerSize;
+        this.lossFunction = new (losses_1.default.fromName(data.layer_specific.loss))();
     }
 }
 exports.default = OutputLayer;

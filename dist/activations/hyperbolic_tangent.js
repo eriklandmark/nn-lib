@@ -3,7 +3,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-const matrix_1 = __importDefault(require("../matrix"));
+const tensor_1 = __importDefault(require("../tensor"));
 class HyperbolicTangent {
     constructor() {
         this.name = "tanh";
@@ -19,11 +19,11 @@ class HyperbolicTangent {
         };
     }
     normal(input) {
-        if (input instanceof matrix_1.default) {
+        if (input instanceof tensor_1.default) {
             const m = input.copy(false);
-            m.iterate((i, j) => {
-                m.set(i, j, Math.tanh(input.get(i, j)));
-            });
+            m.iterate((pos) => {
+                m.set(pos, Math.tanh(input.get(pos)));
+            }, true);
             return m;
         }
         else {
@@ -31,11 +31,11 @@ class HyperbolicTangent {
         }
     }
     derivative(input) {
-        if (input instanceof matrix_1.default) {
+        if (input instanceof tensor_1.default) {
             const m = input.copy(false);
-            m.iterate((i, j) => {
-                m.set(i, j, 1 - Math.pow(input.get(i, j), 2));
-            });
+            m.iterate((pos) => {
+                m.set(pos, 1 - Math.pow(input.get(pos), 2));
+            }, true);
             return m;
         }
         else {

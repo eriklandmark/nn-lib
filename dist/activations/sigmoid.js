@@ -3,7 +3,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-const matrix_1 = __importDefault(require("../matrix"));
+const tensor_1 = __importDefault(require("../tensor"));
 class Sigmoid {
     constructor() {
         this.name = "sigmoid";
@@ -19,11 +19,11 @@ class Sigmoid {
         };
     }
     normal(input) {
-        if (input instanceof matrix_1.default) {
+        if (input instanceof tensor_1.default) {
             const m = input.copy(false);
-            m.iterate((i, j) => {
-                m.set(i, j, 1 / (1 + Math.exp(-input.get(i, j))));
-            });
+            m.iterate((pos) => {
+                m.set(pos, 1 / (1 + Math.exp(-input.get(pos))));
+            }, true);
             return m;
         }
         else {
@@ -31,11 +31,11 @@ class Sigmoid {
         }
     }
     derivative(input) {
-        if (input instanceof matrix_1.default) {
+        if (input instanceof tensor_1.default) {
             const m = input.copy(false);
-            m.iterate((i, j) => {
-                m.set(i, j, input.get(i, j) * (1 - input.get(i, j)));
-            });
+            m.iterate((pos) => {
+                m.set(pos, input.get(pos) * (1 - input.get(pos)));
+            }, true);
             return m;
         }
         else {

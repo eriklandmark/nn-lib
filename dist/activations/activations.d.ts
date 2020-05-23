@@ -1,9 +1,9 @@
-import Matrix from "../matrix";
 import { GPUFunction, KernelFunction, ThreadKernelVariable } from "gpu.js";
+import Tensor from "../tensor";
 export interface IActivation {
     name: string;
-    normal(input: Matrix | number): Matrix | number;
-    derivative(input: Matrix | number): Matrix | number;
+    normal(input: Tensor | number): Tensor | number;
+    derivative(input: Tensor | number): Tensor | number;
     normal_gpu(): KernelFunction;
     derivative_gpu(): GPUFunction<ThreadKernelVariable[]>;
 }

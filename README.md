@@ -1,6 +1,6 @@
 # nn-lib
 
-##### A minimal and vary lightweight neural network library. 
+##### A minimal and very lightweight neural network library. 
 
 For no only support dense (fully connected) layers but will add convolution layer. Are also working/planing on to add
 GPU support for training and inference, but this will take a while. Because it is written in typescript it only 

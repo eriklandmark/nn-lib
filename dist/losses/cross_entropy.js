@@ -7,11 +7,11 @@ class CrossEntropy {
     }
     normal(input, labels) {
         let out = input.copy(false);
-        out.iterate((i, j) => {
-            if (labels.get(i, j) != 0) {
-                out.set(i, j, (labels.get(i, j) * Math.log(input.get(i, j) + this.epsilon)));
+        out.iterate((pos) => {
+            if (labels.get(pos) != 0) {
+                out.set(pos, (labels.get(pos) * Math.log(input.get(pos) + this.epsilon)));
             }
-        });
+        }, true);
         return out.sum(1, true).mul(-1);
     }
     derivative(input, labels) {

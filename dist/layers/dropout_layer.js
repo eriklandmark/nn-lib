@@ -17,11 +17,11 @@ class DropoutLayer extends layer_1.default {
     feedForward(input, isInTraining) {
         this.activation = input.activation;
         if (isInTraining) {
-            this.activation.iterate((i, j) => {
+            this.activation.iterate((pos) => {
                 if (Math.random() < this.rate) {
-                    this.activation.set(i, j, 0);
+                    this.activation.set(pos, 0);
                 }
-            });
+            }, true);
         }
     }
     backPropagation(prev_layer, next_layer) {

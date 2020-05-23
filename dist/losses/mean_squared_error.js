@@ -5,12 +5,12 @@ class MeanSquaredError {
         this.name = "mean_squared_error";
     }
     normal(input, labels) {
-        if (input.dim().r != labels.dim().r || input.dim().c != labels.dim().c)
+        if (!input.equalShape(labels))
             throw "Labels and output vector doesn't match size..";
         return input.sub(labels).pow(2);
     }
     derivative(input, labels) {
-        if (input.dim().r != labels.dim().r || input.dim().c != labels.dim().c)
+        if (!input.equalShape(labels))
             throw "Labels and output vector doesn't match size..";
         return input.sub(labels);
     }
