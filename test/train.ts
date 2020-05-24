@@ -32,10 +32,12 @@ eval_dataset.VERBOSE = false
 
 const model = new Model([
     new ConvolutionLayer(8, [5,5], false, new ReLu()),
+    new ConvolutionLayer(12, [5,5], false, new ReLu()),
     new PoolingLayer([2,2], [2,2]),
     new ConvolutionLayer(16, [5,5], false, new ReLu()),
+    new ConvolutionLayer(24, [5,5], false, new ReLu()),
     new FlattenLayer(),
-    new DenseLayer(700, new Sigmoid()),
+    new DenseLayer(64, new Sigmoid()),
     new OutputLayer(10, new Softmax())
 ])
 
@@ -57,4 +59,4 @@ async function run() {
     console.log(ex.label.toString())
 }
 
-run()
+//run()

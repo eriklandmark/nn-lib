@@ -34,12 +34,18 @@ class Model {
         this.backlog = {
             actual_duration: 0,
             calculated_duration: 0,
-            total_neurons: 0,
             train_start_time: 0,
-            batches_per_epoch: 0,
-            total_epochs: 0,
-            model_structure: [],
-            eval_model: false,
+            info: {
+                input_shape: [0],
+                learning_rate: 0,
+                loss: "",
+                optimizer: "",
+                model_structure: [],
+                total_epochs: 0,
+                eval_model: false,
+                total_neurons: 0,
+                batches_per_epoch: 0,
+            },
             epochs: {}
         };
         this.settings = {
@@ -51,11 +57,6 @@ class Model {
             EVAL_PER_EPOCH: false,
             WORKER_MODE: false,
             WORKER_CALLBACK: () => { }
-        };
-        this.model_data = {
-            input_shape: [0],
-            learning_rate: 0,
-            last_epoch: 0
         };
         this.layers = layers;
         this.gpuInstance = new gpu_js_1.GPU();
@@ -84,8 +85,8 @@ class Model {
                 fs.mkdirSync(this.settings.MODEL_SAVE_PATH);
             }
         }
-        this.model_data.learning_rate = learning_rate;
-        this.model_data.input_shape = inputShape;
+        this.backlog.info.learning_rate = learning_rate;
+        this.backlog.info.input_shape = inputShape;
         this.layers[0].isFirstLayer = true;
         for (let i = 0; i < this.layers.length; i++) {
             this.layers[i].gpuInstance = this.gpuInstance;
@@ -100,17 +101,17 @@ class Model {
         if (verbose) {
             console.log("Successfully build model!");
         }
-        this.backlog.model_structure = this.layers.map((layer) => layer.getLayerInfo());
-        this.backlog.total_neurons = this.backlog.model_structure.map((info) => info.shape).reduce((acc, val) => {
+        this.backlog.info.model_structure = this.layers.map((layer) => layer.getLayerInfo());
+        this.backlog.info.total_neurons = this.backlog.info.model_structure.map((info) => info.shape).reduce((acc, val) => {
             return acc + val.reduce((a, s) => a * s, 1);
         }, 0);
         this.isBuilt = true;
     }
     summary() {
         if (this.isBuilt) {
-            let input = { type: "input", shape: this.model_data.input_shape, activation: "NONE" };
-            console.table([input, ...this.backlog.model_structure]);
-            console.log("Total: neurons: ", this.backlog.total_neurons);
+            let input = { type: "input", shape: this.backlog.info.input_shape, activation: "NONE" };
+            console.table([input, ...this.backlog.info.model_structure]);
+            console.log("Total: neurons: ", this.backlog.info.total_neurons);
         }
         else {
             console.log("Model hasn't been built yet!..");
@@ -176,18 +177,18 @@ class Model {
                 throw "Model hasn't been build yet!..";
             }
             this.backlog.train_start_time = Date.now();
-            this.backlog.total_epochs += epochs;
+            this.backlog.info.total_epochs += epochs;
             if (data instanceof dataset_1.default) {
                 if (!this.settings.WORKER_MODE) {
                     console.log("Starting training...");
                 }
                 const startTime = Date.now();
                 const batch_count = Math.floor(data.TOTAL_EXAMPLES / data.BATCH_SIZE);
-                this.backlog.batches_per_epoch = batch_count;
+                this.backlog.info.batches_per_epoch = batch_count;
                 if (data.IS_GENERATOR && !this.settings.WORKER_MODE) {
                     console.log("Total " + batch_count + " batches for " + epochs + " epochs.");
                 }
-                this.backlog.eval_model = this.settings.EVAL_PER_EPOCH;
+                this.backlog.info.eval_model = this.settings.EVAL_PER_EPOCH;
                 this.saveBacklog();
                 for (let epoch = 1; epoch <= epochs; epoch++) {
                     if (!this.settings.WORKER_MODE) {
@@ -301,7 +302,6 @@ class Model {
                         console.log("Loss: TOT", epoch_data.total_loss.toPrecision(5), "AVG", (epoch_data.total_loss / batch_count).toPrecision(5), "| Accuracy:", (epoch_data.total_accuracy / batch_count).toPrecision(3), "| Total time:", epoch_data.actual_duration.toPrecision(5), "/", epoch_data.calculated_duration.toPrecision(4));
                     }
                     this.saveBacklog();
-                    this.model_data.last_epoch = epoch;
                     if (this.settings.SAVE_CHECKPOINTS) {
                         this.save("model_checkpoint_" + epoch + ".json");
                     }
@@ -367,7 +367,7 @@ class Model {
     }
     save(model_path = "model.json") {
         const modelObj = {
-            model_data: this.model_data,
+            model_data: this.backlog.info,
             settings: this.settings,
             layers: {}
         };
@@ -385,7 +385,7 @@ class Model {
             throw "Model file not found!!";
         }
         const modelObj = JSON.parse(fs.readFileSync(path, { encoding: "UTF-8" }));
-        this.model_data = modelObj.model_data;
+        this.backlog.info = modelObj.model_data;
         this.settings = modelObj.settings;
         const layer_keys = Object.keys(modelObj.layers).sort();
         this.layers = [];
@@ -398,12 +398,12 @@ class Model {
             layer.fromSavedModel(modelObj.layers[layer_key].info);
             layer.gpuInstance = this.gpuInstance;
             layer.useGpu = this.settings.USE_GPU;
-            layer.learning_rate = this.model_data.learning_rate;
+            layer.learning_rate = this.backlog.info.learning_rate;
             this.layers.push(layer);
         }
         this.layers[0].isFirstLayer = true;
-        this.backlog.model_structure = this.layers.map((layer) => layer.getLayerInfo());
-        this.backlog.total_neurons = this.backlog.model_structure.map((info) => info.shape).reduce((acc, val) => {
+        this.backlog.info.model_structure = this.layers.map((layer) => layer.getLayerInfo());
+        this.backlog.info.total_neurons = this.backlog.info.model_structure.map((info) => info.shape).reduce((acc, val) => {
             return acc + val.reduce((a, s) => a * s, 1);
         }, 0);
         this.isBuilt = true;

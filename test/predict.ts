@@ -5,7 +5,7 @@ import cliProgress from "cli-progress";
 
 const model = new Model([])
 
-model.load("./models/model_test3_0/model.json")
+model.load("../nn-lib-test/models/model_test2_2/model.json")
 model.summary()
 
 const dataset = new Dataset();

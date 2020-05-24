@@ -36,12 +36,18 @@ export interface ModelSettings {
 export interface BacklogData {
     actual_duration: number;
     calculated_duration: number;
-    model_structure: any;
-    total_neurons: number;
     train_start_time: number;
-    batches_per_epoch: number;
-    total_epochs: number;
-    eval_model: boolean;
+    info: {
+        input_shape: number[];
+        learning_rate: number;
+        optimizer: string;
+        loss: string;
+        model_structure: any;
+        total_neurons: number;
+        batches_per_epoch: number;
+        total_epochs: number;
+        eval_model: boolean;
+    };
     epochs: {
         [propName: string]: {
             total_loss: number;
@@ -64,11 +70,6 @@ export default class Model {
     private isBuilt;
     backlog: BacklogData;
     settings: ModelSettings;
-    model_data: {
-        input_shape: number[];
-        learning_rate: number;
-        last_epoch: number;
-    };
     constructor(layers: Layer[]);
     isGpuAvailable(): boolean;
     build(inputShape: number[], learning_rate: number, lossFunction: any, optimizer?: typeof StochasticGradientDescent, verbose?: boolean): void;
