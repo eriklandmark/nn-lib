@@ -25,7 +25,7 @@ Simple example on how to create a dataset from MNIST, create a model, train and 
 let dataset = new Dataset();
 
 dataset.BATCH_SIZE = 1000
-dataset.loadMnistTrain(path-to-dir-with-mnist-files)
+dataset.loadMnistTrain(path-to-dir-with-mnist-files, 1000, true)
 
 let layers = [
     new DenseLayer(32, new Sigmoid()),
@@ -57,8 +57,8 @@ run()
 * Maybe create documentation if needed.
 
 #### Benchmark Scores:
- - **183491** = AMD Ryzen Threadripper 1920X
- - **117010** = Intel Core i5-6300U
- - **94554** = AMD FX-8350
- - **37705** = Raspberry Pi 4B (4G) - Non overclocked
- - **11795** = Raspberry Pi 3B - Non overclocked
+ - **208910** = AMD Ryzen Threadripper 1920X
+ - **134751** = Intel Core i5-6300U
+ - **108919** = AMD FX-8350
+ - **42005** = Raspberry Pi 4B (4G) - Non overclocked
+ - **13273** = Raspberry Pi 3B - Non overclocked
