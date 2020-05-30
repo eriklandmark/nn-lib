@@ -15,8 +15,8 @@ const bar = new ProgressBar(
 
 bar.start()
 
-const size = 10000;
-const dot_size = 500;
+const size = 4000;
+const dot_size = 400;
 const a = new Tensor([size, size], true)
 const b = new Tensor([size, size], true)
 const c = new Tensor([dot_size, dot_size], true)
