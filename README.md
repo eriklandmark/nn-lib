@@ -1,9 +1,15 @@
 # nn-lib
 
 ##### A minimal and very lightweight neural network library. 
+###### Layers:
+* Dense (Fully-connected)
+* Convolutional
+* Dropout
+* Flatten
+* Pooling
+* Output
 
-For no only support dense (fully connected) layers but will add convolution layer. Are also working/planing on to add
-GPU support for training and inference, but this will take a while. Because it is written in typescript it only 
+Working/planing on to add GPU support for training and inference, but this will take a while. Because it is written in typescript/javascript it only 
 runs on a single thread. Which is nice when you want to run on a less powerful setup (like raspberry pi). 
 
 ### To install:
@@ -50,7 +56,6 @@ run()
 
 ### TODO:
 * Add proper GPU support.
-* Add convolutional layers.
 * Try to make matrix multiplication multithreaded via c++ binding.
 * Add callbacks to training.
 * Make promised-based version of the main functions.
