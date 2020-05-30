@@ -120,7 +120,7 @@ export default class Tensor {
             }
         }
 
-        if (arr instanceof Float64Array) {
+        if (arr instanceof Float64Array || typeof arr[0] == "number") {
             this.shape = [arr.length]
         } else {
             shape.push(arr.length)

@@ -38,32 +38,32 @@ export default class Tokenizer {
         fs.writeFileSync(path, JSON.stringify(this.vocab))
     }
 
-    tokenize(sentence: string, normalize: boolean = false) {
-        return ArrayHelper.flatten(sentence.split(" ").map((word: string) => {
+    tokenize(sentence: string): Tensor {
+        return new Tensor(ArrayHelper.flatten(sentence.split(" ").map((word: string) => {
             const suffix = suffixes.filter((suff) => word.endsWith(suff.replace("-", "")))
             if (suffix.length > 0) {
                 return [word.substr(0, word.lastIndexOf(suffix[0].replace("-", ""))), suffix]
             } else {
                 return word
             }
-        })).map((token: string) => normalize? this.vocab[token] / this.vocab_size:this.vocab[token])
+        })).map((token: string) => Tensor.toCategorical(this.vocab[token], this.vocab_size).t))
     }
 
-    createDataset(path: string, columns: number[]): Dataset {
+    createDataset(path: string, columns: number[], nr_labels): Dataset {
         const trainData = CsvParser.parse("./dataset/nlp/train.tsv", true)
         const dataset = new Dataset()
 
         const data: Example[] = CsvParser.filterColumns(trainData, columns).map((ex)  => {
-            const label = Tensor.toCategorical(<number> ex[0], 3)
-            const data = new Tensor(this.tokenize(<string> ex[1], true))
+            const label = Tensor.toCategorical(<number> ex[0], nr_labels)
+            const data = this.tokenize(<string> ex[1])
             return {label: label, data: data}
         })
 
-        const maxVectorSize = data.reduce((acc, e) =>
-            e.data.count() > acc? e.data.count(): acc, 0)
+        const maxWordSize = data.reduce((acc, e) =>
+            e.data.shape[0] > acc? e.data.shape[0]: acc, 0)
 
         data.forEach((ex: Example) => {
-            const em = new Tensor([maxVectorSize], true)
+            const em = new Tensor([maxWordSize, this.vocab_size], true)
             ex.data.iterate((pos) => {
                 em.set(pos, ex.data.get(pos))
             }, true)

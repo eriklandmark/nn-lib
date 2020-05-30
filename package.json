@@ -1,17 +1,18 @@
 {
   "name": "nn-lib",
-  "version": "1.4.3",
+  "version": "1.4.4",
   "description": "A minimal and very lightweight deep neural network library.",
   "main": "dist/main.js",
   "scripts": {
-    "system-check": "ts-node-dev tools/system_check.ts",
+    "system-check": "node tools/system_check.js",
     "test": "ts-node-dev test/test.ts",
     "train": "ts-node-dev test/train.ts",
     "train-pool": "ts-node-dev test/train_pool.ts",
     "predict": "ts-node-dev test/predict.ts",
     "build": "tsc -p tsconfig.json",
     "build-native": "node-gyp rebuild",
-    "visualize": "ts-node-dev tools/visualize.ts"
+    "visualize": "ts-node-dev tools/visualize.ts",
+    "benchmark": "node tools/benchmark.js"
   },
   "files": [
     "dist",
@@ -26,17 +27,17 @@
   ],
   "author": "Erik Landmark",
   "license": "ISC",
-  "private": true,
+  "private": false,
   "gypfile": true,
   "dependencies": {
-    "@types/node": "13.11.1",
     "cli-progress": "^3.8.0",
     "gpu.js": "^2.6.9",
     "jimp": "^0.9.3",
-    "node-addon-api": "^2.0.0",
-    "typescript": "^3.8.3"
+    "node-addon-api": "^2.0.0"
   },
   "devDependencies": {
+    "@types/node": "13.11.1",
+    "typescript": "^3.8.3",
     "nn-lib-visualizer": "github:eriklandmark/nn-lib-visualizer",
     "ts-node-dev": "^1.0.0-pre.44"
   }

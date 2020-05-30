@@ -93,7 +93,8 @@ class Model {
             this.layers[i].useGpu = this.settings.USE_GPU;
             this.layers[i].learning_rate = learning_rate;
             if (i == this.layers.length - 1) {
-                this.layers[i].lossFunction = new lossFunction();
+                const lossFunc = new lossFunction()(this.layers[i]).lossFunction = lossFunction;
+                this.backlog.info.loss = lossFunc.name;
             }
             this.layers[i].buildLayer(i == 0 ? inputShape : this.layers[i - 1].shape);
             this.layers[i].optimizer = new optimizer(this.layers[i]);
@@ -105,6 +106,7 @@ class Model {
         this.backlog.info.total_neurons = this.backlog.info.model_structure.map((info) => info.shape).reduce((acc, val) => {
             return acc + val.reduce((a, s) => a * s, 1);
         }, 0);
+        this.backlog.info.optimizer = this.layers[0].optimizer.name;
         this.isBuilt = true;
     }
     summary() {

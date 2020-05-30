@@ -10,7 +10,7 @@ runs on a single thread. Which is nice when you want to run on a less powerful s
 ##### Before install:
 If on linux, run:
 ````
-sudo apt install mesa-common-dev libxi-dev
+sudo apt install pkg-config mesa-common-dev libxi-dev
 ````
 Else, make sure to have windows-builder-tool, Visual Studio or Xcode installed depending on your operating system.
 ##### Then:
@@ -38,10 +38,10 @@ let layers = [
 
 let model = new Model(layers)
 
-model.build([28*28], new MeanSquaredError())
+model.build([28*28], MeanSquaredError, StochasticGradientDescent)
 
 async function run() {
-    await model.train(dataset, 30, 0.0005)
+    await model.train(dataset, 30, 0.0005, true)
     model.save("./nn.json")
     console.log("Done")
 }
