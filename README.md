@@ -55,3 +55,10 @@ run()
 * Add callbacks to training.
 * Make promised-based version of the main functions.
 * Maybe create documentation if needed.
+
+#### Benchmark Scores:
+ - **183491** = AMD Ryzen Threadripper 1920X
+ - **117010** = Intel Core i5-6300U
+ - **94554** = AMD FX-8350
+ - **37705** = Raspberry Pi 4B (4G) - Non overclocked
+ - **11795** = Raspberry Pi 3B - Non overclocked

@@ -4,11 +4,10 @@ const Helper = require("../dist/lib/helper").default;
 
 console.log("Starting benchmarking...")
 
-const total_tests = 6
 
 const bar = new ProgressBar(
     'Benchmarking: [' + '{bar}' + '] - {action}',
-    total_tests,
+    7,
     {
         action: "--",
     }, 30)
@@ -30,7 +29,7 @@ let dot_score = 0
 
 Helper.timeit(() => {
     bar.increment({action: "populate"})
-    populate_score = (size**2 + dot_size**2) / (Helper.timeitSync(() => {
+    populate_score = (2*(size**2) + 2*(dot_size**2)) / (Helper.timeitSync(() => {
         a.populateRandom()
         b.populateRandom()
         c.populateRandom()
@@ -46,12 +45,13 @@ Helper.timeit(() => {
     exp_score = (size**2) / (Helper.timeitSync(() => {a.exp()}, false) * 1000)
     bar.increment({action: "dot"})
     dot_score = dot_size**3 / (Helper.timeitSync(() => {c.dot(d)}, false) * 1000)
-    bar.stop()
+
 }, false).then((seconds) => {
+    bar.increment({action: "done"})
+    bar.stop()
     const normal_score = add_score + sub_score + div_score + exp_score
     const total_score = Math.floor(populate_score + normal_score + dot_score)
-
-    console.log("Populate score: ", populate_score, "Algebraic score:", normal_score, "Dot score:", dot_score)
+    // console.log("Populate score: ", populate_score, "Algebraic score:", normal_score, "Dot score:", dot_score)
     console.log("Total score: ", total_score, "Total time:", seconds, "seconds")
 })
 
