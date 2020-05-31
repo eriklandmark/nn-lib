@@ -65,5 +65,5 @@ run()
  - **208910** = AMD Ryzen Threadripper 1920X
  - **134751** = Intel Core i5-6300U
  - **108919** = AMD FX-8350
- - **42005** = Raspberry Pi 4B (4G) - Non overclocked
+ - **42944** = Raspberry Pi 4B (4G) - Non overclocked
  - **13273** = Raspberry Pi 3B - Non overclocked
