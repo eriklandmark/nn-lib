@@ -61,9 +61,12 @@ run()
 * Make promised-based version of the main functions.
 * Maybe create documentation if needed.
 
-#### Benchmark Scores:
+#### Benchmark Scores (Single-core CPU performance):
  - **208910** = AMD Ryzen Threadripper 1920X
+ - **186511** = DELL Server
  - **134751** = Intel Core i5-6300U
  - **108919** = AMD FX-8350
- - **42944** = Raspberry Pi 4B (4G) - Non overclocked
+ - **65808** = Macbook Air 2011 (Intel Core i7)
+ - **43153** = Raspberry Pi 4B (4G) - Non overclocked
+ - **32125** = Nvidia Jetson Nano - 15W mode
  - **13273** = Raspberry Pi 3B - Non overclocked
