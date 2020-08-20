@@ -24,8 +24,8 @@ export default class FlattenLayer extends Layer {
         let [h, w, d] = this.prevShape
         dout.iterate((n: number, i: number) => {
             const r = Math.floor(i / (w*d))
-            const c = Math.floor(i / (d) - (r*w))
-            const g = Math.floor(i - (c*d) - (r*w*d))
+            const c = Math.floor(i / (d) - (w*r))
+            const g = Math.floor(i - (c*d) - (w*r*d))
             this.output_error.t[n][r][c][g] = dout.t[n][i]
         })
     }
