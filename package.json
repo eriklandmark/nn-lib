@@ -30,6 +30,7 @@
   "private": false,
   "gypfile": true,
   "dependencies": {
+    "apollo-server": "^2.14.2",
     "cli-progress": "^3.8.0",
     "gpu.js": "^2.6.9",
     "jimp": "^0.9.3",
