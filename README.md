@@ -62,6 +62,7 @@ run()
 * Maybe create documentation if needed.
 
 #### Benchmark Scores (Single-core CPU performance):
+ - **255469** = MacBook Air 2020 i7
  - **217559** = AMD Ryzen Threadripper 1920X
  - **186511** = DELL Server
  - **134751** = Intel Core i5-6300U
