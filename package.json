@@ -30,16 +30,16 @@
   "private": false,
   "gypfile": true,
   "dependencies": {
-    "apollo-server": "^2.14.2",
-    "cli-progress": "^3.8.0",
-    "gpu.js": "^2.6.9",
-    "jimp": "^0.9.3",
-    "node-addon-api": "^2.0.0"
+    "apollo-server": "^2.19.2",
+    "cli-progress": "^3.9.0",
+    "gpu.js": "^2.11.2",
+    "jimp": "^0.9.8",
+    "node-addon-api": "^2.0.2"
   },
   "devDependencies": {
     "@types/node": "13.11.1",
-    "typescript": "^3.8.3",
     "nn-lib-visualizer": "github:eriklandmark/nn-lib-visualizer",
-    "ts-node-dev": "^1.0.0-pre.44"
+    "ts-node-dev": "^1.1.1",
+    "typescript": "^3.9.7"
   }
 }
