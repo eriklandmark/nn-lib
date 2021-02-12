@@ -16,7 +16,7 @@ export default class Tokenizer {
         const sents = sentences.map((sentence) => sentence.trim().split(" "))
         const single_words = ArrayHelper.delete_doublets(ArrayHelper.flatten(sents))
         const vocab = ArrayHelper.flatten(single_words.map((word: string) => {
-            const suffix = suffixes.filter((suff) => word.endsWith(suff.replace("-", "")))
+            const suffix = suffixes.filter((suffix) => word.endsWith(suffix.replace("-", "")))
             if (suffix.length > 0) {
                 return [word.substr(0, word.lastIndexOf(suffix[0].replace("-", ""))), suffix]
             } else {
@@ -40,7 +40,7 @@ export default class Tokenizer {
 
     tokenize(sentence: string): Tensor {
         return new Tensor(ArrayHelper.flatten(sentence.split(" ").map((word: string) => {
-            const suffix = suffixes.filter((suff) => word.endsWith(suff.replace("-", "")))
+            const suffix = suffixes.filter((suffix :string) => word.endsWith(suffix.replace("-", "")))
             if (suffix.length > 0) {
                 return [word.substr(0, word.lastIndexOf(suffix[0].replace("-", ""))), suffix]
             } else {
