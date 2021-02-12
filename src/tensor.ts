@@ -301,7 +301,7 @@ export default class Tensor {
         }
     }
 
-    private numberToString(nr: number, precision: number = 5, autoFill: boolean = false): string {
+    numberToString(nr: number, precision: number = 5, autoFill: boolean = false): string {
         const expStr = nr.toExponential()
         return (+expStr.substr(0, expStr.lastIndexOf("e"))).toPrecision(precision)
             + expStr.substr(expStr.lastIndexOf("e")) +
@@ -369,10 +369,10 @@ export default class Tensor {
     }
 
     public populateRandom(seed: number | null = null) {
-        /*if (seed) {
+        if (seed) {
             var x = Math.sin(seed++) * 10000;
             return x - Math.floor(x);
-        }*/
+        }
         this.iterate((pos) => {
             this.set(pos, Math.random() * 2 - 1)
         }, true)

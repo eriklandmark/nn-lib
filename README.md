@@ -69,5 +69,9 @@ run()
  - **108919** = AMD FX-8350
  - **65808** = Macbook Air 2011 (Intel Core i7)
  - **43153** = Raspberry Pi 4B (4G) - Non overclocked
- - **38311** = Nvidia Jetson Nano - 15W mode
+ - **38454** = Nvidia Jetson Nano - 15W mode
  - **13273** = Raspberry Pi 3B - Non overclocked
+
+
+#### MultiThreaded Benchmark Scores:
+- **1736322** = AMD Ryzen Threadripper 1920X
