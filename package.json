@@ -12,7 +12,8 @@
     "build": "tsc -p tsconfig.json",
     "build-native": "node-gyp rebuild",
     "visualize": "ts-node-dev tools/visualize.ts",
-    "benchmark": "node tools/benchmark.js"
+    "benchmark": "node tools/benchmark.js",
+    "multi_threaded_benchmark": "node tools/multi_thread_benchmark.js"
   },
   "files": [
     "dist",
@@ -30,7 +31,7 @@
   "private": false,
   "gypfile": true,
   "dependencies": {
-    "apollo-server": "^2.19.2",
+    "apollo-server": "^2.21.0",
     "cli-progress": "^3.9.0",
     "gpu.js": "^2.11.2",
     "jimp": "^0.9.8",
@@ -40,6 +41,6 @@
     "@types/node": "13.11.1",
     "nn-lib-visualizer": "github:eriklandmark/nn-lib-visualizer",
     "ts-node-dev": "^1.1.1",
-    "typescript": "^3.9.7"
+    "typescript": "^3.9.9"
   }
 }
