@@ -68,10 +68,13 @@ run()
  - **134751** = Intel Core i5-6300U
  - **108919** = AMD FX-8350
  - **65808** = Macbook Air 2011 (Intel Core i7)
- - **43153** = Raspberry Pi 4B (4G) - Non overclocked
- - **38454** = Nvidia Jetson Nano - 15W mode
+ - **43153** = Raspberry Pi 4B (4 GB) - Non overclocked
+ - **38454** = Nvidia Jetson Nano 4 GB - 15W mode
  - **13273** = Raspberry Pi 3B - Non overclocked
 
 
 #### MultiThreaded Benchmark Scores:
-- **1736322** = AMD Ryzen Threadripper 1920X
+ - **1736322** = AMD Ryzen Threadripper 1920X
+ - **827892** = MacBook Air 2020 i7
+ - **144604** = Nvidia Jetson Nano (4 GB) - 15W mode
+ - **118519** = Raspberry Pi 4B (4 GB) - Non overclocked
