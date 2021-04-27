@@ -13,8 +13,8 @@ export default class Tensor {
             if (v.length == 0) {
                 this.shape = [0]
             } else {
-                this.calculateShape([...v])
-                this.createTensor([...v])
+                this.calculateShape(v)
+                this.createTensor(v)
             }
         }
     }
@@ -511,7 +511,9 @@ export default class Tensor {
 
                 const t = new Tensor([this.shape[1]], true)
                 for (let i = 0; i < this.shape[1]; i++) {
-                    t[i] = (<Float64Array[]>this.t)[i].reduce((acc: number, val: number, k: number) => acc + (val * t[k]), 0)
+                    for (let j = 0; j < this.shape[0]; j++) {
+                        (<Float64Array> t.t)[i] += (<Float64Array> b.t)[j] * this.t[i][j]
+                    }
                 }
                 return t;
             } else if (b.dim == 2) {
@@ -525,8 +527,9 @@ export default class Tensor {
 
                 for (let i: number = 0; i < this.shape[0]; i++) {
                     for (let j: number = 0; j < this.shape[1]; j++) {
-                        t.t[i][j] = (<Float64Array[]>this.t)[i].reduce((acc, val, k) =>
-                            acc + (val * b.t[k][j]), 0)
+                        for (let k: number = 0; k < this.shape[1]; k++) {
+                            t.t[i][j] += (<Float64Array[]>this.t)[i][k] * b.t[k][j]
+                        }
                     }
                 }
                 return t
@@ -813,7 +816,7 @@ export default class Tensor {
         return t
     }
 
-    swapRows(i, j) {
+    public swapRows(i, j) {
         [this.t[i], this.t[j]] = [this.t[j], this.t[i]]
     }
 
