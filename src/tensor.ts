@@ -238,7 +238,7 @@ export default class Tensor {
 
     public iterate(func: Function, use_pos: boolean = false, channel_first = false): void {
         if (this.dim == 1) {
-            for (let i = 0; i < this.shape[0]; i++) {
+            for (let i: number = 0; i < this.shape[0]; i++) {
                 if (use_pos) {
                     func([i])
                 } else {
@@ -249,7 +249,7 @@ export default class Tensor {
             for (let i: number = 0; i < this.shape[0]; i++) {
                 for (let j: number = 0; j < this.shape[1]; j++) {
                     if (use_pos) {
-                       func([i, j])
+                        func([i, j])
                     } else {
                         func(i, j)
                     }
@@ -659,10 +659,10 @@ export default class Tensor {
             if (keepDims) {
                 let t = this.copy();
                 if (axis == 1) {
-                    t.t.forEach((arr, i) => {
-                        const sum = arr.reduce((acc, val) => acc + val, 0);
-                        arr.forEach((val, j) => t.t[i][j] = sum)
-                    });
+                    for (let i = 0; i < t.shape[0]; i++) {
+                        const sum = (<Float64Array> t.t[i]).reduce((acc, val) => acc + val, 0);
+                        (<Float64Array> t.t[i]).forEach((val, j) => t.t[i][j] = sum)
+                    }
                 } else if (axis == 0) {
                     for (let j = 0; j < this.shape[1]; j++) {
                         let sum = 0;
