@@ -1,6 +1,5 @@
-import Tensor from "../dist/tensor";
-import Helper from "../dist/lib/helper";
-
+import Tensor from "../src/tensor";
+import Helper from "../src/lib/helper";
 
 console.log("Starting benchmarking...")
 
