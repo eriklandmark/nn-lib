@@ -1,7 +1,6 @@
 import Dataset, {Example} from "./dataset";
 import Layer from "./layers/layer";
 import * as fs from "fs";
-import {GPU} from 'gpu.js';
 import Tensor from "./tensor";
 import {LayerHelper} from "./layers/layer_helper";
 import Helper from "./lib/helper";
@@ -73,7 +72,9 @@ export interface BacklogData {
 
 export default class Model {
     layers: Layer[]
-    gpuInstance: GPU
+    gpuInstance: any
+    GPU: any
+
     private isBuilt = false;
     backlog: BacklogData = {
         actual_duration: 0,
@@ -105,11 +106,17 @@ export default class Model {
 
     constructor(layers: Layer[]) {
         this.layers = layers
-        this.gpuInstance = new GPU()
+
+        import("gpu.js").then(({GPU}) => {
+            this.gpuInstance = new GPU()
+            this.GPU = GPU
+        }).catch(() => {
+            console.log("GPU.js not found. GPU acceleration disabled.");
+        })
     }
 
     public isGpuAvailable(): boolean {
-        return GPU.isGPUSupported
+        return this.GPU.isGPUSupported
     }
 
     public build(inputShape: number[], learning_rate: number, lossFunction,
@@ -488,7 +495,7 @@ export default class Model {
         if (!fs.existsSync(path)) {
             throw "Model file not found!!"
         }
-        const modelObj = JSON.parse(fs.readFileSync(path, {encoding: "UTF-8"}))
+        const modelObj = JSON.parse(fs.readFileSync(path, {encoding: "utf-8"}))
         this.backlog.info = modelObj.model_data
         this.settings = modelObj.settings
         const layer_keys: string[] = Object.keys(modelObj.layers).sort()
