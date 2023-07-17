@@ -1,6 +1,9 @@
 dataset
 build
 
+bun.lockb
+package-lock.json
+
 # Logs
 logs
 *.log
