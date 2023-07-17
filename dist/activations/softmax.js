@@ -32,7 +32,7 @@ class Softmax {
     normal_gpu() {
         return function actv(a) {
             let sum = 0;
-            for (let i = 0; i < this.constants.softmax; i++) {
+            for (let i = 0; i < this.constants["softmax"]; i++) {
                 sum += Math.exp(a[this.thread.y][i]);
             }
             return Math.exp(a[this.thread.y][this.thread.x]) / sum;

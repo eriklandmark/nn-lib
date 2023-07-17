@@ -140,6 +140,18 @@ export default class Tensor {
 
     }
 
+    getLinearPos(pos: number[]): number {
+        if (pos.length == 1) {
+            return pos[0]
+        } else if (pos.length == 2) {
+            return pos[0] * this.shape[1] + pos[1]
+        } else if (pos.length == 3) {
+            return pos[0] * this.shape[1] * this.shape[2] + pos[1] * this.shape[2] + pos[2]
+        } else if (pos.length == 4) {
+            return pos[0] * this.shape[1] * this.shape[2] * this.shape[3] + pos[1] * this.shape[2] * this.shape[3] + pos[2] * this.shape[3] + pos[3]
+        }
+    }
+
     public set(pos: number[], v: number): void {
         if (!isFinite(v) || isNaN(v)) {
             console.trace()
@@ -354,7 +366,7 @@ export default class Tensor {
     }
 
     public copy(full: boolean = true): Tensor {
-        if (this.shape == [0]) {
+        if (this.shape[0] == 0 && [this.shape.length == 1]) {
             return new Tensor()
         } else {
             let t = new Tensor(this.shape, true)
@@ -366,12 +378,14 @@ export default class Tensor {
     }
 
     public populateRandom(seed: number | null = null) {
-        if (seed) {
-            const x = Math.sin(seed++) * 10000;
-            return x - Math.floor(x);
-        }
         this.iterate((pos) => {
-            this.set(pos, Math.random() * 2 - 1)
+            if (seed) {
+                const x = Math.sin(seed + this.getLinearPos(pos)) * 10000;
+                this.set(pos, x - Math.floor(x))
+            } else {
+                this.set(pos, Math.random() * 2 - 1)
+            }
+
         }, true)
     }
 
@@ -557,7 +571,7 @@ export default class Tensor {
     }
 
     public padding(padding_height: number, padding_width: number, axis: number[] = [0, 1]) {
-        if (axis == [0, 1]) {
+        if (axis[0] == 0 && axis[1] == 1) {
             const t = new Tensor([2 * padding_height + this.shape[0], 2 * padding_width + this.shape[1], this.shape[3]], true)
 
             for (let i = 0; i < this.shape[0]; i++) {
@@ -609,7 +623,7 @@ export default class Tensor {
     public argmax(index = -1, axis: number = 0): number {
         if (this.dim == 1) {
             return (<Float64Array>this.t).reduce((acc: number, va: number, ind) =>
-                va > this.t[acc] ? ind : acc, 0)
+                va > <number> this.t[acc] ? ind : acc, 0)
         } else if (this.dim == 2) {
             if (axis == 0) {
                 if (index < 0) {

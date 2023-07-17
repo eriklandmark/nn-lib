@@ -19,32 +19,13 @@ class Tensor {
                 this.createTensor(v);
             }
         }
-        /*
-        return new Proxy(this, {
-            get(target, prop) {
-                if (Number(prop) == prop && !(prop in target)) {
-                    if (typeof target.t[prop] == "number" && !isFinite(target.t[prop])) {
-                        console.trace()
-                        throw "Getting an NaN..."
-                    }
-                    return target.t[prop];
-                }
-                return target[prop];
-            }, set(target, prop: PropertyKey, value: any): boolean {
-                if (Number(prop) == prop && !(prop in target)) {
-                    if (typeof target.t[prop] != "number") {
-                        console.trace()
-                        throw "Cannot set array to number..."
-                    }
-                    if (!isFinite(value)) {
-                        console.trace()
-                        throw "Setting an NaN..."
-                    }
-
-                    return target.t[prop] = value
-                }
-            }
-        });*/
+    }
+    static createIdentityMatrix(n) {
+        const t = new Tensor([n, n], true);
+        for (let i = 0; i < n; i++) {
+            t.t[i][i] = 1;
+        }
+        return t;
     }
     createTensor(v) {
         if (v instanceof Float64Array) {
@@ -164,6 +145,20 @@ class Tensor {
             return this.t[pos[0]][pos[1]][pos[2]][pos[3]];
         }
     }
+    getLinearPos(pos) {
+        if (pos.length == 1) {
+            return pos[0];
+        }
+        else if (pos.length == 2) {
+            return pos[0] * this.shape[1] + pos[1];
+        }
+        else if (pos.length == 3) {
+            return pos[0] * this.shape[1] * this.shape[2] + pos[1] * this.shape[2] + pos[2];
+        }
+        else if (pos.length == 4) {
+            return pos[0] * this.shape[1] * this.shape[2] * this.shape[3] + pos[1] * this.shape[2] * this.shape[3] + pos[2] * this.shape[3] + pos[3];
+        }
+    }
     set(pos, v) {
         if (!isFinite(v) || isNaN(v)) {
             console.trace();
@@ -232,6 +227,18 @@ class Tensor {
         }
         return true;
     }
+    equal(t) {
+        if (!this.equalShape(t)) {
+            return false;
+        }
+        let ans = true;
+        this.iterate((pos) => {
+            if (Math.abs(this.get(pos) - t.get(pos)) > Number.EPSILON) {
+                ans = false;
+            }
+        }, true);
+        return ans;
+    }
     toNumberArray() {
         if (this.dim == 1) {
             return [].slice.call(this.t);
@@ -245,14 +252,14 @@ class Tensor {
     }
     iterate(func, use_pos = false, channel_first = false) {
         if (this.dim == 1) {
-            this.t.forEach((_, index) => {
+            for (let i = 0; i < this.shape[0]; i++) {
                 if (use_pos) {
-                    func([index]);
+                    func([i]);
                 }
                 else {
-                    func(index);
+                    func(i);
                 }
-            });
+            }
         }
         else if (this.dim == 2) {
             for (let i = 0; i < this.shape[0]; i++) {
@@ -370,7 +377,7 @@ class Tensor {
         console.log(this.toString(max_rows, precision));
     }
     copy(full = true) {
-        if (this.shape == [0]) {
+        if (this.shape[0] == 0 && [this.shape.length == 1]) {
             return new Tensor();
         }
         else {
@@ -382,12 +389,14 @@ class Tensor {
         }
     }
     populateRandom(seed = null) {
-        /*if (seed) {
-            var x = Math.sin(seed++) * 10000;
-            return x - Math.floor(x);
-        }*/
         this.iterate((pos) => {
-            this.set(pos, Math.random() * 2 - 1);
+            if (seed) {
+                const x = Math.sin(seed + this.getLinearPos(pos)) * 10000;
+                this.set(pos, x - Math.floor(x));
+            }
+            else {
+                this.set(pos, Math.random() * 2 - 1);
+            }
         }, true);
     }
     empty() {
@@ -509,17 +518,6 @@ class Tensor {
         }, true);
         return t;
     }
-    inv() {
-        if (this.shape[0] == 1 && this.shape[1] == 1) {
-            return new Tensor([[1 / this.t[0][0]]]);
-        }
-        else if (this.shape[0] == 2 && this.shape[1] == 2) {
-            return new Tensor([
-                [this.t[1][1], -this.t[0][1]],
-                [-this.t[1][0], this.t[0][0]]
-            ]).mul(1 / ((this.t[0][0] * this.t[1][1]) - (this.t[0][1] * this.t[1][0])));
-        }
-    }
     fill(scalar) {
         let t = this.copy(false);
         this.iterate((pos) => {
@@ -544,7 +542,9 @@ class Tensor {
                 }
                 const t = new Tensor([this.shape[1]], true);
                 for (let i = 0; i < this.shape[1]; i++) {
-                    t[i] = this.t[i].reduce((acc, val, k) => acc + (val * t[k]), 0);
+                    for (let j = 0; j < this.shape[0]; j++) {
+                        t.t[i] += b.t[j] * this.t[i][j];
+                    }
                 }
                 return t;
             }
@@ -557,7 +557,9 @@ class Tensor {
                 const t = new Tensor([this.shape[0], b.shape[1]], true);
                 for (let i = 0; i < this.shape[0]; i++) {
                     for (let j = 0; j < this.shape[1]; j++) {
-                        t.t[i][j] = this.t[i].reduce((acc, val, k) => acc + (val * b.t[k][j]), 0);
+                        for (let k = 0; k < this.shape[1]; k++) {
+                            t.t[i][j] += this.t[i][k] * b.t[k][j];
+                        }
                     }
                 }
                 return t;
@@ -569,7 +571,7 @@ class Tensor {
         }
     }
     padding(padding_height, padding_width, axis = [0, 1]) {
-        if (axis == [0, 1]) {
+        if (axis[0] == 0 && axis[1] == 1) {
             const t = new Tensor([2 * padding_height + this.shape[0], 2 * padding_width + this.shape[1], this.shape[3]], true);
             for (let i = 0; i < this.shape[0]; i++) {
                 for (let j = 0; j < this.shape[1]; j++) {
@@ -665,10 +667,10 @@ class Tensor {
             if (keepDims) {
                 let t = this.copy();
                 if (axis == 1) {
-                    t.t.forEach((arr, i) => {
-                        const sum = arr.reduce((acc, val) => acc + val, 0);
-                        arr.forEach((val, j) => t.t[i][j] = sum);
-                    });
+                    for (let i = 0; i < t.shape[0]; i++) {
+                        const sum = t.t[i].reduce((acc, val) => acc + val, 0);
+                        t.t[i].forEach((val, j) => t.t[i][j] = sum);
+                    }
                 }
                 else if (axis == 0) {
                     for (let j = 0; j < this.shape[1]; j++) {
@@ -723,6 +725,11 @@ class Tensor {
             }
         }
     }
+    norm(p = 2) {
+        let acc = 0;
+        this.iterate((pos) => { acc += Math.pow(this.get(pos), p); }, true);
+        return Math.pow(acc, (1 / p));
+    }
     mean(axis = -1, keep_dims = false) {
         if (this.dim == 1) {
             return this.sum() / this.count();
@@ -746,11 +753,264 @@ class Tensor {
         }
     }
     transpose() {
-        let t = new Tensor([this.shape[1], this.shape[0]], true);
-        this.iterate((i, j) => {
-            t.t[j][i] = this.t[i][j];
-        });
+        if (this.dim == 1) {
+            let t = new Tensor([this.shape[0], 1], true);
+            this.iterate((i) => {
+                t.t[i][0] = this.t[i];
+            });
+            return t;
+        }
+        else {
+            let t = new Tensor([this.shape[1], this.shape[0]], true);
+            this.iterate((i, j) => {
+                t.t[j][i] = this.t[i][j];
+            });
+            return t;
+        }
+    }
+    trace() {
+        if (this.dim == 2) {
+            if (this.shape[0] == this.shape[1]) {
+                let sum = 0;
+                for (let i = 0; i < this.shape[0]; i++) {
+                    sum += this.t[i][i];
+                }
+                return sum;
+            }
+            else {
+                throw "trace(): Tensor must be a square";
+            }
+        }
+        else {
+            throw "trace(): Tensor must be an matrix.";
+        }
+    }
+    isUpperTriangular() {
+        const r = Math.min(this.shape[0], this.shape[1]);
+        for (let i = 1; i < r; i++) {
+            for (let j = 0; j < i; j++) {
+                if (this.get([i, j]) != 0) {
+                    return false;
+                }
+            }
+        }
+        return true;
+    }
+    isLowerTriangular() {
+        const r = Math.min(this.shape[0], this.shape[1]) - 1;
+        for (let i = 0; i < r; i++) {
+            for (let j = this.shape[1] - 1; j >= i + 1; j--) {
+                if (this.get([i, j]) != 0) {
+                    return false;
+                }
+            }
+        }
+        return true;
+    }
+    isSymmetric() {
+        return this.equal(this.transpose());
+    }
+    isDiagonal() {
+        return this.isUpperTriangular() && this.isLowerTriangular();
+    }
+    rref(verify = true) {
+        const t = this.copy(true);
+        if (!verify || (!this.isUpperTriangular() && !this.isLowerTriangular())) {
+            let h = 0;
+            let k = 0;
+            while (h < t.shape[0] && k < t.shape[1]) {
+                let i_max = h;
+                for (let i = h; i < t.shape[0]; i++) {
+                    if (Math.abs(t.t[i][k]) > Math.abs(t.t[i_max][k])) {
+                        i_max = i;
+                    }
+                }
+                if (Math.abs(t.t[i_max][k]) == 0) {
+                    k++;
+                }
+                else {
+                    if (h != i_max) {
+                        [t.t[h], t.t[i_max]] = [t.t[i_max], t.t[h]];
+                    }
+                    for (let i = h + 1; i < t.shape[0]; i++) {
+                        const f = t.t[i][k] / t.t[h][k];
+                        t.t[i][k] = 0;
+                        for (let j = k + 1; j < t.shape[1]; j++) {
+                            t.t[i][j] = t.t[i][j] - t.t[h][j] * f;
+                        }
+                    }
+                    h++;
+                    k++;
+                }
+            }
+        }
         return t;
+    }
+    swapRows(i, j) {
+        [this.t[i], this.t[j]] = [this.t[j], this.t[i]];
+    }
+    inv() {
+        if (this.dim != 2) {
+            throw "inv(): Tensor is not a matrix.";
+        }
+        else if (this.shape[0] != this.shape[1]) {
+            throw "inv(): Tensor is not quadratic.";
+        }
+        else {
+            if (this.shape[0] == 1) {
+                return new Tensor([[1 / this.t[0][0]]]);
+            }
+            else if (this.shape[0] == 2) {
+                return new Tensor([
+                    [this.t[1][1], -this.t[0][1]],
+                    [-this.t[1][0], this.t[0][0]]
+                ]).mul(1 / ((this.t[0][0] * this.t[1][1]) - (this.t[0][1] * this.t[1][0])));
+            }
+            else if (this.shape[0] >= 3) {
+                const I = Tensor.createIdentityMatrix(this.shape[0]);
+                const t = this.copy(true);
+                let lead = 0;
+                for (let k = 0; k < this.shape[0]; k++) {
+                    if (t.shape[1] <= lead) {
+                        if (this.det() == 0) {
+                            console.trace();
+                            throw "inv(): Determinant of matrix is zero (0)!";
+                        }
+                        throw "inv(): Error!";
+                    }
+                    let i = k;
+                    while (t.t[i][lead] == 0) {
+                        i++;
+                        if (t.shape[0] == i) {
+                            i = k;
+                            lead++;
+                            if (t.shape[1] == lead) {
+                                if (this.det() == 0) {
+                                    console.trace();
+                                    throw "inv(): Determinant of matrix is zero (0)!";
+                                }
+                            }
+                        }
+                    }
+                    t.swapRows(i, k);
+                    I.swapRows(i, k);
+                    let val = t.t[k][lead];
+                    for (let j = 0; j < t.shape[1]; j++) {
+                        t.t[k][j] /= val;
+                        I.t[k][j] /= val;
+                    }
+                    for (let i = 0; i < t.shape[0]; i++) {
+                        if (i === k)
+                            continue;
+                        val = t.t[i][lead];
+                        for (let j = 0; j < t.shape[1]; j++) {
+                            t.t[i][j] -= val * t.t[k][j];
+                            I.t[i][j] -= val * I.t[k][j];
+                        }
+                    }
+                    lead++;
+                }
+                return I;
+            }
+        }
+    }
+    extend(b, axis = 1) {
+        if (axis == 1) {
+            if (b.dim != 1 && b.shape[0] == this.shape[0]) {
+                throw "extend(): Vector wrong number of elements!";
+            }
+            const t = new Tensor([this.shape[0], this.shape[1] + 1], true);
+            t.iterate((i, j) => {
+                if (j == this.shape[1]) {
+                    t.t[i][j] = b.t[i];
+                }
+                else {
+                    t.t[i][j] = this.t[i][j];
+                }
+            });
+            return t;
+        }
+    }
+    lu() {
+        if (this.dim != 2) {
+            throw "to_upper_triangular(): This must be a matrix!";
+        }
+        const U = this.copy(true);
+        const L = this.copy();
+        const P = Tensor.createIdentityMatrix(this.dim);
+        for (let k = 0; k < this.shape[1]; k++) {
+            let max_index = k;
+            for (let i = k + 1; i < this.shape[1]; i++) {
+                if (Math.abs(U.t[i][k]) > Math.abs(U.t[max_index][k])) {
+                    max_index = i;
+                }
+            }
+            U.swapRows(k, max_index);
+            L.swapRows(k, max_index);
+            P.swapRows(k, max_index);
+            for (let i = k + 1; i < this.shape[1]; i++) {
+                const factor = -U.t[i][k] / U.t[k][k];
+                U.t[i][k] = 0;
+                for (let j = k + 1; j <= this.shape[1]; j++) {
+                    U.t[i][j] = U.t[i][j] + factor * U.t[k][j];
+                }
+            }
+        }
+        return [L, U, P];
+    }
+    solve(b) {
+        const tr = this.transpose();
+        return tr.dot(this).inv().dot(tr.dot(b));
+    }
+    solve2(b) {
+        const [m, n] = this.shape;
+        const aug = this.extend(b, 1);
+        for (let k = 0; k < this.shape[1]; k++) {
+            let max_index = k;
+            for (let i = k + 1; i < this.shape[1]; i++) {
+                if (Math.abs(aug.t[i][k]) > Math.abs(aug.t[max_index][k])) {
+                    max_index = i;
+                }
+            }
+            aug.swapRows(k, max_index);
+            for (let i = k + 1; i < this.shape[1]; i++) {
+                const factor = -aug.t[i][k] / aug.t[k][k];
+                aug.t[i][k] = 0;
+                for (let j = k + 1; j <= this.shape[1]; j++) {
+                    aug.t[i][j] = aug.t[i][j] + factor * aug.t[k][j];
+                }
+            }
+        }
+        const x = b.copy();
+        for (let k = m - 1; k >= 0; k--) {
+            x.t[k] = aug.t[k][n];
+            for (let i = k + 1; i < n; i++) {
+                x.t[k] = x.t[k] - aug.t[k][i] * x.t[i];
+            }
+            x.t[k] = x.t[k] / aug.t[k][k];
+        }
+        return x;
+    }
+    det() {
+        if (this.dim == 2) {
+            if (this.shape[0] == this.shape[1]) {
+                let sum = 1;
+                const row_reduced_matrix = this.rref();
+                for (let i = 0; i < this.shape[0]; i++) {
+                    sum *= row_reduced_matrix.t[i][i];
+                }
+                return sum;
+            }
+            else {
+                throw "det(): Tensor must be a square";
+            }
+        }
+        else {
+            throw "det(): Tensor must be an matrix.";
+        }
+    }
+    cond() {
+        return this.inv().norm() * this.norm();
     }
 }
 exports.default = Tensor;

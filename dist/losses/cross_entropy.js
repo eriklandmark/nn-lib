@@ -20,7 +20,7 @@ class CrossEntropy {
     normal_gpu() {
         return function actv(a, labels) {
             let sum = 0;
-            for (let i = 0; i < this.constants.labels_length; i++) {
+            for (let i = 0; i < this.constants["labels_length"]; i++) {
                 sum += labels[this.thread.y][i] * Math.log(a[this.thread.y][i] + Math.pow(10, -14));
             }
             return sum * -1;

@@ -13,7 +13,7 @@ class Helper {
     static timeit(func, floorIt = true) {
         return new Promise((resolve) => __awaiter(this, void 0, void 0, function* () {
             const startTime = Date.now();
-            func();
+            yield func();
             const duration = (Date.now() - startTime) / 1000.0;
             if (floorIt) {
                 resolve(Math.floor(duration));

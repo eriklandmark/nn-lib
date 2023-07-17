@@ -1,6 +1,5 @@
 import Dataset, { Example } from "./dataset";
 import Layer from "./layers/layer";
-import { GPU } from 'gpu.js';
 import Tensor from "./tensor";
 import StochasticGradientDescent from "./optimizers/StochasticGradientDescent";
 export interface SavedLayer {
@@ -66,7 +65,8 @@ export interface BacklogData {
 }
 export default class Model {
     layers: Layer[];
-    gpuInstance: GPU;
+    gpuInstance: any;
+    GPU: any;
     private isBuilt;
     backlog: BacklogData;
     settings: ModelSettings;

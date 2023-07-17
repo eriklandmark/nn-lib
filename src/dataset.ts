@@ -109,7 +109,7 @@ export default class Dataset {
     }
 
     public loadTestData(path: string, maxExamples: number = 2100) {
-        const data = JSON.parse(fs.readFileSync(path, {encoding: "UTF-8"}));
+        const data = JSON.parse(fs.readFileSync(path, {encoding: "utf-8"}));
 
         for (let imageIndex = 0; imageIndex < maxExamples; imageIndex++) {
             let example: Example = {

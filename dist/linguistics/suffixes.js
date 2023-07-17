@@ -1,5 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.suffixes = void 0;
 exports.suffixes = [
     "-a",
     "-an",
