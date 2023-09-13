@@ -19,7 +19,7 @@ export default class Tensor {
         }
     }
 
-    public static createIdentityMatrix(n) {
+    public static createIdentityMatrix(n: number) {
         const t = new Tensor([n,n], true)
         for (let i = 0; i < n; i++) {
             t.t[i][i] = 1
@@ -183,7 +183,7 @@ export default class Tensor {
             return new Tensor()
         } else if (typeof obj["0"] == "number") {
             return new Tensor(Object.keys(obj).map(
-                (item, index) => {
+                (_item: string, index) => {
                     return obj[index.toString()]
                 }
             ))
@@ -228,7 +228,7 @@ export default class Tensor {
 
         let ans = true
 
-        this.iterate((pos) => {
+        this.iterate((pos: number[]) => {
             if (Math.abs(this.get(pos) - t.get(pos)) > Number.EPSILON) {
                 ans = false
             }
@@ -312,9 +312,9 @@ export default class Tensor {
 
     numberToString(nr: number, precision: number = 5, autoFill: boolean = false): string {
         const expStr = nr.toExponential()
-        return (+expStr.substr(0, expStr.lastIndexOf("e"))).toPrecision(precision)
-            + expStr.substr(expStr.lastIndexOf("e")) +
-            (autoFill ? " ".repeat(4 - expStr.substr(expStr.lastIndexOf("e")).length) : "")
+        return (+expStr.substring(0, expStr.lastIndexOf("e"))).toPrecision(precision)
+            + expStr.substring(expStr.lastIndexOf("e")) +
+            (autoFill ? " ".repeat(4 - expStr.substring(expStr.lastIndexOf("e")).length) : "")
     }
 
     public toString(max_rows: number = 10, precision: number = 3): string {
@@ -327,7 +327,7 @@ export default class Tensor {
             }, `Tensor: ${this.shape[0]} [\n`) + " ]"
         } else if (this.dim == 2) {
             return (<any[]>this.t).slice(0, Math.min(max_rows, this.t.length)).reduce((acc, i) => {
-                acc += i.slice(0, Math.min(max_rows, i.length)).reduce((s, i) => {
+                acc += i.slice(0, Math.min(max_rows, i.length)).reduce((s: string, i: number) => {
                     s += " "//.repeat(Math.max(maxCharCount - i.toPrecision(precision).length, 1))
                     s += this.numberToString(i, precision, true);
                     return s;
@@ -346,7 +346,7 @@ export default class Tensor {
             let string = `Tensor: ${this.shape[0]}x${this.shape[1]}x${this.shape[2]} [\n`
             for (let d = 0; d < this.shape[2]; d++) {
                 string += (<any[]>this.t).slice(0, Math.min(max_rows, this.t.length)).reduce((acc, i) => {
-                    acc += i.slice(0, Math.min(max_rows, i.length)).reduce((s, j) => {
+                    acc += i.slice(0, Math.min(max_rows, i.length)).reduce((s: string, j: number) => {
                         const v = this.numberToString(j[d], precision, true)
                         s += " "//.repeat(Math.max(maxCharCount - j[d].toString().length, 0))
                         s += v //j[d].toString().substr(0, maxCharCount) + " ";
@@ -371,14 +371,14 @@ export default class Tensor {
         } else {
             let t = new Tensor(this.shape, true)
             if (full) {
-                t.iterate((pos) => t.set(pos, this.get(pos)), true)
+                t.iterate((pos: number[]) => t.set(pos, this.get(pos)), true)
             }
             return t
         }
     }
 
     public populateRandom(seed: number | null = null) {
-        this.iterate((pos) => {
+        this.iterate((pos: number[]) => {
             if (seed) {
                 const x = Math.sin(seed + this.getLinearPos(pos)) * 10000;
                 this.set(pos, x - Math.floor(x))
@@ -393,13 +393,13 @@ export default class Tensor {
         return this.shape[0] == 0 || this.shape[1] == 0 || this.shape[2] == 0 || this.shape[3] == 0
     }
 
-    public vectorize(channel_first = false): Tensor {
+    public vectorize(channel_first: boolean = false): Tensor {
         const t = new Tensor([this.count()], true)
         let index = 0;
         if (this.dim == 1) {
             return this.copy(true)
         } else {
-            this.iterate((pos) => {
+            this.iterate((pos: number[]) => {
                 t.t[index] = this.get(pos)
                 index += 1
             }, true)
@@ -415,13 +415,13 @@ export default class Tensor {
                 console.trace()
                 throw "Tensor Division: Not the same shape"
             }
-            this.iterate((pos) => {
-                const n = safe? v.get(pos) + 10**-7 : v.get(pos)
+            this.iterate((pos: number[]) => {
+                const n: number = safe? v.get(pos) + 10**-7 : v.get(pos)
                 t.set(pos, this.get(pos) / n)
             }, true);
         } else {
-            const n = safe? v + 10**-7 : v
-            this.iterate((pos) => {
+            const n: number = safe? v + 10**-7 : v
+            this.iterate((pos: number[]) => {
                 t.set(pos, this.get(pos) / n)
             }, true);
         }
@@ -435,11 +435,11 @@ export default class Tensor {
                 console.trace()
                 throw "Tensor Multiplication: Not the same shape"
             }
-            this.iterate((pos) => {
+            this.iterate((pos: number[]) => {
                 t.set(pos, this.get(pos) * v.get(pos))
             }, true);
         } else {
-            this.iterate((pos) => {
+            this.iterate((pos: number[]) => {
                 t.set(pos, this.get(pos) * v)
             }, true);
         }
@@ -453,11 +453,11 @@ export default class Tensor {
                 console.trace()
                 throw "Tensor Subtraction: Not the same shape"
             }
-            this.iterate((pos) => {
+            this.iterate((pos: number[]) => {
                 t.set(pos, this.get(pos) - v.get(pos))
             }, true);
         } else {
-            this.iterate((pos) => {
+            this.iterate((pos: number[]) => {
                 t.set(pos, this.get(pos) - v)
             }, true);
         }
@@ -471,11 +471,11 @@ export default class Tensor {
                 console.trace()
                 throw "Tensor Addition: Not the same shape"
             }
-            this.iterate((pos) => {
+            this.iterate((pos: number[]) => {
                 t.set(pos, this.get(pos) + v.get(pos))
             }, true);
         } else {
-            this.iterate((pos) => {
+            this.iterate((pos: number[]) => {
                 t.set(pos, this.get(pos) + v)
             }, true);
         }
@@ -484,7 +484,7 @@ export default class Tensor {
 
     public pow(v: number): Tensor {
         let t = this.copy(false);
-        this.iterate((pos) => {
+        this.iterate((pos: number[]) => {
             t.set(pos, this.get(pos) ** v)
         }, true);
         return t
@@ -492,7 +492,7 @@ export default class Tensor {
 
     public sqrt(): Tensor {
         let t = this.copy(false);
-        this.iterate((pos) => {
+        this.iterate((pos: number[]) => {
             t.set(pos, Math.sqrt(this.get(pos)))
         }, true);
         return t
@@ -500,7 +500,7 @@ export default class Tensor {
 
     public exp(base: null | number = null): Tensor {
         let t = this.copy(false);
-        this.iterate((pos) => {
+        this.iterate((pos: number[]) => {
             t.set(pos, base ? base ** this.get(pos) : Math.exp(this.get(pos)))
         }, true);
         return t
@@ -508,7 +508,7 @@ export default class Tensor {
 
     public inv_el(eps = 10 ** -7): Tensor {
         let t = this.copy(false);
-        this.iterate((pos) => {
+        this.iterate((pos: number[]) => {
             t.set(pos, this.get(pos) == 0 ? 1 / (this.get(pos) + eps) : 1 / this.get(pos))
         }, true);
         return t
@@ -516,7 +516,7 @@ export default class Tensor {
 
     public fill(scalar: number): Tensor {
         let t = this.copy(false);
-        this.iterate((pos) => {
+        this.iterate((pos: number[]) => {
             t.set(pos, scalar)
         }, true);
         return t
@@ -524,7 +524,7 @@ export default class Tensor {
 
     public log(): Tensor {
         let t = this.copy(false);
-        this.iterate((pos) => {
+        this.iterate((pos: number[]) => {
             t.set(pos, Math.log(this.get(pos)))
         }, true);
         return t
@@ -654,7 +654,7 @@ export default class Tensor {
                 throw "Product of shape must be the same as size of vector!"
             }
             const t = new Tensor(shape, true);
-            let [h, w, d] = shape
+            let [_h, w, d] = shape
 
             this.iterate((val: number, i: number) => {
                 const r = Math.floor(i / (w * d))
@@ -675,7 +675,7 @@ export default class Tensor {
                 if (axis == 1) {
                     for (let i = 0; i < t.shape[0]; i++) {
                         const sum = (<Float64Array> t.t[i]).reduce((acc, val) => acc + val, 0);
-                        (<Float64Array> t.t[i]).forEach((val, j) => t.t[i][j] = sum)
+                        (<Float64Array> t.t[i]).forEach((_val, j) => t.t[i][j] = sum)
                     }
                 } else if (axis == 0) {
                     for (let j = 0; j < this.shape[1]; j++) {
@@ -714,7 +714,7 @@ export default class Tensor {
                 } else if (axis == 1) {
                     let t = new Tensor([this.shape[0], 1], true)
                     this.t.forEach((arr, i) => {
-                        t.t[i][0] = arr.reduce((acc, val) => acc + val, 0);
+                        t.t[i][0] = arr.reduce((acc: number, val: number) => acc + val, 0);
                     });
                     return t;
                 } else if (axis == 2) {

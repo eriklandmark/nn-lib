@@ -1,6 +1,6 @@
-import ProgressBar from "../dist/lib/progress_bar";
-import Tensor from "../dist/tensor";
-import Helper from "../dist/lib/helper";
+import ProgressBar from "../src/lib/progress_bar.ts";
+import Tensor from "../src/tensor.ts";
+import Helper from "../src/lib/helper.ts";
 
 
 console.log("Starting benchmarking...")

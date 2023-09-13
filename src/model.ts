@@ -1,13 +1,13 @@
-import Dataset, {Example} from "./dataset";
-import Layer from "./layers/layer";
+import Dataset, {Example} from "./dataset.ts";
+import Layer from "./layers/layer.ts";
 import * as fs from "fs";
-import Tensor from "./tensor";
-import {LayerHelper} from "./layers/layer_helper";
-import Helper from "./lib/helper";
-import OutputLayer from "./layers/output_layer";
+import Tensor from "./tensor.ts";
+import {LayerHelper} from "./layers/layer_helper.ts";
+import Helper from "./lib/helper.ts";
+import OutputLayer from "./layers/output_layer.ts";
 import Path from "path";
-import StochasticGradientDescent from "./optimizers/StochasticGradientDescent";
-import ProgressBar from "./lib/progress_bar";
+import StochasticGradientDescent from "./optimizers/StochasticGradientDescent.ts";
+import ProgressBar from "./lib/progress_bar.ts";
 
 export interface SavedLayer {
     weights: any

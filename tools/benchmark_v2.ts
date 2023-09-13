@@ -1,11 +1,11 @@
-import Tensor from "../src/tensor";
-import Helper from "../src/lib/helper";
+import Tensor from "../src/tensor.ts";
+import Helper from "../src/lib/helper.ts";
 import NC from "nodeaffinity"
 
 console.log("Starting benchmarking...")
 console.log(NC.setAffinity(2))
 
-const TRIES = 50;
+const TRIES = 10;
 
 const size = 4000;
 const dot_size = 400;

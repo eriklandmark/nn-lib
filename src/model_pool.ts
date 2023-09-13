@@ -1,7 +1,7 @@
 import cp from "child_process"
 import cliProgress from 'cli-progress';
-import Layer from "./layers/layer";
-import {ModelSettings, SavedLayer} from "./model"
+import Layer from "./layers/layer.ts";
+import {ModelSettings, SavedLayer} from "./model.ts"
 
 export interface ModelConfig {
     layers: Layer[] | SavedLayer[]
