@@ -15,7 +15,7 @@
         "benchmark-mt": "ts-node --esm tools/multi_thread_benchmark.ts"
     },
     "files": [
-        "dist",
+        "src",
         "tools"
     ],
     "keywords": [
