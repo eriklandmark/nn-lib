@@ -111,26 +111,34 @@ export default class Tensor {
         this.dim = this.shape.length
     }
 
-    public get(pos: number[]): number {
-        if (pos.length == 1) {
+    public get(pos: number[], to: number[] = []): any {
+        if (pos.length == 1 && this.dim == 1) {
             if (!isFinite(<number>this.t[pos[0]])) {
                 console.trace()
                 throw "Getting an NaN... (" + this.t[pos[0]] + ")"
             }
-            return <number>this.t[pos[0]]
-        } else if (pos.length == 2) {
+            if (to.length) {
+                return new Tensor(this.t.slice(pos[0], to[0] + 1))
+            } else {
+                return <number>this.t[pos[0]]
+            }
+        } else if (pos.length == 2 && this.dim == 2) {
             if (!isFinite(this.t[pos[0]][pos[1]])) {
                 console.trace()
                 throw "Getting an NaN... (" + this.t[pos[0]][pos[1]] + ")"
             }
-            return this.t[pos[0]][pos[1]]
-        } else if (pos.length == 3) {
+            if (to.length) {
+                return new Tensor(<Float64Array[]> this.t.slice(pos[0], to[0] + 1).map((row: any) => row.slice(pos[1], to[1] + 1)))
+            } else {
+                return this.t[pos[0]][pos[1]]
+            }
+        } else if (pos.length == 3 && this.dim == 3) {
             if (!isFinite(this.t[pos[0]][pos[1]][pos[2]])) {
                 console.trace()
                 throw "Getting an NaN... (" + this.t[pos[0]][pos[1]][pos[2]] + ")"
             }
             return this.t[pos[0]][pos[1]][pos[2]]
-        } else if (pos.length == 4) {
+        } else if (pos.length == 4 && this.dim == 4) {
             if (!isFinite(this.t[pos[0]][pos[1]][pos[2]][pos[3]])) {
                 console.trace()
                 throw "Getting an NaN... (" + this.t[pos[0]][pos[1]][pos[2]][pos[3]] + ")"
