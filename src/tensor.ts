@@ -1037,4 +1037,24 @@ export default class Tensor {
     cond() {
         return this.inv().norm() * this.norm()
     }
+
+    concatenate(t: Tensor, direction: "h" | "v" = "h"): Tensor {
+        if (this.dim == 2 && t.dim == 2) {
+
+            if (direction === "h" && this.dim[0] !== t.dim[0]) {
+                console.error('Matrices must have the same number of rows for horizontal concatenation.');
+                return null;
+            }
+
+            if (direction === "v") {
+                return new Tensor([...this.t, ...(t.t as Float64Array[][]).map(row => [...row])]);
+            } else {
+                return new Tensor((this.t as Float64Array[][]).map((row, index) => [...row, ...(t.t as Float64Array[])[index]]));
+            }
+        } else {
+            throw "concatenate(): t_1 or t_2 are not matrices"
+        }
+
+    }
+
 }
