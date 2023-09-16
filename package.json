@@ -1,11 +1,11 @@
 {
     "name": "nn-lib",
-    "version": "1.4.8",
+    "version": "1.4.9",
     "description": "A minimal and very lightweight deep neural network library.",
     "main": "dist/main.js",
     "type": "module",
     "scripts": {
-        "build": "tsc -p tsconfig.json",
+        "build": "tsc -p tsconfig.build.json",
         "system-check": "ts-node --esm tools/system_check.ts",
         "test": "ts-node-dev test/test.ts",
         "train": "ts-node-dev test/train.ts",
@@ -13,7 +13,7 @@
         "predict": "ts-node-dev test/predict.ts",
         "visualize": "ts-node-dev tools/visualize.ts",
         "benchmark": "ts-node --esm tools/benchmark_v2.ts",
-        "benchmark-mt": "ts-node --esm tools/multi_thread_benchmark.ts"
+        "benchmark-mt": "ts-node --esm  tools/multi_thread_benchmark.ts"
     },
     "files": [
         "dist",
