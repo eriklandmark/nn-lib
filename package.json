@@ -1,6 +1,6 @@
 {
     "name": "nn-lib",
-    "version": "1.4.7",
+    "version": "1.4.8",
     "description": "A minimal and very lightweight deep neural network library.",
     "main": "dist/main.js",
     "type": "module",

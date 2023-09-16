@@ -659,6 +659,7 @@ export default class Tensor {
     public reshape(shape: number[]): Tensor {
         if (this.dim == 1) {
             if (this.count() != shape.reduce((acc, n) => acc * n, 1)) {
+                console.trace()
                 throw "Product of shape must be the same as size of vector!"
             }
             const t = new Tensor(shape, true);
@@ -787,9 +788,11 @@ export default class Tensor {
                 }
                 return sum
             } else {
+                console.trace()
                 throw "trace(): Tensor must be a square"
             }
         } else {
+            console.trace()
             throw "trace(): Tensor must be an matrix."
         }
     }
@@ -870,8 +873,10 @@ export default class Tensor {
 
     public inv(): Tensor {
         if (this.dim != 2) {
+            console.trace()
             throw "inv(): Tensor is not a matrix."
         } else if (this.shape[0] != this.shape[1]) {
+            console.trace()
             throw "inv(): Tensor is not quadratic."
         } else {
             if (this.shape[0] == 1) {
@@ -892,6 +897,7 @@ export default class Tensor {
                             console.trace()
                             throw "inv(): Determinant of matrix is zero (0)!"
                         }
+                        console.trace()
                         throw "inv(): Error!"
                     }
 
@@ -937,6 +943,7 @@ export default class Tensor {
     public extend(b: Tensor, axis=1) {
         if (axis == 1) {
             if (b.dim != 1 && b.shape[0] == this.shape[0]) {
+                console.trace()
                 throw "extend(): Vector wrong number of elements!"
             }
 
@@ -954,6 +961,7 @@ export default class Tensor {
 
     public lu() {
         if (this.dim != 2) {
+            console.trace()
             throw "to_upper_triangular(): This must be a matrix!"
         }
         const U = this.copy(true)
@@ -1035,9 +1043,11 @@ export default class Tensor {
                 }
                 return sum
             } else {
+                console.trace()
                 throw "det(): Tensor must be a square"
             }
         } else {
+            console.trace()
             throw "det(): Tensor must be an matrix."
         }
     }
@@ -1060,6 +1070,7 @@ export default class Tensor {
                 return new Tensor((this.t as Float64Array[][]).map((row, index) => [...row, ...(t.t as Float64Array[])[index]]));
             }
         } else {
+            console.trace()
             throw "concatenate(): t_1 or t_2 are not matrices"
         }
 
