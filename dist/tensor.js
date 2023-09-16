@@ -1044,12 +1044,30 @@ export default class Tensor {
                     return new Tensor(this.t.map((row, index) => [...row, ...t.t[index]]));
                 }
             }
-            else if (t.dim == 1 && direction == "v") {
-                if (this.shape[1] !== t.shape[0]) {
-                    console.trace();
-                    throw "concatenate(): Vector length is not equal to number of columns, (" + this.shape[1] + " and " + t.shape[0] + ")";
+            else if (t.dim == 1) {
+                if (direction === "v") {
+                    if (this.shape[1] !== t.shape[0]) {
+                        console.trace();
+                        throw "concatenate(): Vector length is not equal to number of columns, (" + this.shape[1] + " and " + t.shape[0] + ")";
+                    }
+                    return new Tensor([...this.t, t.t]);
                 }
-                return new Tensor([...this.t, ...t.t]);
+                else {
+                    if (this.shape[0] !== t.shape[0]) {
+                        console.trace();
+                        throw "concatenate(): Vector length is not equal to number of rows, (" + this.shape[1] + " and " + t.shape[0] + ")";
+                    }
+                    const res = new Tensor([this.shape[0], this.shape[1] + 1], true);
+                    res.iterate((i, j) => {
+                        if (j == this.shape[1]) {
+                            res.set([i, j], t.t[i]);
+                        }
+                        else {
+                            res.set([i, j], this.t[i][j]);
+                        }
+                    }, false);
+                    return res;
+                }
             }
         }
         else {
