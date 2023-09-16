@@ -8,3 +8,12 @@ t_2.print()
 
 t_1.concatenate(t_2, "v").print()
 
+const ang = 1
+const t = new Tensor(
+    [[ Math.cos(ang), 0, Math.sin(ang)],
+        [       0,       1,              0],
+        [-Math.sin(ang),      0,       Math.cos(ang)]  ])
+
+t.print()
+t.get([1,2], [2,2]).print()
+

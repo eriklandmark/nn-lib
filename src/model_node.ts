@@ -1,9 +1,9 @@
-import {ModelConfig} from "./model_pool.ts";
-import Model, {SavedLayer} from "./model.ts";
-import {LayerHelper} from "./layers/layer_helper.ts";
-import Losses from "./losses/losses.ts";
-import Optimizers from "./optimizers/Optimizers.ts";
-import Dataset from "./dataset.ts";
+import {ModelConfig} from "./model_pool";
+import Model, {SavedLayer} from "./model";
+import {LayerHelper} from "./layers/layer_helper";
+import Losses from "./losses/losses";
+import Optimizers from "./optimizers/Optimizers";
+import Dataset from "./dataset";
 
 export default class ModelNode {
     model: Model

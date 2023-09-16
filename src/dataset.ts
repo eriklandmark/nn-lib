@@ -1,8 +1,8 @@
 import * as fs from "fs";
 import * as path from 'path';
 import Jimp from 'jimp';
-import Tensor from "./tensor.ts";
-import ArrayHelper from "./lib/array_helper.ts";
+import Tensor from "./tensor";
+import ArrayHelper from "./lib/array_helper";
 import cliProgress from "cli-progress"
 
 export interface Example {
