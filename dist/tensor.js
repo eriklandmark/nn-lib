@@ -226,24 +226,24 @@ export default class Tensor {
         }
     }
     equalShape(t) {
-        if (this.dim !== t.dim)
-            return false;
-        for (let i = 0; i < this.dim; i++) {
-            if (this.shape[i] !== t.shape[i]) {
+        if (this.dim !== t.dim) {
+            if (!(this.dim == 1 && t.dim == 2 && t.dim != this.t[0].length)
+                && !(t.dim == 1 && this.dim == 2 && this.dim != t.t[0].length)) {
                 return false;
             }
         }
+        for (let i = 0; i < this.dim; i++)
+            if (this.shape[i] !== t.shape[i])
+                return false;
         return true;
     }
-    equal(t) {
-        if (!this.equalShape(t)) {
+    equal(t, err = Number.EPSILON) {
+        if (!this.equalShape(t))
             return false;
-        }
         let ans = true;
         this.iterate((pos) => {
-            if (Math.abs(this.get(pos) - t.get(pos)) > Number.EPSILON) {
+            if (Math.abs(this.get(pos) - t.get(pos)) > err)
                 ans = false;
-            }
         }, true);
         return ans;
     }

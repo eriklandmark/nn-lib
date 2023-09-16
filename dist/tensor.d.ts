@@ -14,7 +14,7 @@ export default class Tensor {
     static toCategorical(index: number, size: number): Tensor;
     static fromJsonObject(obj: any[][]): Tensor;
     equalShape(t: Tensor): boolean;
-    equal(t: Tensor): boolean;
+    equal(t: Tensor, err?: number): boolean;
     toNumberArray(): any[];
     iterate(func: Function, use_pos?: boolean, channel_first?: boolean): void;
     numberToString(nr: number, precision?: number, autoFill?: boolean): string;

@@ -217,31 +217,26 @@ export default class Tensor {
     }
 
     public equalShape(t: Tensor): boolean {
-        if (this.dim !== t.dim)
-            return false
-
-        for (let i = 0; i < this.dim; i++) {
-            if (this.shape[i] !== t.shape[i]) {
+        if (this.dim !== t.dim) {
+            if (!(this.dim == 1 && t.dim == 2 && t.dim != (<Float64Array[]>this.t)[0].length)
+                && !(t.dim == 1 && this.dim == 2 && this.dim != (<Float64Array[]>t.t)[0].length)) {
                 return false
             }
         }
 
+        for (let i = 0; i < this.dim; i++)
+            if (this.shape[i] !== t.shape[i]) return false
+
         return true
     }
 
-    public equal(t: Tensor): boolean {
-        if(!this.equalShape(t)) {
-            return false
-        }
+    public equal(t: Tensor, err: number = Number.EPSILON): boolean {
+        if(!this.equalShape(t)) return false
 
         let ans = true
-
         this.iterate((pos: number[]) => {
-            if (Math.abs(this.get(pos) - t.get(pos)) > Number.EPSILON) {
-                ans = false
-            }
+            if (Math.abs(this.get(pos) - t.get(pos)) > err) ans = false
         }, true)
-
         return ans
     }
 
