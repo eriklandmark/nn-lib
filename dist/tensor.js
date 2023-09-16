@@ -232,7 +232,7 @@ export default class Tensor {
                 return false;
             }
         }
-        for (let i = 0; i < this.dim; i++)
+        for (let i = 0; i < Math.min(this.dim, t.dim); i++)
             if (this.shape[i] !== t.shape[i])
                 return false;
         return true;

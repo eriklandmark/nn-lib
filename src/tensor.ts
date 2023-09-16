@@ -218,13 +218,13 @@ export default class Tensor {
 
     public equalShape(t: Tensor): boolean {
         if (this.dim !== t.dim) {
-            if (!(this.dim == 1 && t.dim == 2 && t.dim != (<Float64Array[]>this.t)[0].length)
-                && !(t.dim == 1 && this.dim == 2 && this.dim != (<Float64Array[]>t.t)[0].length)) {
+            if (    !(this.dim == 1 && t.dim == 2 && t.dim != (<Float64Array[]>this.t)[0].length)
+                &&  !(t.dim == 1 && this.dim == 2 && this.dim != (<Float64Array[]>t.t)[0].length)) {
                 return false
             }
         }
 
-        for (let i = 0; i < this.dim; i++)
+        for (let i = 0; i < Math.min(this.dim, t.dim); i++)
             if (this.shape[i] !== t.shape[i]) return false
 
         return true
