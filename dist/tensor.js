@@ -126,6 +126,18 @@ export default class Tensor {
                 return this.t[pos[0]];
             }
         }
+        else if (pos.length == 1 && this.shape.length == 2 && this.shape[1] == 1) {
+            if (!isFinite(this.t[pos[0]][0])) {
+                console.trace();
+                throw "Getting an NaN... (" + this.t[pos[0]][0] + ")";
+            }
+            if (to.length) {
+                return new Tensor(this.t.slice(pos[0], to[0] + 1));
+            }
+            else {
+                return this.t[pos[0]][0];
+            }
+        }
         else if (pos.length == 2 && this.dim == 2) {
             if (!isFinite(this.t[pos[0]][pos[1]])) {
                 console.trace();
