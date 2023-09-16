@@ -3,6 +3,7 @@
     "version": "1.4.7",
     "description": "A minimal and very lightweight deep neural network library.",
     "main": "dist/main.js",
+    "type": "module",
     "scripts": {
         "build": "tsc -p tsconfig.json",
         "system-check": "ts-node --esm tools/system_check.ts",
