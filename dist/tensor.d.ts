@@ -60,5 +60,5 @@ export default class Tensor {
     solve2(b: Tensor): Tensor;
     det(): number;
     cond(): number;
-    concatenate(t: Tensor, direction?: "h" | "v"): Tensor;
+    concatenate(t: Tensor, direction: "h" | "v"): Tensor;
 }

@@ -1030,22 +1030,31 @@ export default class Tensor {
     cond() {
         return this.inv().norm() * this.norm();
     }
-    concatenate(t, direction = "h") {
-        if (this.dim == 2 && t.dim == 2) {
-            if (direction === "h" && this.dim[0] !== t.dim[0]) {
-                console.error('Matrices must have the same number of rows for horizontal concatenation.');
-                return null;
+    concatenate(t, direction) {
+        if (this.dim == 2) {
+            if (direction === "h" && this.shape[0] !== t.shape[0]) {
+                console.trace();
+                throw "concatenate(): Matrices must have the same number of rows for horizontal concatenation.";
             }
-            if (direction === "v") {
-                return new Tensor([...this.t, ...t.t.map(row => [...row])]);
+            if (t.dim == 2) {
+                if (direction === "v") {
+                    return new Tensor([...this.t, ...t.t.map((row) => [...row])]);
+                }
+                else {
+                    return new Tensor(this.t.map((row, index) => [...row, ...t.t[index]]));
+                }
             }
-            else {
-                return new Tensor(this.t.map((row, index) => [...row, ...t.t[index]]));
+            else if (t.dim == 1 && direction == "v") {
+                if (this.shape[1] !== t.shape[0]) {
+                    console.trace();
+                    throw "concatenate(): Vector length is not equal to number of columns, (" + this.shape[1] + " and " + t.shape[0] + ")";
+                }
+                return new Tensor([...this.t, ...t.t]);
             }
         }
         else {
             console.trace();
-            throw "concatenate(): t_1 or t_2 are not matrices";
+            throw "concatenate(): This is not a matrix! (shape: " + this.shape.toString() + ")";
         }
     }
 }
