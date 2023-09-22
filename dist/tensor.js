@@ -667,17 +667,30 @@ export default class Tensor {
         if (this.dim == 1) {
             if (this.count() != shape.reduce((acc, n) => acc * n, 1)) {
                 console.trace();
-                throw "Product of shape must be the same as size of vector!";
+                throw "reshape(): Product of shape must be the same as size of vector!";
             }
             const t = new Tensor(shape, true);
-            let [_h, w, d] = shape;
-            this.iterate((val, i) => {
-                const r = Math.floor(i / (w * d));
-                const c = Math.floor(i / (d) - (r * w));
-                const g = Math.floor(i - (c * d) - (r * w * d));
-                t.t[r][c][g] = val;
-            });
+            if (t.dim == 2) {
+                let [r, c] = shape;
+                t.t = [];
+                for (let i = 0; i < r; i++) {
+                    t.t.push(this.t.slice(i * c, (i + 1) * c));
+                }
+            }
+            else if (t.dim == 3) {
+                let [_h, w, d] = shape;
+                this.iterate((val, i) => {
+                    const r = Math.floor(i / (w * d));
+                    const c = Math.floor(i / (d) - (r * w));
+                    const g = Math.floor(i - (c * d) - (r * w * d));
+                    t.t[r][c][g] = val;
+                });
+            }
             return t;
+        }
+        else {
+            console.trace();
+            throw "reshape(): Not inplemented for current dim " + this.shape + " to " + shape;
         }
     }
     sum(axis = -1, keepDims = false) {
